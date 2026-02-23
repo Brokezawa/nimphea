@@ -42,7 +42,7 @@
 ## C++ interop code at compile time. You just need to call it once after your imports!
 
 # Import and re-export the macro system for C++ interop
-import nimphea_macros
+import nimphea/nimphea_macros
 export useNimpheaNamespace, useNimpheaModules
 
 # Use the macro system for THIS compilation unit (nimphea.nim)

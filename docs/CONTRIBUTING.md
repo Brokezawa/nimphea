@@ -1,154 +1,48 @@
 # Contributing to Nimphea
 
-Thank you for your interest in contributing! This guide will help you get started.
-
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [How to Contribute](#how-to-contribute)
-- [Wrapper Development Guide](#wrapper-development-guide)
-- [Testing Requirements](#testing-requirements)
-- [Hardware Testing](#hardware-testing)
-- [Code Style Guidelines](#code-style-guidelines)
-- [Documentation Standards](#documentation-standards)
-- [Performance Guidelines](#performance-guidelines)
-- [Breaking Changes Policy](#breaking-changes-policy)
-- [Submitting Changes](#submitting-changes)
-- [Areas Needing Help](#areas-needing-help)
-- [Roadmap](#roadmap)
-
-## Code of Conduct
-
-Be respectful, inclusive, and constructive. We're all here to learn and build cool things together!
-
-## Getting Started
-
-### Prerequisites
-
-Before contributing, ensure you have:
-- [ ] Nim 2.0 or later installed
-- [ ] ARM toolchain (`arm-none-eabi-gcc`)
-- [ ] libDaisy built and working
-- [ ] Daisy Seed hardware (recommended for testing)
-- [ ] Git and GitHub account
-
-### Fork and Clone
-
-```bash
-# Fork the repository on GitHub first
-
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/nimphea
-cd nimphea
-
-# Add upstream remote
-git remote add upstream https://github.com/Brokezawa/nimphea
-```
-
 ## Development Setup
 
-### 1. Build libDaisy
+### 1. Prerequisites
+- Nim 2.0 or later.
+- ARM Toolchain (arm-none-eabi-gcc).
+- libDaisy built and working.
 
+### 2. Fork and Clone
 ```bash
-cd /path/to/nimphea
-nimble init_libdaisy
-```
-
-### 2. Test Current Examples
-
-```bash
-cd /path/to/nimphea
-nimble test
-```
-
-**Expected output**: All examples should compile successfully with a summary showing Passed: X, Failed: 0
-
-### 3. Create a Branch
-
-```bash
-git checkout -b feature/my-new-feature
-# or
-git checkout -b fix/bug-description
-```
-
-## Modern Build System
-
-Nimphea uses a pure **nimble-based** build system (no Make, no shell scripts). Here are the key commands:
-
-### Essential Nimble Commands
-
-```bash
-# One-time setup (initializes libDaisy submodule and builds C++ library)
-nimble init_libdaisy
-
-# Syntax check all examples without ARM compilation (FAST)
-nimble test
-
-# Build example for ARM Cortex-M7 (creates .bin file for flashing)
-nimble make example_name
-
-# Flash to connected Daisy via USB bootloader
-nimble flash example_name
-
-# Clean all build artifacts
-nimble clear
-
-# Generate HTML API documentation
-nimble docs
-```
-
-For detailed build system information, see [BUILD_SYSTEM.md](BUILD_SYSTEM.md).
-
-### Typical Development Workflow
-
-```bash
-# After first clone
-git clone --recursive https://github.com/YOUR_USERNAME/nimphea
+git clone --recursive https://github.com/Brokezawa/nimphea
 cd nimphea
-nimble init_libdaisy
-
-# Create your feature branch
-git checkout -b feature/my-feature
-
-# During development - quick syntax checks
-nimble test
-
-# When ready to test on hardware
-nimble make my_example
-nimble flash my_example
-
-# Before submitting PR
-nimble test  # Ensure all examples still pass
 ```
 
-## How to Contribute
+### 3. Initialize libDaisy
+```bash
+nimble init_libdaisy
+```
 
-### Types of Contributions
+## Repository Structure
 
-**1. New Peripheral Wrappers**
-- Wrap a libDaisy peripheral (ADC, DAC, PWM, etc.)
-- See "Wrapper Development Guide" below
+- `src/nimphea/`: Core library source code.
+- `docs/`: Documentation and guides.
+- `tests/`: Unit tests for pure Nim logic.
 
-**2. New Examples**
-- Demonstrate a feature or use case
-- Follow existing example structure
+## Contribution Workflow
 
-**3. Bug Fixes**
-- Fix compilation errors
-- Fix runtime issues
-- Improve error handling
+### 1. Library Improvements
+- All core wrapper logic belongs in `src/nimphea/`.
+- Ensure changes are namespaced correctly (e.g., `nimphea/per/adc`).
+- Add unit tests in `tests/` for any new logic.
 
-**4. Documentation**
-- Improve existing docs
-- Add API documentation
-- Create tutorials
+### 2. New Examples
+- Examples are hosted in a separate repository: [nimphea-examples](https://github.com/Brokezawa/nimphea-examples).
+- To contribute an example, create a standalone directory with its own `.nimble` file and submit a PR to that repo.
 
-**5. Testing**
-- Add test cases
-- Test on real hardware
- Report bugs
+## Code Standards
+
+- **Naming**: PascalCase for types, camelCase for procedures and variables.
+- **Embedded Constraints**: No heap allocations in real-time callbacks.
+- **Safety**: Use `addr` instead of the deprecated `unsafeAddr`.
+- **Documentation**: Use `##` comments for all public symbols.
+
+
 
 ## Wrapper Development Guide
 
@@ -355,7 +249,7 @@ nimble flash dac_simple
 **Expected output**:
 - `nimble test` shows dac_simple passes
 - `nimble make dac_simple` produces `build/dac_simple.bin`
-- `nimble flash dac_simple` displays "✓ Flash complete!"
+- `nimble flash dac_simple` displays " Flash complete!"
 
 **Step 8: Document**
 
@@ -439,7 +333,7 @@ nimble test_unit
 # [Suite] FixedStr - Basics ...... (0.00s)
 # [Suite] FixedStr - Edge Cases .... (0.00s)
 # [Summary] 22 tests run (0.00s): 22 OK, 0 FAILED, 0 SKIPPED
-# ✓ All unit tests passed!
+#  All unit tests passed!
 ```
 
 **When to write unit tests:**
@@ -471,9 +365,9 @@ nimble test
 ```
 
 What it checks:
-- ✅ Syntax errors
-- ✅ Type checking  
-- ✅ Import resolution
+-  Syntax errors
+-  Type checking  
+-  Import resolution
 - ❌ Does NOT link with libDaisy
 - ❌ Does NOT cross-compile for ARM
 - ❌ Does NOT catch linker errors
@@ -485,10 +379,10 @@ nimble test_build
 ```
 
 What it checks:
-- ✅ ARM cross-compilation
-- ✅ Linking with libDaisy
-- ✅ All symbols resolve
-- ✅ Binary sizes are reasonable
+-  ARM cross-compilation
+-  Linking with libDaisy
+-  All symbols resolve
+-  Binary sizes are reasonable
 
 **For Contributors:**
 - **During development**: Use `nimble test` for fast feedback
@@ -500,9 +394,9 @@ What it checks:
 ```
 === Quick Syntax Check (all examples) ===
 ============================================================
-Checking blink                           ... ✓ PASS
-Checking audio_demo                      ... ✓ PASS
-Checking pod_demo                        ... ✓ PASS
+Checking blink                           ...  PASS
+Checking audio_demo                      ...  PASS
+Checking pod_demo                        ...  PASS
 ...
 ============================================================
 SUMMARY:
@@ -510,7 +404,7 @@ SUMMARY:
   Failed: 0
 ============================================================
 
-✓ All examples passed syntax check!
+ All examples passed syntax check!
 
 Note: This only checks syntax. For full build validation:
   nimble test_build    # Compile all examples with ARM toolchain
@@ -964,15 +858,10 @@ When breaking changes are absolutely necessary:
 
 Checklist:
 
-- [ ] Code compiles without errors (`nimble test` passes)
-- [ ] All existing examples still compile (`nimble test`)
-- [ ] New feature has a working example in `examples/`
-- [ ] Code is documented with `##` comments
-- [ ] API_REFERENCE.md updated (if new module/feature)
-- [ ] CONTRIBUTING.md updated if process changes
-- [ ] Tested on hardware (if possible)
-- [ ] Commit messages are clear and descriptive
-- [ ] No merge conflicts with main branch
+- Code compiles without errors.
+- New feature has a working example.
+- Code is documented with ## comments.
+- Commits are clear and descriptive.
 
 ### Commit Messages
 
@@ -1023,12 +912,12 @@ git push origin feature/my-new-feature
 Brief description of what this PR does and why.
 
 ## Type of Change
-- [ ] New feature (peripheral wrapper, board support, etc.)
-- [ ] Bug fix (compilation, runtime, logic error)
-- [ ] Documentation (README, API_REFERENCE, guides)
-- [ ] Performance improvement
-- [ ] Refactoring (no functional change)
-- [ ] Other (describe)
+- New feature (peripheral wrapper, board support, etc.)
+- Bug fix (compilation, runtime, logic error)
+- Documentation (README, API_REFERENCE, guides)
+- Performance improvement
+- Refactoring (no functional change)
+- Other (describe)
 
 ## Related Issues
 Fixes #123 (if applicable)
@@ -1040,19 +929,18 @@ Relates to #456 (if applicable)
 - Third change
 
 ## Testing Done
-- [ ] All examples compile (`nimble test` passes)
-- [ ] New example works and follows conventions
-- [ ] Tested on hardware: [describe board(s) and results]
-- [ ] Ran `nimble clear` and rebuilt from scratch
+- All examples compile.
+- New example works and follows conventions.
+- Tested on hardware.
+- Ran nimble clear and rebuilt from scratch.
 
 ## Checklist
-- [ ] Code follows Nim style guidelines
-- [ ] Code is documented with `##` comments
-- [ ] New public APIs added to API_REFERENCE.md
-- [ ] No breaking changes to existing API
-- [ ] Commits are clean and descriptive
-- [ ] No hardcoded paths or personal configurations
-- [ ] Tested with `nimble test`
+- Code follows Nim style guidelines.
+- Code is documented with ## comments.
+- New public APIs added to API_REFERENCE.md.
+- No breaking changes to existing API.
+- Commits are clean and descriptive.
+- No hardcoded paths or personal configurations.
 
 ## Additional Notes
 Any additional context or notes for reviewers...

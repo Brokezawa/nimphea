@@ -1,7 +1,7 @@
 # API Reference
 
 Complete API reference for **Nimphea**, the Nim wrapper for libDaisy.
-This document covers all **85 modules** available in the library.
+This document covers all **98 modules** available in the library.
 
 ## Table of Contents
 
@@ -16,9 +16,10 @@ This document covers all **85 modules** available in the library.
 
 2.  **[Audio & Signal Processing](#audio--signal-processing)**
     *   [Audio Handling](#audio-handling-nimpheanim)
-    *   [WAV Writer](#wav-file-writer-nimphea_wavwriternim)
-    *   [WAV Player](#wav-file-player-nimphea_wavplayernim)
-    *   [WAV Parser](#wav-file-parser-nimphea_wavparsernim)
+    *   [CMSIS-DSP](#cmsis-dsp-cmsisnim)
+    *   [WAV File Writer](#wav-file-writer-nimphea_wavwriternim)
+    *   [WAV File Player](#wav-file-player-nimphea_wavplayernim)
+    *   [WAV File Parser](#wav-file-parser-nimphea_wavparsernim)
     *   [WAV Format](#wav-format-nimphea_wavformatnim)
     *   [Wavetable Loader](#wavetable-loader-nimphea_wavetable_loadernim)
     *   [SAI (Low Level)](#sai-module-nimphea_sainim)
@@ -29,6 +30,7 @@ This document covers all **85 modules** available in the library.
     *   [DMA & Cache](#dma-cache-control-sysdmanim)
     *   [Persistent Storage](#persistent-storage-nimphea_persistent_storagenim)
     *   [File Reader](#file-reader-nimphea_filereadernim)
+    *   [File Table](#file-table-nimphea_filetablenim)
 
 4.  **[Peripherals](#peripherals)**
     *   [ADC](#adc-module-peradcnim)
@@ -48,74 +50,90 @@ This document covers all **85 modules** available in the library.
     *   [Controls (Encoder, Analog)](#controls-module-hidctrlnim)
     *   [Switch](#switch-module-hidswitchnim)
     *   [3-Position Switch](#switch-3-pos-hidswitch3nim)
-    *   [Gate Input](#gate-input-hidgateinnim)
-    *   [LED](#led-control-hidlednim)
-    *   [RGB LED](#rgb-led-control-hidrgb_lednim)
+    *   [LED](#led-module-hidlednim)
+    *   [RGB LED](#rgb-led-module-hidrgb_lednim)
     *   [Parameter Mapping](#parameter-mapping-hidparameternim)
-    *   [MIDI](#midi-module-hidmidinim)
-    *   [USB](#usb-module-hidusbnim)
-    *   [Shift Register (Nim)](#shift-register-nim-nimphea_shift_registernim)
-
-6.  **[UI & Graphics](#ui--graphics)**
-    *   [UI Core](#ui-core-system-nimphea_ui_corenim)
-    *   [Menu System](#menu-system-nimphea_menunim)
-    *   [Menu Builder DSL](#menu-builder-dsl-uimenu_buildernim)
-    *   [UI Controls](#ui-controls-nimphea_ui_controlsnim)
-    *   [UI Events](#ui-events-nimphea_ui_eventsnim)
-    *   [Event Helpers](#event-helpers-uieventsnim)
-    *   [OLED Display (SSD130x)](#oled-display-ssd130x-hiddispoled_displaynim)
-    *   [Display Concepts](#display-concepts-uidisplaynim)
-    *   [Graphics Primitives](#graphics-primitives-hiddispgraphics_commonnim)
-    *   [Fonts](#fonts-utiloled_fontsnim)
-    *   [Color Utilities](#color-utilities-nimphea_colornim)
     *   [Mapped Values](#mapped-values-nimphea_mapped_valuenim)
+    *   [Colors](#color-utilities-nimphea_colornim)
 
-7.  **[Board Support](#board-support)**
-    *   [Daisy Patch](#daisy-patch-boardsdaisy_patchnim)
-    *   [Daisy Patch SM](#daisy-patch-sm-boardsdaisy_patch_smnim)
-    *   [Daisy Pod](#daisy-pod-boardsdaisy_podnim)
-    *   [Daisy Field](#daisy-field-boardsdaisy_fieldnim)
-    *   [Daisy Petal](#daisy-petal-boardsdaisy_petalnim)
-    *   [Daisy Versio](#daisy-versio-boardsdaisy_versionim)
-    *   [Daisy Legio](#daisy-legio-boardsdaisy_legionim)
+6.  **[Display Drivers](#display-drivers)**
+    *   [Graphics Common](#graphics-common-hiddispgraphics_commonnim)
+    *   [OLED SSD1306](#oled-ssd1306-hiddispoled_displaynim)
+    *   [OLED SH1106](#oled-sh1106-devoled_sh1106nim)
+    *   [OLED SSD1327](#oled-ssd1327-devoled_ssd1327nim)
+    *   [OLED SSD1351](#oled-ssd1351-devoled_ssd1351nim)
+    *   [LCD HD44780](#lcd-hd44780-devlcd_hd44780nim)
+    *   [OLED Fonts](#oled-fonts-utiloled_fontsnim)
 
-8.  **[Device Drivers](#device-drivers)**
-    *   [Sensors (IMU, Env)](#sensors)
-        *   [APDS9960](#apds9960-devapds9960nim)
-        *   [DPS310](#dps310-devdps310nim)
-        *   [ICM20948](#icm20948-devicm20948nim)
-        *   [TLV493D](#tlv493d-devtlv493dnim)
-    *   [LED Drivers](#led-drivers)
-        *   [NeoPixel](#neopixel-driver-devneopixelnim)
-        *   [DotStar](#dotstar-driver-devdotstarnim)
-        *   [PCA9685](#led-driver-pca9685-devleddrivernim)
-    *   [Input & IO](#input--io)
-        *   [MPR121](#mpr121-touch-devmpr121nim)
-        *   [NeoTrellis](#neotrellis-devneotrellisnim)
-        *   [MCP23x17](#mcp23x17-devmcp23x17nim)
-        *   [MAX11300](#max11300-devmax11300nim)
-        *   [ShiftRegister 4021](#shift-register-4021-devsr4021nim)
-        *   [ShiftRegister 595](#shift-register-595-devsr595nim)
-    *   [Displays](#displays)
-        *   [SSD1351](#ssd1351-color-oled-devoled_ssd1351nim)
-        *   [SSD1327](#ssd1327-grayscale-oled-devoled_ssd1327nim)
-        *   [SH1106](#sh1106-oled-devoled_sh1106nim)
-        *   [HD44780](#hd44780-lcd-devlcd_hd44780nim)
-    *   [Audio Codecs](#audio-codecs)
-        *   [AK4556](#ak4556-devcodec_ak4556nim)
-        *   [PCM3060](#pcm3060-devcodec_pcm3060nim)
-        *   [WM8731](#wm8731-devcodec_wm8731nim)
+7.  **[Device Drivers](#device-drivers)**
+    *   [Audio Codecs (AK4556, WM8731, PCM3060)](#codecs)
+    *   [Sensors (IMU, Gesture, Pressure, Magnetic, Touch)](#sensors)
+    *   [LED Drivers (PCA9685, DotStar, NeoPixel)](#led-drivers)
+    *   [IO Expanders (MCP23017, Shift Registers, MAX11300)](#io-expanders)
 
-9.  **[Data Structures & Utils](#data-structures--utils)**
-    *   [FileTable](#file-table-nimphea_filetablenim)
+8.  **[UI Framework](#ui-framework)**
+    *   [UI Core](#ui-core-nimphea_ui_corenim)
+    *   [UI Events](#ui-events-nimphea_ui_eventsnim)
+    *   [UI Controls](#ui-controls-nimphea_ui_controlsnim)
+    *   [Menu System](#menu-system-nimphea_menunim)
+
+9.  **[Data Structures](#data-structures)**
+    *   [FIFO Queue](#fifo-queue-nimphea_fifonim)
+    *   [Ring Buffer](#ring-buffer-nimphea_ringbuffernim)
     *   [Stack](#stack-nimphea_stacknim)
-    *   [FIFO](#fifo-nimphea_fifonim)
-    *   [RingBuffer](#ringbuffer-nimphea_ringbuffernim)
-    *   [FixedStr](#fixedstr-nimphea_fixedstrnim)
-    *   [V/Oct Calibration](#voct-calibration-nimphea_voct_calibrationnim)
-    *   [Macros](#macros-nimphea_macrosnim)
+    *   [FixedStr](#fixed-string-nimphea_fixedstrnim)
 
 ---
+
+## Core System
+
+### DaisySeed (nimphea.nim)
+Main entry point for initialized the hardware and controlling the onboard LED and system timing.
+
+- `initDaisy(boost)` - Initializes the Daisy Seed board.
+- `setLed(state)` - Sets the onboard LED state.
+- `toggleLed()` - Toggles the onboard LED.
+- `delay(ms)` - Blocking millisecond delay.
+- `now()` - Returns system time in seconds.
+
+### System Utilities (sys/system.nim)
+Low-level system configuration and bootloader access.
+
+- `resetToBootloader()` - Jump to the STM32 DFU bootloader.
+- `getFrequencies()` - Get CPU and bus frequencies.
+
+### Logging (hid/logger.nim)
+USB and UART serial logging.
+
+- `startLog(waitForPC)` - Starts the serial logger.
+- `print(text)` - Formatted print.
+- `printLine(text)` - Formatted print with newline.
+
+---
+
+## Audio & Signal Processing
+
+### Audio Handling (nimphea.nim)
+High-level audio configuration and callback registration.
+
+- `startAudio(callback)` - Start audio processing with a non-interleaved callback.
+- `setSampleRate(rate)` - Set the SAI sample rate.
+- `setBlockSize(size)` - Set the audio block size.
+
+### CMSIS-DSP (cmsis.nim)
+Hardware-accelerated math functions optimized for ARM Cortex-M7.
+
+- **Basic Math**: Vector add, sub, mult, scale, dot product.
+- **Fast Math**: Optimized sin, cos, sqrt.
+- **Filtering**: FIR and Biquad (IIR) filters with compile-time sizing.
+- **Transforms**: Complex and Real FFT.
+- **Matrix**: High-performance matrix arithmetic.
+- **Statistics**: Mean, max, min, RMS, variance.
+- **Fixed Point**: Q31 and Q15 optimized math.
+- **Interpolation**: Linear and bilinear lookup.
+
+---
+
 
 # Core System
 

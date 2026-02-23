@@ -1,0 +1,6 @@
+build/
+nimcache/
+*.elf
+*.bin
+*.map
+.nimble/

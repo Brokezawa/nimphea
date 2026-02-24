@@ -36,75 +36,39 @@ task make, "Build for ARM Cortex-M7":
     quit(1)
   echo fmt"Using nimphea path: {pkgPath}"
 
-  # Compile only (generate object files into build/nimcache), then link with
-  # the ARM cross-linker. This avoids the host linker attempting to link
-  # ARM object files (which fails on macOS/Linux/Windows hosts).
-  let nimcacheDir = "build/nimcache"
+  var nimCmd = "nim cpp"
+  # Force the gcc backend and point to ARM cross-toolchain
+  nimCmd.add(" --cc:gcc")
+  nimCmd.add(" --gcc.exe:arm-none-eabi-gcc")
+  nimCmd.add(" --gcc.cpp.exe:arm-none-eabi-g++")
+  nimCmd.add(" --gcc.linkerexe:arm-none-eabi-g++")
+  nimCmd.add(" --cpu:arm --os:standalone --mm:arc --opt:size --exceptions:goto")
+  nimCmd.add(" --define:useMalloc --define:noSignalHandler")
+
+  # Ensure example src and nimphea src are on the search path
+  nimCmd.add(" --path:src")
+  nimCmd.add(" --path:" & pkgPath & "/src")
+
+  # Link with libDaisy (must be built by nimble init_libdaisy)
+  nimCmd.add(" --passL:-L" & pkgPath & "/libDaisy/build")
+  nimCmd.add(" --passL:-ldaisy")
+
+  # Include libDaisy headers
+  nimCmd.add(" --passC:-I" & pkgPath & "/libDaisy/src")
+  nimCmd.add(" --passC:-I" & pkgPath & "/libDaisy")
+  nimCmd.add(" --passC:-DSTM32H750xx")
+  nimCmd.add(" --passC:-DFILEIO_ENABLE_FATFS_READER")
+
+  # Ensure panicoverride in this example is used (it's in src/)
+  let target = "blink"
   mkDir("build")
-  mkDir(nimcacheDir)
+  nimCmd.add(" -o:build/" & target & ".elf")
+  nimCmd.add(" src/" & target & ".nim")
 
-  var nimCompile = "nim cpp --noLinking:on --nimcache:" & nimcacheDir
-  nimCompile.add(" --cc:gcc")
-  nimCompile.add(" --gcc.exe:arm-none-eabi-gcc")
-  nimCompile.add(" --gcc.cpp.exe:arm-none-eabi-g++")
-  nimCompile.add(" --cpu:arm --os:standalone --mm:arc --opt:size --exceptions:goto")
-  nimCompile.add(" --define:useMalloc --define:noSignalHandler")
-  nimCompile.add(" --path:src")
-  nimCompile.add(" --path:" & pkgPath & "/src")
-
-  # Add include paths defensively
-  let libRoot = pkgPath & "/libDaisy"
-  if dirExists(libRoot & "/src"):
-    nimCompile.add(" --passC:-I\"" & libRoot & "/src\"")
-  if dirExists(libRoot):
-    nimCompile.add(" --passC:-I\"" & libRoot & "\"")
-  let halInc = libRoot & "/Drivers/STM32H7xx_HAL_Driver/Inc"
-  if dirExists(halInc): nimCompile.add(" --passC:-I\"" & halInc & "\"")
-  let cmsisInc = libRoot & "/Drivers/CMSIS_5/CMSIS/Core/Include"
-  if dirExists(cmsisInc): nimCompile.add(" --passC:-I\"" & cmsisInc & "\"")
-  let sysInc = libRoot & "/src/sys"
-  if dirExists(sysInc): nimCompile.add(" --passC:-I\"" & sysInc & "\"")
-  let cmsisDevice = libRoot & "/Drivers/CMSIS-Device/ST/STM32H7xx/Include"
-  if dirExists(cmsisDevice): nimCompile.add(" --passC:-I\"" & cmsisDevice & "\"")
-  let usbHostInc = libRoot & "/Middlewares/ST/STM32_USB_Host_Library/Core/Inc"
-  if dirExists(usbHostInc): nimCompile.add(" --passC:-I\"" & usbHostInc & "\"")
-  let usbhTarget = libRoot & "/src/usbh"
-  if dirExists(usbhTarget): nimCompile.add(" --passC:-I\"" & usbhTarget & "\"")
-  let fatFsInc = libRoot & "/Middlewares/Third_Party/FatFs/src"
-  if dirExists(fatFsInc): nimCompile.add(" --passC:-I\"" & fatFsInc & "\"")
-
-  nimCompile.add(" --passC:-DSTM32H750xx")
-  nimCompile.add(" --passC:-DFILEIO_ENABLE_FATFS_READER")
-
-  nimCompile.add(" src/" & "blink.nim")
-
-  echo "Compiling (no link): " & nimCompile
-  exec nimCompile
-
-  # Collect object files produced by Nim in nimcacheDir
-  var objs: seq[string] = @[]
-  for f in walkDir(nimcacheDir):
-    if f.endsWith(".o"):
-      objs.add(f)
-  if objs.len == 0:
-    echo "Error: no object files found after compile; nim cache dir: " & nimcacheDir
-    quit(1)
-
-  # Link using the ARM cross-linker
-  let linkCmd = "arm-none-eabi-g++ -o build/" & "blink.elf " & join(objs, " ") & " -L" & pkgPath & "/libDaisy/build -ldaisy"
-  echo "Linking: " & linkCmd
-  exec linkCmd
-
-  # Generate binary and print size
-  exec "arm-none-eabi-objcopy -O binary build/blink.elf build/blink.bin"
-  exec "arm-none-eabi-size build/blink.elf"
-
-task clear, "Remove build artifacts for example":
-  if dirExists("build"):
-    try:
-      rmDir("build")
-    except OSError:
-      echo "Warning: could not remove build/ directory"
+  echo "Running: " & nimCmd
+  exec nimCmd
+  exec "arm-none-eabi-objcopy -O binary build/" & target & ".elf build/" & target & ".bin"
+  exec "arm-none-eabi-size build/" & target & ".elf"
 
 task flash, "Flash via DFU":
   exec "dfu-util -a 0 -s 0x08000000:leave -D build/blink.bin"

@@ -1,10 +1,10 @@
 # Package
 version       = "0.1.0"
 author        = "Nimphea Contributors"
-description   = "Nimphea Example: $name"
+description   = "Nimphea Example: data_structures"
 license       = "MIT"
 srcDir        = "src"
-bin           = @["$name"]
+bin           = @["data_structures"]
 
 # Dependencies
 requires "nim >= 2.0.0"
@@ -22,16 +22,14 @@ task make, "Build for ARM Cortex-M7":
   var nimCmd = "nim cpp"
   nimCmd.add(" --cpu:arm --os:standalone --mm:arc --opt:size --exceptions:goto")
   nimCmd.add(" --define:useMalloc --define:noSignalHandler")
-  
-  # Note: When installed via nimble, srcDir contents are in the package root
-  nimCmd.add(" --path:" & nimpheaPath)
+  nimCmd.add(" --path:" & nimpheaPath / "src")
   
   # Link with libDaisy
   nimCmd.add(" --passL:-L" & nimpheaPath / "libDaisy/build")
   nimCmd.add(" --passL:-ldaisy")
   
   # ELF and BIN output
-  let target = "$name"
+  let target = "data_structures"
   nimCmd.add(" -o:build/" & target & ".elf")
   nimCmd.add(" src/" & target & ".nim")
   
@@ -41,7 +39,7 @@ task make, "Build for ARM Cortex-M7":
   exec "arm-none-eabi-size build/" & target & ".elf"
 
 task flash, "Flash via DFU":
-  exec "dfu-util -a 0 -s 0x08000000:leave -D build/$name.bin"
+  exec "dfu-util -a 0 -s 0x08000000:leave -D build/data_structures.bin"
 
 task stlink, "Flash via ST-Link":
-  exec "openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c \"program build/$name.elf verify reset exit\""
+  exec "openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c \"program build/data_structures.elf verify reset exit\""

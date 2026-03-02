@@ -46,6 +46,53 @@ Flashes the `main.bin` file to your Daisy Seed via USB using `dfu-util`. You mus
 #### nimble stlink
 Flashes the `main.elf` file via an ST-Link probe using `openocd`. This method is faster and does not require manual button presses on the board.
 
+## Boot Modes and Optional Features
+
+Nimphea supports three boot modes for deploying applications. See [BOOT_MODES.md](./BOOT_MODES.md) for a comprehensive decision tree and guide.
+
+### Boot Modes
+
+1. **BOOT_NONE (Default)**
+   - Direct flash to internal flash (0x08000000)
+   - No bootloader required
+   - Best for development and simple projects
+   - Use with `nimble stlink` (ST-Link) or `nimble flash` (DFU)
+
+2. **BOOT_SRAM**
+   - Application runs from SRAM (0x20000000), loaded by DFU bootloader
+   - Requires pre-installed DFU bootloader on device
+   - Allows iterative development without re-flashing bootloader
+   - Limited to ~512KB (SRAM size)
+   - Configuration: Add `-d:bootSram` to `customDefines` in project.nimble
+   - Flash with `nimble flash` (DFU only)
+
+3. **BOOT_QSPI**
+   - Application stored in QSPI flash (0x90040000)
+   - Requires DFU bootloader with QSPI support
+   - Provides 128MB additional storage for large applications
+   - Essential for applications with large libraries (e.g., CMSIS-DSP at 1MB)
+   - Configuration: Add `-d:bootQspi` to `customDefines` in project.nimble
+   - Flash with `nimble flash` (DFU only)
+
+### CMSIS-DSP Library
+
+Optional ARM optimized math and signal processing library:
+- ~1MB library - requires BOOT_QSPI mode due to size
+- Add `-d:useCMSIS` to `customDefines` in project.nimble
+- Includes FFT, filtering, matrix operations, and more
+- See example: `cmsis_demo`
+
+### FatFs Long Filename Support
+
+For projects using SD card file operations with long filenames, add the `-d:useFatFsLFN` flag in `customDefines`:
+
+```nim
+# In project.nimble
+const customDefines = "useFatFsLFN"
+```
+
+This automatically links the `libfatfs_ccsbcs.a` library for UTF-8/Unicode filename support.
+
 ## Optimization and Safety
 
 Projects are configured with the following defaults:

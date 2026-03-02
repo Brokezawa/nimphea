@@ -4,6 +4,12 @@ Complete guide to using the onboard QSPI flash memory on Daisy Seed for persiste
 
 ---
 
+## Important Distinction
+
+This guide covers **QSPI data storage** (persistent user data, audio samples, etc.). For information about deploying applications via DFU bootloaders to QSPI memory, see [BOOT_MODES.md](./BOOT_MODES.md#boot_qspi-bootloader--external-flash).
+
+---
+
 ## Table of Contents
 
 1. [Overview](#overview)

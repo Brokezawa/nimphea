@@ -157,13 +157,13 @@ var globalPodAudioCallback: AudioCallback = nil
 var globalPodInterleavingCallback: InterleavingAudioCallback = nil
 
 # C-compatible wrapper functions
-proc podAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "podAudioCallbackWrapper", cdecl.} =
+proc podAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "podAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalPodAudioCallback.isNil:
     globalPodAudioCallback(cast[AudioBuffer](input),
                           cast[AudioBuffer](output),
                           size.int)
 
-proc podInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "podInterleavingCallbackWrapper", cdecl.} =
+proc podInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "podInterleavingCallbackWrapper", cdecl, raises: [].} =
   if not globalPodInterleavingCallback.isNil:
     globalPodInterleavingCallback(cast[InterleavedAudioBuffer](input),
                                  cast[InterleavedAudioBuffer](output),

@@ -151,7 +151,7 @@ proc delayMs*(this: var DaisyLegio, del: csize_t)
 # Global audio callback (board-specific to avoid conflicts)
 var globalLegioAudioCallback: AudioCallback = nil
 
-proc legioAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "legioAudioCallbackWrapper", cdecl.} =
+proc legioAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "legioAudioCallbackWrapper", cdecl, raises: [].} =
   ## C-compatible wrapper for Nim audio callback
   if not globalLegioAudioCallback.isNil:
     globalLegioAudioCallback(cast[AudioBuffer](input),

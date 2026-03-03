@@ -135,11 +135,22 @@ proc initUI*(): UI {.importcpp: "daisy::UI()".}
   ## Create new UI instance
 
 # UI initialization - needs special handling for initializer_list
+# 
 # C++ Interop Workaround: std::initializer_list
-# The daisy::UI::Init() method takes std::initializer_list<UiCanvasDescriptor> as a parameter.
-# Nim cannot pass arrays to initializer_list parameters, so we use a C++ helper function
-# that converts array + count into the required brace-initialization syntax.
-# This is an approved emit use case similar to operator overloading (see AGENTS.md).
+# =====================================================
+# The daisy::UI::Init() method signature is:
+#   void Init(UiEventQueue&, const SpecialControlIds&, 
+#            std::initializer_list<UiCanvasDescriptor>, uint16_t)
+# 
+# Nim cannot directly pass arrays to std::initializer_list parameters
+# because the language lacks a native equivalent. The {.emit.} block
+# defines a C++ helper function that accepts an array + size, then uses
+# C++ brace initialization {...} syntax to construct the initializer_list.
+# 
+# This is an approved use case (see AGENTS.md) similar to operator
+# overloading - raw C++ is necessary to bridge C++ language features
+# that have no Nim equivalent. The switch statement handles 0-8 canvases
+# as per UI_MAX_CANVASES constant.
 {.emit: """/*INCLUDESECTION*/
 // Helper to initialize UI with canvas array
 static inline void UI_Init_Helper(daisy::UI* ui, 

@@ -126,15 +126,15 @@ type
   UartHandler* {.importcpp: "daisy::UartHandler".} = object
 
 # UART Handler methods
-proc init*(this: var UartHandler, config: UartConfig): UartResult {.importcpp: "Init".}
-proc getConfig*(this: UartHandler): UartConfig {.importcpp: "GetConfig".}
+proc init*(this: var UartHandler, config: UartConfig): UartResult {.importcpp: "#.Init(@)".}
+proc getConfig*(this: UartHandler): UartConfig {.importcpp: "#.GetConfig()".}
 
 proc blockingTransmit*(this: var UartHandler, buff: ptr uint8, size: csize_t, 
                        timeout: uint32 = 100): UartResult {.importcpp: "BlockingTransmit".}
 proc blockingReceive*(this: var UartHandler, buffer: ptr uint8, size: uint16,
                       timeout: uint32 = 100): UartResult {.importcpp: "BlockingReceive".}
 
-proc checkError*(this: var UartHandler): cint {.importcpp: "CheckError".}
+proc checkError*(this: var UartHandler): cint {.importcpp: "#.CheckError()".}
 
 {.pop.} # importcpp
 {.pop.} # header

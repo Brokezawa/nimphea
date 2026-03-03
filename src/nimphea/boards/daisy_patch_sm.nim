@@ -184,13 +184,13 @@ var globalPatchSmAudioCallback: AudioCallback = nil
 var globalPatchSmInterleavingCallback: InterleavingAudioCallback = nil
 
 # C-compatible wrapper functions
-proc patchSmAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "patchSmAudioCallbackWrapper", cdecl.} =
+proc patchSmAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "patchSmAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalPatchSmAudioCallback.isNil:
     globalPatchSmAudioCallback(cast[AudioBuffer](input),
                               cast[AudioBuffer](output),
                               size.int)
 
-proc patchSmInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "patchSmInterleavingCallbackWrapper", cdecl.} =
+proc patchSmInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "patchSmInterleavingCallbackWrapper", cdecl, raises: [].} =
   if not globalPatchSmInterleavingCallback.isNil:
     globalPatchSmInterleavingCallback(cast[InterleavedAudioBuffer](input),
                                      cast[InterleavedAudioBuffer](output),

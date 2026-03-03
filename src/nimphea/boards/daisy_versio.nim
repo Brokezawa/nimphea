@@ -155,13 +155,13 @@ proc delayMs*(this: var DaisyVersio, del: csize_t)
 var globalVersioAudioCallback: AudioCallback = nil
 var globalVersioInterleavingCallback: InterleavingAudioCallback = nil
 
-proc versioAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "versioAudioCallbackWrapper", cdecl.} =
+proc versioAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "versioAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalVersioAudioCallback.isNil:
     globalVersioAudioCallback(cast[AudioBuffer](input),
                              cast[AudioBuffer](output),
                              size.int)
 
-proc versioInterleavingAudioCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "versioInterleavingAudioCallbackWrapper", cdecl.} =
+proc versioInterleavingAudioCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "versioInterleavingAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalVersioInterleavingCallback.isNil:
     globalVersioInterleavingCallback(cast[InterleavedAudioBuffer](input),
                                     cast[InterleavedAudioBuffer](output),

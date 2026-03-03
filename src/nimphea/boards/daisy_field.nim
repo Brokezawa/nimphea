@@ -202,13 +202,13 @@ var globalFieldAudioCallback: AudioCallback = nil
 var globalFieldInterleavingCallback: InterleavingAudioCallback = nil
 
 # C-compatible wrapper functions
-proc fieldAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "fieldAudioCallbackWrapper", cdecl.} =
+proc fieldAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "fieldAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalFieldAudioCallback.isNil:
     globalFieldAudioCallback(cast[AudioBuffer](input),
                             cast[AudioBuffer](output),
                             size.int)
 
-proc fieldInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "fieldInterleavingCallbackWrapper", cdecl.} =
+proc fieldInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "fieldInterleavingCallbackWrapper", cdecl, raises: [].} =
   if not globalFieldInterleavingCallback.isNil:
     globalFieldInterleavingCallback(cast[InterleavedAudioBuffer](input),
                                    cast[InterleavedAudioBuffer](output),

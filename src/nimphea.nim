@@ -127,9 +127,9 @@ type
   InterleavedAudioBuffer* = ptr UncheckedArray[cfloat]
     ## Interleaved audio buffer
   
-  AudioCallback* = proc(input, output: AudioBuffer, size: int) {.cdecl.}
+  AudioCallback* = proc(input, output: AudioBuffer, size: int) {.cdecl, raises: [].}
     ## Nim-friendly multi-channel audio callback
-  InterleavingAudioCallback* = proc(input, output: InterleavedAudioBuffer, size: int) {.cdecl.}
+  InterleavingAudioCallback* = proc(input, output: InterleavedAudioBuffer, size: int) {.cdecl, raises: [].}
     ## Nim-friendly interleaved audio callback
   
   # Board version
@@ -516,13 +516,13 @@ var globalNimInterleavingCallback: InterleavingAudioCallback = nil
 
 # C-compatible wrapper that calls Nim callback
 # The C++ compiler will accept this and handle const casting
-proc audioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "audioCallbackWrapper", cdecl.} =
+proc audioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "audioCallbackWrapper", cdecl, raises: [].} =
   if not globalNimAudioCallback.isNil:
     globalNimAudioCallback(cast[AudioBuffer](input),
                           cast[AudioBuffer](output),
                           size.int)
 
-proc interleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "interleavingCallbackWrapper", cdecl.} =
+proc interleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "interleavingCallbackWrapper", cdecl, raises: [].} =
   if not globalNimInterleavingCallback.isNil:
     globalNimInterleavingCallback(cast[InterleavedAudioBuffer](input),
                                  cast[InterleavedAudioBuffer](output),

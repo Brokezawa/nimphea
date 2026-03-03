@@ -190,11 +190,11 @@ type
 var globalPetalAudioCallback: AudioCallback = nil
 var globalPetalInterleavingCallback: InterleavingAudioCallback = nil
 
-proc petalAudioCallbackWrapper(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) {.exportc: "petalAudioCallbackWrapper", cdecl.} =
+proc petalAudioCallbackWrapper(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) {.exportc: "petalAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalPetalAudioCallback.isNil:
     globalPetalAudioCallback(input, output, size)
 
-proc petalInterleavingAudioCallbackWrapper(input: ptr float32, output: ptr float32, size: csize_t) {.exportc: "petalInterleavingAudioCallbackWrapper", cdecl.} =
+proc petalInterleavingAudioCallbackWrapper(input: ptr float32, output: ptr float32, size: csize_t) {.exportc: "petalInterleavingAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalPetalInterleavingCallback.isNil:
     globalPetalInterleavingCallback(input, output, size)
 

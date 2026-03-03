@@ -1,6 +1,12 @@
 build/
 nimcache/
+.nimcache/
 *.elf
 *.bin
-*.map
-.nimble/
+*.o
+*.a
+*.hex
+*.dSYM/
+.DS_Store
+nimble.paths
+nimble.develop

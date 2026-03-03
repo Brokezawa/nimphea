@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2026-02-20
+## [1.1.0] - 2026-03-03
 
 ### Added
 - CMSIS-DSP support: Comprehensive wrapper for ARM optimized math functions.
@@ -21,6 +21,9 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Improved exception safety by enforcing `{.raises: [].}` patterns in documentation.
 - Fixed panic handler to be more idiomatic and reliable on bare metal.
+- Fixed memory safety in CMSIS DSP wrappers: implemented custom `=copy`/`=sink` operators for `Matrix`, `FirFilter`, and `BiquadFilter` to rebind internal CMSIS pointers after object copies/moves, preventing dangling pointer bugs.
+- Fixed incorrect `importcpp` this-pointer bindings in `per/uart.nim` (`init`, `getConfig`, `checkError`).
+- Added `{.raises: [].}` to all real-time audio callback wrappers across core and 7 board modules for embedded safety.
 
 ## [1.0.0] - 2026-02-15
 - Initial release of Nimphea.

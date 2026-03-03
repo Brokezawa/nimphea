@@ -40,6 +40,20 @@ proc init*[NT, MB: static int](f: var FirFilter[NT, MB], coeffs: ptr float32_t) 
   for i in 0..<f.state.len: f.state[i] = 0.0
   arm_fir_init_f32(addr f.instance, NT.uint16, coeffs, addr f.state[0], MB.uint32)
 
+proc `=copy`*[NT, MB: static int](dest: var FirFilter[NT, MB], src: FirFilter[NT, MB]) {.inline.} =
+  ## Custom copy to rebind pState pointer to destination's buffer
+  dest.state = src.state
+  dest.instance.numTaps = src.instance.numTaps
+  dest.instance.pCoeffs = src.instance.pCoeffs
+  dest.instance.pState = addr dest.state[0]
+
+proc `=sink`*[NT, MB: static int](dest: var FirFilter[NT, MB], src: FirFilter[NT, MB]) {.inline.} =
+  ## Custom sink to rebind pState pointer after move
+  dest.state = src.state
+  dest.instance.numTaps = src.instance.numTaps
+  dest.instance.pCoeffs = src.instance.pCoeffs
+  dest.instance.pState = addr dest.state[0]
+
 proc process*[NT, MB: static int](f: var FirFilter[NT, MB], input: openArray[float32], output: var openArray[float32]) {.inline.} =
   ## Process an audio block through the FIR filter.
   let size = min(input.len, output.len)
@@ -77,6 +91,22 @@ proc init*[NS: static int](f: var BiquadFilter[NS], coeffs: ptr float32_t) =
   # Zero state
   for i in 0..<f.state.len: f.state[i] = 0.0
   arm_biquad_cascade_df1_init_f32(addr f.instance, NS.uint8, coeffs, addr f.state[0])
+
+proc `=copy`*[NS: static int](dest: var BiquadFilter[NS], src: BiquadFilter[NS]) {.inline.} =
+  ## Custom copy to rebind pState pointer to destination's buffer
+  dest.state = src.state
+  dest.instance.numStages = src.instance.numStages
+  dest.instance.pCoeffs = src.instance.pCoeffs
+  dest.instance.pState = addr dest.state[0]
+  dest.instance.postShift = src.instance.postShift
+
+proc `=sink`*[NS: static int](dest: var BiquadFilter[NS], src: BiquadFilter[NS]) {.inline.} =
+  ## Custom sink to rebind pState pointer after move
+  dest.state = src.state
+  dest.instance.numStages = src.instance.numStages
+  dest.instance.pCoeffs = src.instance.pCoeffs
+  dest.instance.pState = addr dest.state[0]
+  dest.instance.postShift = src.instance.postShift
 
 proc process*[NS: static int](f: var BiquadFilter[NS], input: openArray[float32], output: var openArray[float32]) {.inline.} =
   ## Process an audio block through the Biquad filter.

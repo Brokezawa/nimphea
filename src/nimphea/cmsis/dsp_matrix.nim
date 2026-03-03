@@ -30,6 +30,20 @@ proc init*[R, C: static int](m: var Matrix[R, C]) =
   ## Initialize matrix instance.
   arm_mat_init_f32(addr m.instance, R.uint16, C.uint16, addr m.data[0])
 
+proc `=copy`*[R, C: static int](dest: var Matrix[R, C], src: Matrix[R, C]) {.inline.} =
+  ## Custom copy to rebind pData pointer to destination's buffer
+  dest.data = src.data
+  dest.instance.numRows = src.instance.numRows
+  dest.instance.numCols = src.instance.numCols
+  dest.instance.pData = addr dest.data[0]
+
+proc `=sink`*[R, C: static int](dest: var Matrix[R, C], src: Matrix[R, C]) {.inline.} =
+  ## Custom sink to rebind pData pointer after move
+  dest.data = src.data
+  dest.instance.numRows = src.instance.numRows
+  dest.instance.numCols = src.instance.numCols
+  dest.instance.pData = addr dest.data[0]
+
 proc `[]`*[R, C: static int](m: Matrix[R, C], row, col: int): float32 {.inline.} =
   ## Get element at row, col.
   m.data[row * C + col].float32

@@ -37,9 +37,117 @@ after install:
   else:
     echo "Warning: libDaisy/Makefile not found. Build skipped."
 
+  # Build optional libraries required by certain examples
+  mkDir("build")
+  let armFlags = "-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard -Os -ffunction-sections -fdata-sections"
+  let libDaisy = "libDaisy"
+
+  # libfatfs_ccsbcs.a — FatFs Long Filename support (single C file)
+  echo "--- Post-install: Building libfatfs_ccsbcs.a ---"
+  let fatfsInc = "-I" & libDaisy / "Middlewares/Third_Party/FatFs/src" &
+                 " -I" & libDaisy / "src/sys" &
+                 " -I" & libDaisy / "src" &
+                 " -I" & libDaisy / "Drivers/STM32H7xx_HAL_Driver/Inc" &
+                 " -I" & libDaisy / "Drivers/CMSIS_5/CMSIS/Core/Include" &
+                 " -I" & libDaisy / "Drivers/CMSIS-Device/ST/STM32H7xx/Include"
+  let ccsbcs = libDaisy / "Middlewares/Third_Party/FatFs/src/option/ccsbcs.c"
+  if fileExists(ccsbcs):
+    exec "arm-none-eabi-gcc " & armFlags & " -DSTM32H750xx -DUSE_HAL_DRIVER -DCORE_CM7 " &
+         fatfsInc & " -c " & ccsbcs & " -o build/ccsbcs.o"
+    exec "arm-none-eabi-ar rcs build/libfatfs_ccsbcs.a build/ccsbcs.o"
+    echo "--- libfatfs_ccsbcs.a built ---"
+  else:
+    echo "Warning: ccsbcs.c not found, skipping libfatfs_ccsbcs.a"
+
+  # libCMSISDSP.a — ARM CMSIS-DSP optimized math library
+  echo "--- Post-install: Building libCMSISDSP.a ---"
+  let cmsisSrc = libDaisy / "Drivers/CMSIS-DSP/Source"
+  let cmsisIncs = "-I" & libDaisy / "Drivers/CMSIS-DSP/Include" &
+                  " -I" & libDaisy / "Drivers/CMSIS_5/CMSIS/Core/Include" &
+                  " -I" & libDaisy / "Drivers/CMSIS-Device/ST/STM32H7xx/Include"
+  let cmsisDefs = "-DARM_MATH_CM7 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -DUNALIGNED_SUPPORT_DISABLE"
+  if dirExists(cmsisSrc):
+    mkDir("build/cmsis_objs")
+    let srcDirs = @["BasicMathFunctions", "CommonTables", "ComplexMathFunctions",
+                    "ControllerFunctions", "FastMathFunctions", "FilteringFunctions",
+                    "MatrixFunctions", "StatisticsFunctions", "SupportFunctions",
+                    "TransformFunctions", "InterpolationFunctions"]
+    var objs: seq[string] = @[]
+    for srcDir in srcDirs:
+      let dir = cmsisSrc / srcDir
+      if dirExists(dir):
+        for kind, path in walkDir(dir):
+          if kind == pcFile and path.endsWith(".c"):
+            let objName = "build/cmsis_objs/" & path.splitFile.name & ".o"
+            let (_, exitCode) = gorgeEx("arm-none-eabi-gcc " & armFlags & " " & cmsisDefs &
+                                        " " & cmsisIncs & " -c " & path & " -o " & objName)
+            if exitCode == 0:
+              objs.add(objName)
+    if objs.len > 0:
+      exec "arm-none-eabi-ar rcs build/libCMSISDSP.a " & objs.join(" ")
+      echo "--- libCMSISDSP.a built (" & $objs.len & " objects) ---"
+    else:
+      echo "Warning: No CMSIS-DSP objects compiled"
+  else:
+    echo "Warning: CMSIS-DSP source not found, skipping libCMSISDSP.a"
+
 const
   libDaisyDir = "libDaisy"
   buildDir = "build"
+
+proc buildOptionalLibs() =
+  ## Build optional static libraries: libfatfs_ccsbcs.a and libCMSISDSP.a
+  mkDir(buildDir)
+  let armFlags = "-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard -Os -ffunction-sections -fdata-sections"
+
+  # libfatfs_ccsbcs.a
+  echo "Building libfatfs_ccsbcs.a..."
+  let fatfsInc = "-I" & libDaisyDir / "Middlewares/Third_Party/FatFs/src" &
+                 " -I" & libDaisyDir / "src/sys" &
+                 " -I" & libDaisyDir / "src" &
+                 " -I" & libDaisyDir / "Drivers/STM32H7xx_HAL_Driver/Inc" &
+                 " -I" & libDaisyDir / "Drivers/CMSIS_5/CMSIS/Core/Include" &
+                 " -I" & libDaisyDir / "Drivers/CMSIS-Device/ST/STM32H7xx/Include"
+  let ccsbcs = libDaisyDir / "Middlewares/Third_Party/FatFs/src/option/ccsbcs.c"
+  if fileExists(ccsbcs):
+    exec "arm-none-eabi-gcc " & armFlags & " -DSTM32H750xx -DUSE_HAL_DRIVER -DCORE_CM7 " &
+         fatfsInc & " -c " & ccsbcs & " -o " & buildDir / "ccsbcs.o"
+    exec "arm-none-eabi-ar rcs " & buildDir / "libfatfs_ccsbcs.a " & buildDir / "ccsbcs.o"
+    echo "✓ libfatfs_ccsbcs.a"
+  else:
+    echo "Warning: ccsbcs.c not found"
+
+  # libCMSISDSP.a
+  echo "Building libCMSISDSP.a (this may take a minute)..."
+  let cmsisSrc = libDaisyDir / "Drivers/CMSIS-DSP/Source"
+  let cmsisIncs = "-I" & libDaisyDir / "Drivers/CMSIS-DSP/Include" &
+                  " -I" & libDaisyDir / "Drivers/CMSIS_5/CMSIS/Core/Include" &
+                  " -I" & libDaisyDir / "Drivers/CMSIS-Device/ST/STM32H7xx/Include"
+  let cmsisDefs = "-DARM_MATH_CM7 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -DUNALIGNED_SUPPORT_DISABLE"
+  if dirExists(cmsisSrc):
+    mkDir(buildDir / "cmsis_objs")
+    let srcDirs = @["BasicMathFunctions", "CommonTables", "ComplexMathFunctions",
+                    "ControllerFunctions", "FastMathFunctions", "FilteringFunctions",
+                    "MatrixFunctions", "StatisticsFunctions", "SupportFunctions",
+                    "TransformFunctions", "InterpolationFunctions"]
+    var objs: seq[string] = @[]
+    for srcDir in srcDirs:
+      let dir = cmsisSrc / srcDir
+      if dirExists(dir):
+        for kind, path in walkDir(dir):
+          if kind == pcFile and path.endsWith(".c"):
+            let objName = buildDir / "cmsis_objs" / path.splitFile.name & ".o"
+            let (_, exitCode) = gorgeEx("arm-none-eabi-gcc " & armFlags & " " & cmsisDefs &
+                                        " " & cmsisIncs & " -c " & path & " -o " & objName)
+            if exitCode == 0:
+              objs.add(objName)
+    if objs.len > 0:
+      exec "arm-none-eabi-ar rcs " & buildDir / "libCMSISDSP.a " & objs.join(" ")
+      echo "✓ libCMSISDSP.a (" & $objs.len & " objects)"
+    else:
+      echo "Warning: No CMSIS-DSP objects compiled"
+  else:
+    echo "Warning: CMSIS-DSP source not found"
 
 task init_libdaisy, "Initialize and build libDaisy dependency":
   ## One-time setup: clone and build libDaisy C++ library
@@ -63,6 +171,9 @@ task init_libdaisy, "Initialize and build libDaisy dependency":
   echo "This may take several minutes..."
   withDir libDaisyDir:
     exec "make"
+
+  echo ""
+  buildOptionalLibs()
 
   echo ""
   echo "libDaisy initialization complete!"

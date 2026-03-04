@@ -25,7 +25,7 @@
 ## var petal: DaisyPetal
 ## petal.init()
 ##
-## proc audioCallback(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) =
+## proc audioCallback(input, output: AudioBuffer, size: int) =
 ##   let gain = petal.getKnobValue(KNOB_1.cint)
 ##   
 ##   for i in 0..<size:
@@ -181,22 +181,21 @@ proc delayMs*(this: var DaisyPetal, del: csize_t)
 # Audio Control
 # ============================================================================
 
-# Audio callback type aliases (from nimphea)
-type
-  AudioCallback* = proc(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) {.cdecl.}
-  InterleavingAudioCallback* = proc(input: ptr float32, output: ptr float32, size: csize_t) {.cdecl.}
-
 # Board-specific audio callback globals (to avoid conflicts with other boards)
 var globalPetalAudioCallback: AudioCallback = nil
 var globalPetalInterleavingCallback: InterleavingAudioCallback = nil
 
-proc petalAudioCallbackWrapper(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) {.exportc: "petalAudioCallbackWrapper", cdecl, raises: [].} =
+proc petalAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "petalAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalPetalAudioCallback.isNil:
-    globalPetalAudioCallback(input, output, size)
+    globalPetalAudioCallback(cast[AudioBuffer](input),
+                             cast[AudioBuffer](output),
+                             size.int)
 
-proc petalInterleavingAudioCallbackWrapper(input: ptr float32, output: ptr float32, size: csize_t) {.exportc: "petalInterleavingAudioCallbackWrapper", cdecl, raises: [].} =
+proc petalInterleavingAudioCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "petalInterleavingAudioCallbackWrapper", cdecl, raises: [].} =
   if not globalPetalInterleavingCallback.isNil:
-    globalPetalInterleavingCallback(input, output, size)
+    globalPetalInterleavingCallback(cast[InterleavedAudioBuffer](input),
+                                    cast[InterleavedAudioBuffer](output),
+                                    size.int)
 
 proc startAudio*(this: var DaisyPetal, callback: AudioCallback) =
   ## Start audio processing with multichannel callback
@@ -206,12 +205,12 @@ proc startAudio*(this: var DaisyPetal, callback: AudioCallback) =
   ##
   ## **Callback signature:**
   ## ```nim
-  ## proc(input: ptr ptr float32, output: ptr ptr float32, size: csize_t)
+  ## proc(input, output: AudioBuffer, size: int)
   ## ```
   ##
   ## **Example:**
   ## ```nim
-  ## proc myCallback(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) =
+  ## proc myCallback(input, output: AudioBuffer, size: int) =
   ##   for i in 0..<size:
   ##     output[0][i] = input[0][i] * 0.5  # Left channel
   ##     output[1][i] = input[1][i] * 0.5  # Right channel
@@ -229,7 +228,7 @@ proc startAudio*(this: var DaisyPetal, callback: InterleavingAudioCallback) =
   ##
   ## **Callback signature:**
   ## ```nim
-  ## proc(input: ptr float32, output: ptr float32, size: csize_t)
+  ## proc(input, output: InterleavedAudioBuffer, size: int)
   ## ```
   ##
   ## **Note:** Size is total samples (stereo = size/2 frames)

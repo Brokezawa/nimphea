@@ -55,12 +55,12 @@ nimble flash
 
 ## Documentation
 
-Comprehensive documentation is available at [https://Brokezawa.github.io/nimphea](https://Brokezawa.github.io/nimphea):
+Comprehensive documentation is available at [https://brokezawa.github.io/nimphea](https://brokezawa.github.io/nimphea):
 
-- [Installation Guide](https://Brokezawa.github.io/nimphea/guides/installation.html)
-- [Getting Started](https://Brokezawa.github.io/nimphea/guides/getting-started.html)
-- [CMSIS-DSP Guide](https://Brokezawa.github.io/nimphea/guides/cmsis-dsp.html)
-- [API Reference](https://Brokezawa.github.io/nimphea/api/theindex.html)
+- [Installation Guide](https://brokezawa.github.io/nimphea/api/guides/installation.html)
+- [Getting Started](https://brokezawa.github.io/nimphea/api/guides/getting-started.html)
+- [CMSIS-DSP Guide](https://brokezawa.github.io/nimphea/api/guides/cmsis-dsp.html)
+- [API Reference](https://brokezawa.github.io/nimphea/api/theindex.html)
 
 ## Examples
 

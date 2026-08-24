@@ -35,7 +35,7 @@
 ##     discard f_close(addr file)
 ##   
 ##   while true:
-##     hw.delayMs(100)
+##     hw.delay(100)
 ## ```
 ##
 ## Pin Configuration (Fixed):
@@ -48,9 +48,13 @@
 
 # Import libdaisy which provides the macro system
 import nimphea
+export nimphea_core_types
+# FatFS types and C API are canonical in sys/fatfs
+import nimphea/sys/fatfs
+export fatfs
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(sdmmc)
+useNimpheaModules(sdmmc, fatfs)
 
 {.push header: "daisy_seed.h".}
 {.push importcpp.}
@@ -77,147 +81,19 @@ type
     width* {.importc: "width".}: SdmmcBusWidth
     clock_powersave* {.importc: "clock_powersave".}: bool
 
-  SdmmcHandler* {.importcpp: "daisy::SdmmcHandler".} = object
-
-  # FatFS Interface types
-  FatFSResult* {.importcpp: "daisy::FatFSInterface::Result", size: sizeof(cint).} = enum
-    FATFS_OK = 0
-    FATFS_ERR_TOO_MANY_VOLUMES
-    FATFS_ERR_NO_MEDIA_SELECTED
-    FATFS_ERR_GENERIC
-
-  FatFSMedia* {.importcpp: "daisy::FatFSInterface::Config::Media", size: sizeof(uint8).} = enum
-    MEDIA_SD = 0x01
-    MEDIA_USB = 0x02
-
-  FatFSConfig* {.importcpp: "daisy::FatFSInterface::Config", bycopy.} = object
-    media* {.importc: "media".}: uint8
-
-  FatFSInterface* {.importcpp: "daisy::FatFSInterface".} = object
+  # SdmmcHandler is defined in nimphea_core_types.
 
 {.pop.} # importcpp
 {.pop.} # header
 
-# Low-level C++ interface - capital letter names matching libDaisy C++ API
-proc Init*(this: var SdmmcHandler, cfg: SdmmcConfig): SdmmcResult 
+# Bind-once low-level interface for SdmmcHandler.
+# FatFSInterface methods and the FatFS C API are canonical in sys/fatfs.
+proc init*(sdmmc: var SdmmcHandler, cfg: SdmmcConfig): SdmmcResult
   {.importcpp: "#.Init(@)", header: "daisy_seed.h".}
-
-proc Init*(this: var FatFSInterface, cfg: FatFSConfig): FatFSResult 
-  {.importcpp: "#.Init(@)", header: "daisy_seed.h".}
-
-proc Init*(this: var FatFSInterface, media: uint8): FatFSResult 
-  {.importcpp: "#.Init(@)", header: "daisy_seed.h".}
-
-{.push header: "daisy_seed.h".}
-{.push importcpp.}
-
-# FatFS Interface methods
-proc DeInit*(this: var FatFSInterface): FatFSResult 
-  {.importcpp: "#.DeInit()", header: "daisy_seed.h".}
-proc Initialized*(this: FatFSInterface): bool 
-  {.importcpp: "#.Initialized()", header: "daisy_seed.h".}
-
-proc GetConfig*(this: FatFSInterface): FatFSConfig 
-  {.importcpp: "#.GetConfig()", header: "daisy_seed.h".}
-
-proc GetSDPath*(this: FatFSInterface): cstring 
-  {.importcpp: "#.GetSDPath()", header: "daisy_seed.h".}
-
-proc GetUSBPath*(this: FatFSInterface): cstring 
-  {.importcpp: "#.GetUSBPath()", header: "daisy_seed.h".}
-
-{.pop.} # importcpp
-{.pop.} # header
-
-# Import FatFS C library functions
-{.push header: "ff.h".}
-
-type
-  # FatFS result codes
-  FRESULT* {.importc: "FRESULT", size: sizeof(cint).} = enum
-    FR_OK = 0                ## Succeeded
-    FR_DISK_ERR              ## A hard error occurred in the low level disk I/O layer
-    FR_INT_ERR               ## Assertion failed
-    FR_NOT_READY             ## The physical drive cannot work
-    FR_NO_FILE               ## Could not find the file
-    FR_NO_PATH               ## Could not find the path
-    FR_INVALID_NAME          ## The path name format is invalid
-    FR_DENIED                ## Access denied due to prohibited access or directory full
-    FR_EXIST                 ## Access denied due to prohibited access
-    FR_INVALID_OBJECT        ## The file/directory object is invalid
-    FR_WRITE_PROTECTED       ## The physical drive is write protected
-    FR_INVALID_DRIVE         ## The logical drive number is invalid
-    FR_NOT_ENABLED           ## The volume has no work area
-    FR_NO_FILESYSTEM         ## There is no valid FAT volume
-    FR_MKFS_ABORTED          ## The f_mkfs() aborted due to any problem
-    FR_TIMEOUT               ## Could not get a grant to access the volume within defined period
-    FR_LOCKED                ## The operation is rejected according to the file sharing policy
-    FR_NOT_ENOUGH_CORE       ## LFN working buffer could not be allocated
-    FR_TOO_MANY_OPEN_FILES   ## Number of open files > FF_FS_LOCK
-    FR_INVALID_PARAMETER     ## Given parameter is invalid
-
-# File access mode flags
-const
-  FA_READ* = 0x01'u8           ## Read access
-  FA_WRITE* = 0x02'u8          ## Write access
-  FA_OPEN_EXISTING* = 0x00'u8  ## Open existing file
-  FA_CREATE_NEW* = 0x04'u8     ## Create new file
-  FA_CREATE_ALWAYS* = 0x08'u8  ## Create new file, overwrite existing
-  FA_OPEN_ALWAYS* = 0x10'u8    ## Open existing or create new
-  FA_OPEN_APPEND* = 0x30'u8    ## Open existing and seek to end
-
-type
-  # File object
-  FIL* {.importc: "FIL", bycopy.} = object
-  
-  # Directory object
-  DIR* {.importc: "DIR", bycopy.} = object
-  
-  # File information
-  FILINFO* {.importc: "FILINFO", bycopy.} = object
-    fsize* {.importc: "fsize".}: uint32     ## File size
-    fdate* {.importc: "fdate".}: uint16     ## Modified date
-    ftime* {.importc: "ftime".}: uint16     ## Modified time
-    fattrib* {.importc: "fattrib".}: uint8  ## File attributes
-    fname* {.importc: "fname".}: array[256, char]  ## File name
-  
-  # Filesystem object
-  FATFS* {.importc: "FATFS", bycopy.} = object
-
-  # Seek origin
-  FSIZE_t* = uint32
-  UINT* = cuint
-  BYTE* = uint8
-
-# FatFS C API functions
-proc f_open*(fp: ptr FIL, path: cstring, mode: uint8): FRESULT {.importc: "f_open".}
-proc f_close*(fp: ptr FIL): FRESULT {.importc: "f_close".}
-proc f_read*(fp: ptr FIL, buff: pointer, btr: UINT, br: ptr UINT): FRESULT {.importc: "f_read".}
-proc f_write*(fp: ptr FIL, buff: pointer, btw: UINT, bw: ptr UINT): FRESULT {.importc: "f_write".}
-proc f_lseek*(fp: ptr FIL, ofs: FSIZE_t): FRESULT {.importc: "f_lseek".}
-proc f_sync*(fp: ptr FIL): FRESULT {.importc: "f_sync".}
-proc f_tell*(fp: ptr FIL): FSIZE_t {.importc: "f_tell".}
-proc f_size*(fp: ptr FIL): FSIZE_t {.importc: "f_size".}
-proc f_eof*(fp: ptr FIL): cint {.importc: "f_eof".}
-
-proc f_opendir*(dp: ptr DIR, path: cstring): FRESULT {.importc: "f_opendir".}
-proc f_closedir*(dp: ptr DIR): FRESULT {.importc: "f_closedir".}
-proc f_readdir*(dp: ptr DIR, fno: ptr FILINFO): FRESULT {.importc: "f_readdir".}
-
-proc f_mkdir*(path: cstring): FRESULT {.importc: "f_mkdir".}
-proc f_unlink*(path: cstring): FRESULT {.importc: "f_unlink".}
-proc f_rename*(oldname: cstring, newname: cstring): FRESULT {.importc: "f_rename".}
-proc f_stat*(path: cstring, fno: ptr FILINFO): FRESULT {.importc: "f_stat".}
-proc f_chmod*(path: cstring, attr: BYTE, mask: BYTE): FRESULT {.importc: "f_chmod".}
-
-proc f_mount*(fs: ptr FATFS, path: cstring, opt: BYTE): FRESULT {.importc: "f_mount".}
-proc f_unmount*(path: cstring): FRESULT {.importc: "f_unmount".}
-
-{.pop.} # header
+  ## Initialize SDMMC handler with configuration
 
 # Nim-friendly constructors
 proc newSdmmcHandler*(): SdmmcHandler {.importcpp: "daisy::SdmmcHandler()", constructor, header: "daisy_seed.h".}
-proc newFatFSInterface*(): FatFSInterface {.importcpp: "daisy::FatFSInterface()", constructor, header: "daisy_seed.h".}
 
 proc newSdmmcConfig*(): SdmmcConfig =
   ## Creates a new SDMMC configuration with default values
@@ -225,45 +101,11 @@ proc newSdmmcConfig*(): SdmmcConfig =
   result.width = SD_BITS_4
   result.clock_powersave = false
 
-proc newFatFSConfig*(): FatFSConfig =
-  ## Creates a new FatFS configuration
-  result.media = uint8(MEDIA_SD)
-
 # =============================================================================
 # High-Level Nim-Friendly API
 # =============================================================================
 
-proc init*(sdmmc: var SdmmcHandler, cfg: SdmmcConfig): SdmmcResult =
-  ## Initialize SDMMC handler with configuration
-  sdmmc.Init(cfg)
-
-proc init*(fatfs: var FatFSInterface, cfg: FatFSConfig): FatFSResult =
-  ## Initialize FatFS interface with configuration
-  fatfs.Init(cfg)
-
-proc init*(fatfs: var FatFSInterface, media: FatFSMedia): FatFSResult =
-  ## Initialize FatFS interface with media type (convenience)
-  fatfs.Init(uint8(media))
-
-proc deInit*(fatfs: var FatFSInterface): FatFSResult =
-  ## Deinitialize FatFS interface
-  fatfs.DeInit()
-
-proc initialized*(fatfs: FatFSInterface): bool =
-  ## Check if FatFS is initialized
-  fatfs.Initialized()
-
-proc getConfig*(fatfs: FatFSInterface): FatFSConfig =
-  ## Get FatFS configuration
-  fatfs.GetConfig()
-
-proc getSDPath*(fatfs: FatFSInterface): cstring =
-  ## Get SD card mount path
-  fatfs.GetSDPath()
-
-proc getUSBPath*(fatfs: FatFSInterface): cstring =
-  ## Get USB mount path
-  fatfs.GetUSBPath()
+# FatFSInterface wrappers and the FatFS C API are exported from sys/fatfs.
 
 # Higher-level convenience functions
 
@@ -365,26 +207,6 @@ proc listDirectory*(path: cstring, filenames: var openArray[array[256, char]],
     inc result.count
   
   discard f_closedir(addr dir)
-
-proc deleteFile*(path: cstring): FRESULT =
-  ## Delete a file
-  result = f_unlink(path)
-
-proc renameFile*(oldPath: cstring, newPath: cstring): FRESULT =
-  ## Rename or move a file
-  result = f_rename(oldPath, newPath)
-
-proc createDirectory*(path: cstring): FRESULT =
-  ## Create a directory
-  result = f_mkdir(path)
-
-# File attributes
-const
-  AM_RDO* = 0x01'u8  ## Read only
-  AM_HID* = 0x02'u8  ## Hidden
-  AM_SYS* = 0x04'u8  ## System
-  AM_DIR* = 0x10'u8  ## Directory
-  AM_ARC* = 0x20'u8  ## Archive
 
 when isMainModule:
   echo "libDaisy SD Card (SDMMC) wrapper"

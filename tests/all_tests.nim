@@ -8,19 +8,17 @@
 ##
 ## See tests/README.md for more information.
 
-import unittest2
+import std/unittest
 
 # Import all test modules
-# Phase 1: FixedStr (string utilities)
-import test_fixedstr
-
-# Phase 2: Data structures
+# Phase 1: Data structures
 import test_fifo
 import test_stack
 import test_ringbuffer
 
-# Phase 3: Utility modules (pure Nim only)
+# Phase 2: Utility modules (pure Nim only)
 import test_mapped_value
+import test_stack_strings_utils
 
 # Note: The following modules use C++ headers and cannot be unit tested:
 # - color, cpuload, voct_calibration, shift_register, wavformat

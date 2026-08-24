@@ -31,12 +31,8 @@ proc fill*(dst: var openArray[float32], value: float32) {.inline.} =
 
 proc arm_float_to_q31*(pSrc: ptr float32_t, pDst: ptr q31_t, blockSize: uint32) {.importc, header: "arm_math.h".}
 proc arm_float_to_q15*(pSrc: ptr float32_t, pDst: ptr q15_t, blockSize: uint32) {.importc, header: "arm_math.h".}
-proc arm_float_to_q7*(pSrc: ptr float32_t, pDst: ptr q7_t, blockSize: uint32) {.importc, header: "arm_math.h".}
-
 proc arm_q31_to_float*(pSrc: ptr q31_t, pDst: ptr float32_t, blockSize: uint32) {.importc, header: "arm_math.h".}
 proc arm_q15_to_float*(pSrc: ptr q15_t, pDst: ptr float32_t, blockSize: uint32) {.importc, header: "arm_math.h".}
-proc arm_q7_to_float*(pSrc: ptr q7_t, pDst: ptr float32_t, blockSize: uint32) {.importc, header: "arm_math.h".}
-
 proc toQ31*(dst: var openArray[q31_t], src: openArray[float32]) {.inline.} =
   let n = min(dst.len, src.len)
   if n > 0: arm_float_to_q31(cast[ptr float32_t](addr src[0]), cast[ptr q31_t](addr dst[0]), n.uint32)

@@ -16,7 +16,7 @@ proc arm_add_f32*(pSrcA, pSrcB: ptr float32_t, pDst: ptr float32_t, blockSize: u
 
 proc add*(dst: var openArray[float32], a, b: openArray[float32]) {.inline.} =
   ## Vector addition: dst = a + b
-  let n = min([dst.len, a.len, b.len])
+  let n = min(min(dst.len, a.len), b.len)
   if n > 0:
     arm_add_f32(addr a[0], addr b[0], addr dst[0], n.uint32)
 
@@ -28,7 +28,7 @@ proc arm_sub_f32*(pSrcA, pSrcB: ptr float32_t, pDst: ptr float32_t, blockSize: u
 
 proc sub*(dst: var openArray[float32], a, b: openArray[float32]) {.inline.} =
   ## Vector subtraction: dst = a - b
-  let n = min([dst.len, a.len, b.len])
+  let n = min(min(dst.len, a.len), b.len)
   if n > 0:
     arm_sub_f32(addr a[0], addr b[0], addr dst[0], n.uint32)
 
@@ -40,7 +40,7 @@ proc arm_mult_f32*(pSrcA, pSrcB: ptr float32_t, pDst: ptr float32_t, blockSize: 
 
 proc mult*(dst: var openArray[float32], a, b: openArray[float32]) {.inline.} =
   ## Vector multiplication: dst = a * b
-  let n = min([dst.len, a.len, b.len])
+  let n = min(min(dst.len, a.len), b.len)
   if n > 0:
     arm_mult_f32(addr a[0], addr b[0], addr dst[0], n.uint32)
 

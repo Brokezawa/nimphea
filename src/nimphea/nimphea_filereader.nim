@@ -22,7 +22,9 @@
 ##   discard f_close(addr file)
 ## ```
 
-import nimphea_macros
+import nimphea
+export nimphea_core_types
+import nimphea/nimphea_macros
 import nimphea/per/sdmmc
 
 useNimpheaModules(file_reader)

@@ -42,7 +42,7 @@
 ##
 ## This module wraps libDaisy's ui/ButtonMonitor.h and ui/PotMonitor.h
 
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea_ui_events
 
 useNimpheaModules(ui)
@@ -336,78 +336,3 @@ template createPotMonitor*[B; N: static int](
 
 # Usage Examples in Documentation
 # ================================
-
-when false:  # Documentation examples (not compiled)
-  
-  # Example 1: Button Monitor with GPIO Backend
-  # --------------------------------------------
-  
-  type
-    ButtonId = enum
-      btnOkay = 0
-      btnCancel = 1
-      btnStart = 2
-    
-    MyButtonBackend = object
-      pins: array[3, uint8]
-  
-  proc isButtonPressed(backend: var MyButtonBackend, buttonId: uint16): bool =
-    # Read GPIO pin (implement with actual GPIO read)
-    # Return true if button is pressed
-    result = false  # Placeholder
-  
-  var buttonBackend = MyButtonBackend(pins: [0'u8, 1, 2])
-  var eventQueue = initUiEventQueue()
-  var buttonMonitor: ButtonMonitor[MyButtonBackend, 3]
-  
-  buttonMonitor.init(eventQueue, buttonBackend,
-                     debounceTimeoutMs = 30,
-                     doubleClickTimeoutMs = 400)
-  
-  # In main loop:
-  while true:
-    buttonMonitor.process()
-    
-    # Process events
-    while eventQueue.getNumEvents() > 0:
-      let event = eventQueue.popEvent()
-      if event.eventType == EVT_BUTTON_PRESSED:
-        case event.asButtonPressed.id
-        of btnOkay.ord.uint16:
-          echo "OK button pressed"
-        of btnCancel.ord.uint16:
-          echo "Cancel button pressed"
-        else:
-          discard
-  
-  # Example 2: Potentiometer Monitor with ADC Backend
-  # --------------------------------------------------
-  
-  type
-    PotId = enum
-      potVolume = 0
-      potTone = 1
-      potGain = 2
-      potPan = 3
-    
-    MyAdcBackend = object
-      values: array[4, cfloat]  # Cached ADC values
-  
-  proc getPotValue(backend: var MyAdcBackend, potId: uint16): cfloat =
-    # Return cached value (updated elsewhere by ADC ISR)
-    backend.values[potId]
-  
-  var adcBackend = MyAdcBackend()
-  var potMonitor: PotMonitor[MyAdcBackend, 4]
-  
-  potMonitor.init(eventQueue, adcBackend,
-                  idleTimeoutMs = 500)
-  
-  # In main loop:
-  while true:
-    potMonitor.process()
-    
-    # Check if volume pot is being moved
-    if potMonitor.isMoving(potVolume.ord.uint16):
-      let value = potMonitor.getCurrentPotValue(potVolume.ord.uint16)
-      echo "Volume changing: ", value

@@ -64,7 +64,8 @@
 ##     echo "USB Host ready: ", usbHost.getProductName()
 ## ```
 
-import nimphea/nimphea_macros
+import nimphea
+export nimphea_core_types
 
 useNimpheaModules(usb, usb_midi, usb_host)
 
@@ -76,19 +77,12 @@ type
   UsbResult* {.importcpp: "daisy::UsbHandle::Result", size: sizeof(cint).} = enum
     USB_OK = 0
     USB_ERR
-  
-  UsbPeriph* {.importcpp: "daisy::UsbHandle::UsbPeriph", size: sizeof(cint).} = enum
-    FS_INTERNAL = 0  ## Internal USB pin
-    FS_EXTERNAL      ## External USB pins (D+ on Pin 38/GPIO32, D- on Pin 37/GPIO31)
-    FS_BOTH          ## Both internal and external
-  
+
   UsbReceiveCallback* = proc(buff: ptr uint8, len: ptr uint32) {.cdecl.}
-  
-  UsbHandle* {.importcpp: "daisy::UsbHandle".} = object
 
 # UsbHandle methods
 proc init*(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.Init(@)", header: "hid/usb.h".}
-proc deInit*(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.DeInit(@)", header: "hid/usb.h".}
+proc deinit*(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.DeInit(@)", header: "hid/usb.h".}
 proc transmitInternal*(this: var UsbHandle, buff: ptr uint8, size: csize_t): UsbResult {.importcpp: "#.TransmitInternal(@)", header: "hid/usb.h".}
 proc transmitExternal*(this: var UsbHandle, buff: ptr uint8, size: csize_t): UsbResult {.importcpp: "#.TransmitExternal(@)", header: "hid/usb.h".}
 proc setReceiveCallback*(this: var UsbHandle, cb: UsbReceiveCallback, dev: UsbPeriph) {.importcpp: "#.SetReceiveCallback(@)", header: "hid/usb.h".}
@@ -99,18 +93,7 @@ proc setReceiveCallback*(this: var UsbHandle, cb: UsbReceiveCallback, dev: UsbPe
 {.push header: "hid/usb_midi.h".}
 
 type
-  MidiUsbPeriph* {.importcpp: "daisy::MidiUsbTransport::Config::Periph", size: sizeof(cint).} = enum
-    MIDI_USB_INTERNAL = 0
-    MIDI_USB_EXTERNAL
-    MIDI_USB_HOST
-  
   MidiRxParseCallback* = proc(data: ptr uint8, size: csize_t, context: pointer) {.cdecl.}
-  
-  MidiUsbTransportConfig* {.importcpp: "daisy::MidiUsbTransport::Config".} = object
-    periph* {.importc: "periph".}: MidiUsbPeriph
-    txRetryCount* {.importc: "tx_retry_count".}: uint8
-  
-  MidiUsbTransport* {.importcpp: "daisy::MidiUsbTransport".} = object
 
 # MidiUsbTransport methods
 proc init*(this: var MidiUsbTransport, config: MidiUsbTransportConfig) {.importcpp: "#.Init(@)", header: "hid/usb_midi.h".}

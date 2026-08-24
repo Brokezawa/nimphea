@@ -28,8 +28,7 @@
 ##   discard
 ## ```
 
-import nimphea_macros
-import nimphea  # For Pin type
+import nimphea
 
 useNimpheaModules(switch3)
 
@@ -44,25 +43,22 @@ type
   Switch3* {.importcpp: "daisy::Switch3", header: "hid/switch3.h".} = object
     ## 3-position switch handler
 
-proc init*(this: var Switch3, pina, pinb: Pin)
-  {.importcpp: "#.Init(#, #)".} =
-  ## Initialize 3-position switch
+proc init*(sw: var Switch3, pina, pinb: Pin) {.importcpp: "#.Init(@)".}
+  ## Initialize a 3-position switch.
   ##
   ## **Parameters:**
   ## - `pina` - First pin
   ## - `pinb` - Second pin
   ##
-  ## **Note:** Both pins use internal pull-up resistors
+  ## **Note:** Both pins use internal pull-up resistors.
   ##
   ## **Example:**
   ## ```nim
   ## var sw: Switch3
-  ## sw.init(D0, D1)
+  ## sw.init(D0(), D1())
   ## ```
-  discard
-
-proc read*(this: var Switch3): cint {.importcpp: "#.Read()".} =
-  ## Read current switch position
+proc read*(sw: var Switch3): cint {.importcpp: "#.Read()".}
+  ## Read the current switch position.
   ##
   ## **Returns:**
   ## - SWITCH3_POS_CENTER (0) - Center/neutral position
@@ -75,4 +71,4 @@ proc read*(this: var Switch3): cint {.importcpp: "#.Read()".} =
   ## if pos == SWITCH3_POS_UP:
   ##   echo "Switch is up!"
   ## ```
-  discard
+

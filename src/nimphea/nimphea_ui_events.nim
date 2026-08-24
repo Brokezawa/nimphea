@@ -47,7 +47,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 # UiEventQueue doesn't need special typedefs, uses core types
 useNimpheaModules(ui_core)

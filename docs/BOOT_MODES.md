@@ -61,13 +61,13 @@ Special case: Using CMSIS-DSP? → Always BOOT_QSPI (library is 1MB)
 
 **Flashing:**
 ```bash
-nimble make
-nimble stlink  # Via ST-Link (fastest)
+nim e make.nims
+nim e stlink.nims  # Via ST-Link (fastest)
 # OR
-nimble flash   # Via USB DFU (no hardware required)
+nim e flash.nims   # Via USB DFU (no hardware required)
 ```
 
-**Configuration in project.nimble:**
+**Configuration in config.nims:**
 ```nim
 const customDefines = ""  # or omit entirely
 ```
@@ -104,15 +104,15 @@ const customDefines = ""  # or omit entirely
 **Setup (one-time):**
 1. Install bootloader with ST-Link (contact team for bootloader binary)
 2. Enter bootloader: Hold BOOT, press RESET, release BOOT
-3. Run: `nimble flash` - loads to SRAM via USB
+3. Run: `nim e flash.nims` - loads to SRAM via USB
 
 **Flashing:**
 ```bash
-nimble make
-nimble flash   # USB DFU only (bootloader required)
+nim e make.nims
+nim e flash.nims   # USB DFU only (bootloader required)
 ```
 
-**Configuration in project.nimble:**
+**Configuration in config.nims:**
 ```nim
 const customDefines = "bootSram"
 ```
@@ -153,11 +153,11 @@ const customDefines = "bootSram"
 
 **Flashing:**
 ```bash
-nimble make
-nimble flash   # USB DFU only (bootloader required)
+nim e make.nims
+nim e flash.nims   # USB DFU only (bootloader required)
 ```
 
-**Configuration in project.nimble:**
+**Configuration in config.nims:**
 ```nim
 const customDefines = "bootQspi"
 ```
@@ -188,8 +188,8 @@ git clone https://github.com/Brokezawa/nimphea-template-basic myproject
 cd myproject
 
 # Build and flash
-nimble make
-nimble stlink  # or: nimble flash
+nim e make.nims
+nim e stlink.nims  # or: nim e flash.nims
 ```
 
 ### Scenario 2: Growing Beyond 120KB
@@ -201,8 +201,8 @@ nimble stlink  # or: nimble flash
    - **No bootloader?** → Install one (one-time, needs ST-Link)
    - **Have bootloader?** → Continue
 2. Choose BOOT_SRAM or BOOT_QSPI based on size
-3. Update `customDefines` in project.nimble
-4. Flash via `nimble flash`
+3. Update `customDefines` in config.nims
+4. Flash via `nim e flash.nims`
 
 **Decision:**
 - Application < 512KB? → BOOT_SRAM (simpler)
@@ -220,14 +220,14 @@ nimble stlink  # or: nimble flash
 
 **Configuration:**
 ```nim
-# project.nimble
+# config.nims
 const customDefines = "bootQspi useCMSIS"
 ```
 
 **Build and flash:**
 ```bash
-nimble make      # Will link CMSIS-DSP library
-nimble flash     # Over USB with bootloader (2-3 seconds)
+nim e make.nims      # Will link CMSIS-DSP library
+nim e flash.nims     # Over USB with bootloader (2-3 seconds)
 ```
 
 ### Scenario 4: Team Project with Bootloader Pre-Installed
@@ -237,12 +237,12 @@ nimble flash     # Over USB with bootloader (2-3 seconds)
 **Setup (one-time):**
 1. No setup needed - bootloader already on device
 2. Enter bootloader: Hold BOOT, press RESET, release BOOT
-3. Run `nimble flash` - loads via USB
+3. Run `nim e flash.nims` - loads via USB
 
 **Daily workflow:**
 ```bash
-nimble make
-nimble flash    # Fast USB update, no hardware required
+nim e make.nims
+nim e flash.nims    # Fast USB update, no hardware required
 ```
 
 ---
@@ -252,7 +252,7 @@ nimble flash    # Fast USB update, no hardware required
 ### From BOOT_NONE to BOOT_SRAM
 
 ```nim
-# project.nimble - Change this line:
+# config.nims - Change this line:
 const customDefines = ""        # was: BOOT_NONE
 # to:
 const customDefines = "bootSram"
@@ -260,21 +260,21 @@ const customDefines = "bootSram"
 
 Then:
 ```bash
-nimble make
-nimble flash  # Must have bootloader installed
+nim e make.nims
+nim e flash.nims  # Must have bootloader installed
 ```
 
 ### From BOOT_SRAM to BOOT_QSPI
 
 ```nim
-# project.nimble
+# config.nims
 const customDefines = "bootQspi"  # was: "bootSram"
 ```
 
 Then:
 ```bash
-nimble make
-nimble flash
+nim e make.nims
+nim e flash.nims
 ```
 
 ### Reverting to BOOT_NONE
@@ -285,8 +285,8 @@ nimble flash
 # Remove boot mode defines
 const customDefines = ""
 
-nimble make
-nimble stlink   # Via ST-Link only
+nim e make.nims
+nim e stlink.nims   # Via ST-Link only
 ```
 
 ---
@@ -295,19 +295,19 @@ nimble stlink   # Via ST-Link only
 
 ### "stlink task requires BOOT_NONE mode"
 
-**Problem:** Tried `nimble stlink` with bootloaded application
+**Problem:** Tried `nim e stlink.nims` with bootloaded application
 
 **Solution:**
-- Bootloaded modes (BOOT_SRAM, BOOT_QSPI) must use `nimble flash` (DFU)
-- Direct flash (BOOT_NONE) can use `nimble stlink` (ST-Link)
+- Bootloaded modes (BOOT_SRAM, BOOT_QSPI) must use `nim e flash.nims` (DFU)
+- Direct flash (BOOT_NONE) can use `nim e stlink.nims` (ST-Link)
 
 **Fix:**
 ```bash
 # If bootloader installed, use DFU
-nimble flash
+nim e flash.nims
 
 # If no bootloader, revert to BOOT_NONE
-nimble stlink
+nim e stlink.nims
 ```
 
 ### Application Size Error
@@ -382,6 +382,6 @@ nimble stlink
 
 ## References
 
-- [Build System](./BUILD_SYSTEM.md) - Compiler configuration details
+- [Getting Started](./guides/getting-started.md) - Project setup and build commands
 - [Flashing Guide](./FLASH_GUIDE.md) - Flashing methods and tools
 - Templates: [Basic](https://github.com/Brokezawa/nimphea-template-basic) | [Audio](https://github.com/Brokezawa/nimphea-template-audio)

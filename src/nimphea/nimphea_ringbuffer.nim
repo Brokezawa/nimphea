@@ -64,6 +64,14 @@ template isPowerOfTwo(n: static int): bool =
   ## Compile-time check if a number is a power of 2
   (n and (n - 1)) == 0 and n > 0
 
+template checkedN(N: static int): int =
+  ## Array-length guard that rejects non-power-of-2 capacities at the type
+  ## instantiation, so mask-based indexing can never silently misbehave.
+  when not isPowerOfTwo(N):
+    {.error: "RingBuffer size N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, ...)".}
+  else:
+    N
+
 type
   RingBuffer*[N: static int; T] = object
     ## Lock-free circular buffer for audio streaming
@@ -80,7 +88,7 @@ type
     ## - `writeIdx` - Write position
     ## - `readIdx` - Read position
     ## - `mode` - Overwrite behavior
-    data: array[N, T]
+    data: array[checkedN(N), T]
     writeIdx: int
     readIdx: int
     mode: OverwriteMode
@@ -91,8 +99,6 @@ proc init*[N: static int, T](this: var RingBuffer[N, T],
   ##
   ## **Parameters:**
   ## - `mode` - Overwrite behavior (default: OVERWRITE_OLDEST)
-  when not isPowerOfTwo(N):
-    {.error: "RingBuffer size N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, ...)".}
   ##
   ## **Example:**
   ## ```nim

@@ -48,9 +48,12 @@
 ## - Same drawing API
 
 import nimphea
+export nimphea_core_types
 import nimphea/per/i2c
 import nimphea/per/spi
-import nimphea_macros
+import nimphea/nimphea_macros
+# Shared 2D drawing primitives (drawLine/drawRect/fillRect/drawCircle)
+import nimphea/hid/disp/draw2d
 
 useNimpheaModules(i2c, spi, sh1106)
 
@@ -58,9 +61,6 @@ useNimpheaModules(i2c, spi, sh1106)
 {.push importcpp.}
 
 type
-  # Transport configurations (same as SSD130x)
-  # We reuse the SSD130x transport config types since SH1106 uses identical transports
-  
   # Pre-instantiated SH1106 Display types from libDaisy
   # Using the short typedefs defined in the macro system (SH1106I2c128x64, SH1106Spi128x64)
   # I2C variant (128x64 only)
@@ -69,21 +69,8 @@ type
   # SPI variant (128x64 only)
   SH1106Spi128x64* {.importcpp: "SH1106Spi128x64".} = object
   
-  # Config structs - use SSD130x types (identical structure)
-  # Import from hid/disp/oled_display to avoid duplication
-  SSD130xI2CTransportConfig* {.importcpp: "daisy::SSD130xI2CTransport::Config", bycopy.} = object
-    i2c_config* {.importc: "i2c_config".}: I2CConfig
-    i2c_address* {.importc: "i2c_address".}: uint8
-  
-  SSD130xSpiPinConfig* {.importcpp: "daisy::SSD130x4WireSpiTransport::Config::pin_config", bycopy.} = object
-    dc* {.importc: "dc".}: Pin
-    reset* {.importc: "reset".}: Pin
-  
-  SSD130x4WireSpiTransportConfig* {.importcpp: "daisy::SSD130x4WireSpiTransport::Config", bycopy.} = object
-    spi_config* {.importc: "spi_config".}: SpiConfig
-    pin_config* {.importc: "pin_config".}: SSD130xSpiPinConfig
-    useDma* {.importc: "useDma".}: bool
-  
+  # Config structs - reuse SSD130x transport types from nimphea_core_types
+  # (identical structure)
   SH1106I2cConfig* {.importcpp: "SH1106I2c128x64::Config", bycopy.} = object
     transport_config* {.importc: "transport_config".}: SSD130xI2CTransportConfig
   
@@ -105,11 +92,11 @@ proc Fill[T](display: var T, on: bool) {.importcpp: "#.Fill(@)", header: "daisy_
 proc Update[T](display: var T) {.importcpp: "#.Update()", header: "daisy_seed.h".}
 
 # Constructors
-proc cppNewSH1106I2c(): SH1106I2c128x64 {.importcpp: "SH1106I2c128x64()", constructor, header: "daisy_seed.h".}
-proc cppNewSH1106Spi(): SH1106Spi128x64 {.importcpp: "SH1106Spi128x64()", constructor, header: "daisy_seed.h".}
+proc newSH1106I2c(): SH1106I2c128x64 {.importcpp: "SH1106I2c128x64()", constructor, header: "daisy_seed.h".}
+proc newSH1106Spi(): SH1106Spi128x64 {.importcpp: "SH1106Spi128x64()", constructor, header: "daisy_seed.h".}
 
-proc cppNewSH1106I2cConfig(): SH1106I2cConfig {.importcpp: "SH1106I2c128x64::Config()", constructor, header: "daisy_seed.h".}
-proc cppNewSH1106SpiConfig(): SH1106SpiConfig {.importcpp: "SH1106Spi128x64::Config()", constructor, header: "daisy_seed.h".}
+proc newSH1106I2cConfig(): SH1106I2cConfig {.importcpp: "SH1106I2c128x64::Config()", constructor, header: "daisy_seed.h".}
+proc newSH1106SpiConfig(): SH1106SpiConfig {.importcpp: "SH1106Spi128x64::Config()", constructor, header: "daisy_seed.h".}
 
 # Transport defaults (reuse SSD130x transport defaults)
 proc Defaults*(config: var SSD130xI2CTransportConfig) {.importcpp: "#.Defaults()", header: "daisy_seed.h".}
@@ -142,8 +129,8 @@ template initSH1106I2c*(width, height: static[int],
   ## ```
   when (width, height) == (128, 64):
     block:
-      var result = cppNewSH1106I2c()
-      var config = cppNewSH1106I2cConfig()
+      var result = newSH1106I2c()
+      var config = newSH1106I2cConfig()
       config.transport_config.Defaults()
       config.transport_config.i2c_config.pin_config.scl = sclPin
       config.transport_config.i2c_config.pin_config.sda = sdaPin
@@ -182,8 +169,8 @@ template initSH1106Spi*(width, height: static[int],
   ## ```
   when (width, height) == (128, 64):
     block:
-      var result = cppNewSH1106Spi()
-      var config = cppNewSH1106SpiConfig()
+      var result = newSH1106Spi()
+      var config = newSH1106SpiConfig()
       config.transport_config.Defaults()
       config.transport_config.pin_config.dc = dcPin
       config.transport_config.pin_config.reset = resetPin
@@ -224,70 +211,23 @@ proc update*(display: var OledSH1106) =
   ## Call this after drawing to make changes visible
   display.Update()
 
-# Drawing helpers - same as SSD130x
+# 2D drawing primitives are shared via hid/disp/draw2d (re-exported)
+# 2D drawing primitives (shared Bresenham implementations from hid/disp/draw2d)
 proc drawLine*(display: var OledSH1106, x0, y0, x1, y1: int, on: bool = true) =
-  ## Draw a line using Bresenham's algorithm
-  ## 
-  ## **Parameters:**
-  ## - `x0`, `y0` - Start point
-  ## - `x1`, `y1` - End point
-  ## - `on` - true for white, false for black
-  var x0 = x0; var y0 = y0
-  let dx = abs(x1 - x0); let dy = abs(y1 - y0)
-  let sx = if x0 < x1: 1 else: -1
-  let sy = if y0 < y1: 1 else: -1
-  var err = dx - dy
-  while true:
-    display.drawPixel(x0, y0, on)
-    if x0 == x1 and y0 == y1: break
-    let e2 = 2 * err
-    if e2 > -dy: err -= dy; x0 += sx
-    if e2 < dx: err += dx; y0 += sy
+  ## Draw a line using Bresenham's algorithm (see `hid/disp/draw2d`).
+  draw2d.drawLine(display, x0, y0, x1, y1, on)
 
 proc drawRect*(display: var OledSH1106, x, y, w, h: int, on: bool = true) =
-  ## Draw a rectangle outline
-  ## 
-  ## **Parameters:**
-  ## - `x`, `y` - Top-left corner
-  ## - `w`, `h` - Width and height
-  ## - `on` - true for white, false for black
-  for i in 0..<w:
-    display.drawPixel(x + i, y, on)
-    display.drawPixel(x + i, y + h - 1, on)
-  for i in 0..<h:
-    display.drawPixel(x, y + i, on)
-    display.drawPixel(x + w - 1, y + i, on)
+  ## Draw a rectangle outline (see `hid/disp/draw2d`).
+  draw2d.drawRect(display, x, y, w, h, on)
 
 proc fillRect*(display: var OledSH1106, x, y, w, h: int, on: bool = true) =
-  ## Draw a filled rectangle
-  ## 
-  ## **Parameters:**
-  ## - `x`, `y` - Top-left corner
-  ## - `w`, `h` - Width and height
-  ## - `on` - true for white, false for black
-  for j in 0..<h:
-    for i in 0..<w:
-      display.drawPixel(x + i, y + j, on)
+  ## Draw a filled rectangle (see `hid/disp/draw2d`).
+  draw2d.fillRect(display, x, y, w, h, on)
 
 proc drawCircle*(display: var OledSH1106, x0, y0, radius: int, on: bool = true) =
-  ## Draw a circle outline using midpoint circle algorithm
-  ## 
-  ## **Parameters:**
-  ## - `x0`, `y0` - Center point
-  ## - `radius` - Circle radius in pixels
-  ## - `on` - true for white, false for black
-  var x = radius; var y = 0; var err = 0
-  while x >= y:
-    display.drawPixel(x0 + x, y0 + y, on)
-    display.drawPixel(x0 + y, y0 + x, on)
-    display.drawPixel(x0 - y, y0 + x, on)
-    display.drawPixel(x0 - x, y0 + y, on)
-    display.drawPixel(x0 - x, y0 - y, on)
-    display.drawPixel(x0 - y, y0 - x, on)
-    display.drawPixel(x0 + y, y0 - x, on)
-    display.drawPixel(x0 + x, y0 - y, on)
-    if err <= 0: inc y; err += 2 * y + 1
-    if err > 0: dec x; err -= 2 * x + 1
+  ## Draw a circle outline using the midpoint circle algorithm (see `hid/disp/draw2d`).
+  draw2d.drawCircle(display, x0, y0, radius, on)
 
 # I2C address constants
 const

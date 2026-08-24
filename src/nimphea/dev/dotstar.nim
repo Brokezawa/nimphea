@@ -34,7 +34,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/spi
 import nimphea_color
 
@@ -163,20 +163,18 @@ proc setPixelColor*(dotstar: var DotStarSpi, idx: uint16, color: Color): DotStar
   ## Set pixel color with Color object
   return dotstar.setPixelColor(idx, color.red8(), color.green8(), color.blue8())
 
-proc fill*(dotstar: var DotStarSpi, r, g, b: uint8) =
-  ## Fill all pixels with RGB color
-  for i in 0'u16 ..< dotstar.numPixels:
-    discard dotstar.setPixelColor(i, r, g, b)
-
 proc fill*(dotstar: var DotStarSpi, color: uint32) =
-  ## Fill all pixels with 32-bit color
+  ## Fill all pixels with a 32-bit RGB color (MSB ignored)
   for i in 0'u16 ..< dotstar.numPixels:
     discard dotstar.setPixelColor(i, color)
 
-proc fill*(dotstar: var DotStarSpi, color: Color) =
-  ## Fill all pixels with Color object
-  for i in 0'u16 ..< dotstar.numPixels:
-    discard dotstar.setPixelColor(i, color)
+proc fill*(dotstar: var DotStarSpi, r, g, b: uint8) {.inline.} =
+  ## Fill all pixels with 8-bit RGB values
+  dotstar.fill((r.uint32 shl 16) or (g.uint32 shl 8) or b.uint32)
+
+proc fill*(dotstar: var DotStarSpi, color: Color) {.inline.} =
+  ## Fill all pixels with a Color object
+  dotstar.fill(color.red8(), color.green8(), color.blue8())
 
 proc clear*(dotstar: var DotStarSpi) =
   ## Clear all pixels (set to black)
@@ -191,16 +189,16 @@ proc show*(dotstar: var DotStarSpi): DotStarResult =
     endFrame: array[4, uint8] = [0xFF'u8, 0xFF, 0xFF, 0xFF]
   
   # Send start frame
-  if dotstar.spi.BlockingTransmit(addr startFrame[0], 4) != SPI_OK:
+  if dotstar.spi.blockingTransmit(addr startFrame[0], 4) != SPI_OK:
     return DS_ERR_TRANSPORT
   
   # Send pixel data
   for i in 0'u16 ..< dotstar.numPixels:
-    if dotstar.spi.BlockingTransmit(cast[ptr uint8](addr dotstar.pixels[i]), 4) != SPI_OK:
+    if dotstar.spi.blockingTransmit(cast[ptr uint8](addr dotstar.pixels[i]), 4) != SPI_OK:
       return DS_ERR_TRANSPORT
   
   # Send end frame
-  if dotstar.spi.BlockingTransmit(addr endFrame[0], 4) != SPI_OK:
+  if dotstar.spi.blockingTransmit(addr endFrame[0], 4) != SPI_OK:
     return DS_ERR_TRANSPORT
   
   return DS_OK

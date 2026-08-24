@@ -9,9 +9,9 @@ Nimphea uses a **two-tier testing approach**:
 ### Tier 1: Unit Tests (This Directory)
 - **What**: Pure logic testing for data structures and utilities
 - **Where**: Runs on your host computer (Linux/macOS/Windows)
-- **How**: `nimble test_unit`
+- **How**: `nim e scripts/test.nims` (from the repo root)
 - **Purpose**: Catch logic bugs, enable TDD, support CI/CD
-- **Framework**: [nim-unittest2](https://github.com/status-im/nim-unittest2)
+- **Framework**: std/unittest (Nim standard library — no external packages required)
 
 ### Tier 2: Integration Tests (examples/)
 - **What**: Full functionality testing on real hardware
@@ -23,12 +23,10 @@ Nimphea uses a **two-tier testing approach**:
 ## Running Unit Tests
 
 ```bash
-# Run all unit tests
-nimble test_unit
-
-# Install test dependencies (if needed)
-nimble install -y unittest2
+# Run all unit tests (from the repo root)
+nim e scripts/test.nims
 ```
+The suite uses only the standard library, so no test dependencies need to be installed.
 
 ## Test Coverage
 
@@ -36,13 +34,13 @@ nimble install -y unittest2
 
 | Module | Test File | Status | Test Count |
 |--------|-----------|--------|------------|
-| `nimphea_fixedstr.nim` | `test_fixedstr.nim` | Complete | 22 tests |
-| `nimphea_fifo.nim` | `test_fifo.nim` | Complete | 29 tests |
-| `nimphea_stack.nim` | `test_stack.nim` | Complete | 27 tests |
-| `nimphea_ringbuffer.nim` | `test_ringbuffer.nim` | Complete | 37 tests |
+| `nimphea_stack_strings_utils.nim` | `test_stack_strings_utils.nim` | Complete | 10 tests |
+| `nimphea_fifo.nim` | `test_fifo.nim` | Complete | 21 tests |
+| `nimphea_stack.nim` | `test_stack.nim` | Complete | 21 tests |
+| `nimphea_ringbuffer.nim` | `test_ringbuffer.nim` | Complete | 29 tests |
 | `nimphea_mapped_value.nim` | `test_mapped_value.nim` | Complete | 40 tests |
 
-**Total: 133 tests, 5/5 testable modules complete (100% of pure Nim modules)**
+**Total: 121 tests, 5/5 testable modules complete (100% of pure Nim modules)**
 
 ### Modules NOT Testable (C++ Wrappers)
 
@@ -101,7 +99,7 @@ suite "ModuleName: Basic Functionality":
 1. Create `tests/test_newmodule.nim`
 2. Write your test suites
 3. Add `import test_newmodule` to `all_tests.nim`
-4. Run `nimble test_unit` to verify
+4. Run `nim e scripts/test.nims` (repo root) to verify
 
 ## Design Philosophy
 
@@ -131,20 +129,25 @@ See libDaisy's unit testing guide:
 Unit tests are designed to run in continuous integration:
 
 ```yaml
-# Example GitHub Actions workflow
-- name: Install dependencies
-  run: nimble install -y unittest2
+# Example GitHub Actions workflow (see the real one at .github/workflows/ci.yml)
+- name: Checkout
+  uses: actions/checkout@v4
+
+- name: Setup Nim
+  uses: iffy/install-nim@v4
+  with:
+    version: 2.2.8
 
 - name: Run unit tests
-  run: nimble test_unit
+  run: nim e scripts/test.nims
 ```
 
 ## Test Output
 
-When you run `nimble test_unit`, you'll see output like:
+When you run `nim e scripts/test.nims`, you'll see output like:
 
 ```
-[Suite] FixedStr: Basic Functionality
+[Suite] StackString utils - Integer add
   [OK] should start empty
   [OK] should report correct capacity
   [OK] should handle append operations
@@ -160,7 +163,7 @@ When adding new testable functionality to Nimphea:
 2. Follow the existing test structure
 3. Aim for comprehensive coverage (basics, edge cases, practical usage)
 4. Update this README with new test files
-5. Ensure `nimble test_unit` passes before submitting PR
+5. Ensure `nim e scripts/test.nims` passes before submitting PR
 
 For more information, see:
 - `docs/CONTRIBUTING.md` - Contribution guidelines
@@ -175,4 +178,4 @@ For more information, see:
 
 ---
 
-**Next Steps**: Run `nimble test_unit` to verify your test setup works!
+**Next Steps**: Run `nim e scripts/test.nims` to verify your test setup works!

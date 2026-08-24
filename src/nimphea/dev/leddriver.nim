@@ -43,15 +43,12 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+export nimphea_core_types
+import nimphea/nimphea_macros
 import nimphea/per/i2c
+import nimphea/sys/system
 
 useNimpheaModules(leddriver, i2c)
-
-# System delay functions from libDaisy
-proc delayMs*(ms: uint32) {.importcpp: "daisy::System::Delay(@)", header: "sys/system.h".}
-proc delayUs*(us: uint32) {.importcpp: "daisy::System::DelayUs(@)", header: "sys/system.h".}
-proc delayTicks*(ticks: uint32) {.importcpp: "daisy::System::DelayTicks(@)", header: "sys/system.h".}
 
 type
   ## DMA buffer for a single PCA9685 chip (16 channels)
@@ -164,26 +161,26 @@ proc initializeDrivers*[N, P](driver: var LedDriverPca9685[N, P]) =
     # Wake from sleep
     buffer[0] = PCA9685_MODE1
     buffer[1] = 0x00
-    discard driver.i2c.TransmitBlocking(address, addr buffer[0], 2, 100)
-    delayMs(20)
+    discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
+    delay(20)
     
     # Restart
     buffer[0] = PCA9685_MODE1
     buffer[1] = 0x00
-    discard driver.i2c.TransmitBlocking(address, addr buffer[0], 2, 100)
-    delayMs(20)
+    discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
+    delay(20)
     
     # Enable auto-increment
     buffer[0] = PCA9685_MODE1
     buffer[1] = 0b00100000  # Auto increment on
-    discard driver.i2c.TransmitBlocking(address, addr buffer[0], 2, 100)
-    delayMs(20)
+    discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
+    delay(20)
     
     # Configure MODE2
     buffer[0] = PCA9685_MODE2
     buffer[1] = 0b00110110  # OE=high-Z, push-pull, update on STOP, inverted
-    discard driver.i2c.TransmitBlocking(address, addr buffer[0], 2, 100)
-    delayMs(5)
+    discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
+    delay(5)
 
 proc init*[N, P](driver: var LedDriverPca9685[N, P],
                  config: LedDriverConfig[N],
@@ -257,12 +254,6 @@ proc setAllTo*[N, P](driver: var LedDriverPca9685[N, P], brightness: float32) =
 # Forward declaration for callback
 proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P])
 
-proc txCpltCallback(context: pointer, result: I2CResult) {.exportc, cdecl.} =
-  ## Internal DMA completion callback
-  # Note: Generic type information is lost in callback context
-  # Use Field-specific callback for working DMA (see fieldLedDriverDmaCallback below)
-  discard
-
 proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P]) =
   ## Continue DMA transmission to next chip (internal use)
   driver.currentDriverIdx += 1
@@ -278,7 +269,7 @@ proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P]) =
   
   # Start DMA transmission for this chip
   # Note: Callback system needs proper type-safe wrapper
-  let status = driver.i2c.TransmitDma(
+  let status = driver.i2c.dmaTransmit(
     address.uint16,
     cast[ptr uint8](addr driver.transmitBuffer[][d]),
     bufferSize.uint16,
@@ -288,8 +279,8 @@ proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P]) =
   
   if status != I2C_OK:
     # On error, reinit I2C (as per libDaisy implementation)
-    let config = driver.i2c.GetConfig()
-    discard driver.i2c.Init(config)
+    let config = driver.i2c.getConfig()
+    discard driver.i2c.init(config)
     driver.currentDriverIdx = -1
 
 proc swapBuffersAndTransmit*[N, P](driver: var LedDriverPca9685[N, P], 
@@ -310,7 +301,7 @@ proc swapBuffersAndTransmit*[N, P](driver: var LedDriverPca9685[N, P],
   # Wait for current transmission to complete with timeout
   var timeout = timeoutMs
   while driver.currentDriverIdx >= 0 and timeout > 0:
-    delayMs(1)  # Use proper 1ms delay instead of busy-wait
+    delay(1)  # Use proper 1ms delay instead of busy-wait
     timeout -= 1
   
   # Check if timeout occurred
@@ -342,29 +333,18 @@ proc swapBuffersAndTransmit*[N, P](driver: var LedDriverPca9685[N, P],
 # The Field has 26 LEDs controlled by 2× PCA9685 chips (daisy-chained).
 
 proc setLed*(driver: var FieldLedDriver, ledNum: int, brightness: float32) =
-  ## Set Field LED brightness (0.0-1.0) with gamma correction
-  ## 
-  ## **Parameters:**
-  ## - `ledNum` - LED index 0-25 (16 keyboard + 8 knob + 2 switch LEDs)
-  ## - `brightness` - Brightness level 0.0 (off) to 1.0 (full)
-  ## 
+  ## Set Field LED brightness (0.0-1.0) with gamma correction.
+  ## Field-specific: bounds-checks the 26 LEDs (0-25), then delegates to the
+  ## generic gamma-corrected path.
+  ##
   ## **LED Mapping:**
   ## - LEDs 0-15: Keyboard LEDs (Chip 0, channels 0-15)
   ## - LEDs 16-23: Knob LEDs (Chip 1, channels 0-7)
   ## - LEDs 24-25: Switch LEDs (Chip 1, channels 8-9)
   if ledNum < 0 or ledNum >= 26:
     return
-  
-  let chipIdx = ledNum div 16  # Chip 0 has LEDs 0-15, Chip 1 has LEDs 16-25
-  let channelIdx = ledNum mod 16
-  
-  # Convert brightness to 12-bit PWM with gamma correction
-  let brightness8bit = uint8(brightness * 255.0)
-  let pwmValue = if brightness8bit < 256: GAMMA_TABLE[brightness8bit] else: 4095'u16
-  
-  # Update draw buffer
-  driver.drawBuffer[][chipIdx].leds[channelIdx].on = 0
-  driver.drawBuffer[][chipIdx].leds[channelIdx].off = pwmValue
+  let intBrightness = clamp(brightness * 255.0'f32, 0.0'f32, 255.0'f32).uint8
+  driver.setLed(ledNum, intBrightness)
 
 proc clearAllLeds*(driver: var FieldLedDriver) =
   ## Turn off all Field LEDs (26 total)
@@ -379,16 +359,4 @@ proc swapBuffersAndTransmit*(driver: var FieldLedDriver): bool {.inline.} =
   ## **Note:** Uses 100ms timeout for DMA transfer initialization
   driver.swapBuffersAndTransmit(100)  # 100ms timeout
 
-# Field LED driver DMA callback (enables high-performance LED updates)
-proc fieldLedDriverDmaCallback(context: pointer, result: I2CResult) {.cdecl, exportc: "fieldLedDriverDmaCallback".} =
-  ## DMA completion callback for Field LED driver
-  ## 
-  ## Called from interrupt context when I2C DMA transfer completes.
-  ## Enables chaining multiple DMA transfers (one per PCA9685 chip)
-  ## without blocking the main thread.
-  ## 
-  ## **Context:** Pointer to FieldLedDriver instance
-  ## **Result:** I2C transfer result (I2C_OK or error code)
-  if result == I2C_OK:
-    var driver = cast[ptr FieldLedDriver](context)
-    driver[].continueTransmission()
+

@@ -200,8 +200,7 @@
 ## - `per/adc <adc.html>`_ - Read CV inputs
 
 import nimphea
-import nimphea_macros
-import std/math  # For pow() in frequency conversion
+import nimphea/nimphea_macros
 
 useNimpheaModules(voct)
 
@@ -377,6 +376,10 @@ proc isCalibrated*(this: var VoctCalibration): bool =
   var dummyScale, dummyOffset: cfloat
   result = this.getData(dummyScale, dummyOffset)
 
+# C99 exp2f binding — a single fast instruction path on the Cortex-M7
+# (Nim std/math has no exp2f; pow(2, x) via powf is hundreds of cycles).
+proc exp2f(x: cfloat): cfloat {.importc: "exp2f", header: "<math.h>".}
+
 proc midiNoteToFreq*(midiNote: float32): float32 =
   ## Convert MIDI note number to frequency in Hz.
   ##
@@ -397,7 +400,10 @@ proc midiNoteToFreq*(midiNote: float32): float32 =
   ## ```
   ##
   ## **Note:** A4 (MIDI note 69) = 440 Hz by definition.
-  result = 440.0'f32 * pow(2.0'f32, (midiNote - 69.0'f32) / 12.0'f32)
+  ##
+  ## **Note:** Uses `exp2f` (C99, single instruction on the M7) instead of
+  ## libm's `powf` for cheap conversion at UI rate.
+  result = 440.0'f32 * exp2f((midiNote - 69.0'f32) / 12.0'f32)
 
 proc midiNoteToName*(midiNote: int): string =
   ## Convert integer MIDI note number to note name (e.g., "C4", "A#5").

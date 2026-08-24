@@ -38,22 +38,6 @@ const parameterTypedefs* = [
   "Parameter::Curve Curve"
 ]
 
-# WavPlayer module typedefs
-const wavPlayerTypedefs* = [
-  "WavPlayer<4096> WavPlayer4K",
-  "WavPlayer<8192> WavPlayer8K",
-  "WavPlayer<16384> WavPlayer16K",
-  "WavPlayer<4096>::FileInfo WavPlayerFileInfo"
-]
-
-# WavWriter module typedefs
-const wavWriterTypedefs* = [
-  "WavWriter<4096> WavWriter4K",
-  "WavWriter<8192> WavWriter8K",
-  "WavWriter<16384> WavWriter16K",
-  "WavWriter<4096>::Config WavWriterConfig"
-]
-
 # Core typedefs - always included
 const coreTypedefs* = [
   "GPIO::Mode GPIOMode",
@@ -958,8 +942,6 @@ macro useNimpheaModules*(modules: varargs[untyped]): untyped =
   if includeDac: typedefsStr.add(buildTypedefsString(dacTypedefs))
   if includeTim: typedefsStr.add(buildTypedefsString(timerTypedefs))
   if includeParameter: typedefsStr.add(buildTypedefsString(parameterTypedefs))
-  if includeWavPlayer: typedefsStr.add(buildTypedefsString(wavPlayerTypedefs))
-  if includeWavWriter: typedefsStr.add(buildTypedefsString(wavWriterTypedefs))
   if includeControls: typedefsStr.add(buildTypedefsString(controlsTypedefs))
   if includeAdc: typedefsStr.add(buildTypedefsString(adcTypedefs))
   if includePwm: typedefsStr.add(buildTypedefsString(pwmTypedefs))

@@ -44,8 +44,9 @@
 ## - Maximum 16 metadata chunks
 ## - Little-endian host assumed (STM32/Cortex-M)
 
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/sdmmc
+import nimphea/nimphea_filereader
 
 useNimpheaModules(wav_parser)
 
@@ -76,9 +77,7 @@ type
   IReader* {.importcpp: "daisy::IReader", header: "util/FileReader.h".} = object
     ## Abstract reader interface
 
-  FileReader* {.importcpp: "daisy::FileReader",
-                header: "util/FileReader.h".} = object
-    ## Concrete file reader for FatFS
+  # FileReader type is defined in nimphea_filereader.
   
   WavParser* {.importcpp: "daisy::WavParser",
                header: "util/WavParser.h".} = object
@@ -108,10 +107,10 @@ const
   WAVE_FORMAT_IEEE_FLOAT* = 0x0003'u16  ## IEEE float format
   WAVE_FORMAT_EXTENSIBLE* = 0xFFFE'u16  ## Extensible format
 
-# FileReader constructor
-proc createFileReader*(fil: ptr FIL): FileReader {.importcpp: "daisy::FileReader(@)", 
-                                                    header: "util/FileReader.h".}
-  ## Create a FileReader from a FatFS file handle
+# FileReader constructor lives in nimphea_filereader (newFileReader).
+
+# =============================================================================
+# High-Level Parse API
   ## 
   ## **Parameters:**
   ## - fil: Pointer to opened FIL structure

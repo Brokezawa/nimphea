@@ -12,7 +12,7 @@
 ## - Tick-based or time-based measurements (us/ms)
 ## - Configurable period and prescaler
 ## - User callbacks on period elapsed
-## - Blocking delays (DelayTick, DelayMs, DelayUs)
+## - Blocking delays (delayTick, delayMs, delayUs)
 ##
 ## **Note:** DaisySeed uses TIM2 internally for timing/delay purposes at maximum frequency.
 ##
@@ -21,7 +21,7 @@
 ## import nimphea/per/tim
 ##
 ## var timer: TimerHandle
-## var config = TimerConfig()
+## var config = createTimerConfig()
 ## config.periph = TIM_PERIPH_TIM2
 ## config.dir = TIMER_DIR_UP
 ## config.period = 0xffffffff  # Max for 32-bit
@@ -36,20 +36,8 @@
 ## # Delay for 1000us
 ## timer.delayUs(1000)
 ## ```
-##
-## **Callback Usage:**
-## ```nim
-## proc onTimerPeriod(data: pointer) {.cdecl.} =
-##   # Called every period
-##   echo "Timer elapsed!"
-##
-## config.enable_irq = true
-## discard timer.init(config)
-## timer.setCallback(onTimerPeriod, nil)
-## discard timer.start()
-## ```
 
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(tim)
 
@@ -94,7 +82,7 @@ type
     ## **Note:** Requires `enable_irq = true` in config
 
 # Constructor for config with defaults
-proc createTimerConfig*(): TimerConfig {.importcpp: "daisy::TimerHandle::Config()".} =
+proc createTimerConfig*(): TimerConfig {.importcpp: "daisy::TimerHandle::Config()".}
   ## Create a timer configuration with default values
   ##
   ## **Defaults:**
@@ -102,17 +90,10 @@ proc createTimerConfig*(): TimerConfig {.importcpp: "daisy::TimerHandle::Config(
   ## - dir: TIMER_DIR_UP
   ## - period: 0xffffffff (max for 32-bit)
   ## - enable_irq: false
-  discard
 
-# Timer methods
-proc init*(this: var TimerHandle, config: TimerConfig): TimerResult 
-  {.importcpp: "#.Init(#)".} =
-  ## Initialize the timer according to the configuration
-  ##
-  ## **Parameters:**
-  ## - `config` - Timer configuration structure
-  ##
-  ## **Returns:** TIMER_OK on success, TIMER_ERR on failure
+# Timer methods (bind-once)
+proc init*(timer: var TimerHandle, config: TimerConfig): TimerResult {.importcpp: "#.Init(@)".}
+  ## Initialize the timer according to the configuration.
   ##
   ## **Example:**
   ## ```nim
@@ -120,99 +101,37 @@ proc init*(this: var TimerHandle, config: TimerConfig): TimerResult
   ## var config = createTimerConfig()
   ## config.periph = TIM_PERIPH_TIM5
   ## config.period = 10000  # Wrap every 10000 ticks
-  ## 
-  ## if timer.init(config) == TIMER_OK:
-  ##   echo "Timer initialized"
+  ## discard timer.init(config)
   ## ```
-  discard
+proc deinit*(timer: var TimerHandle): TimerResult {.importcpp: "#.DeInit()".}
+  ## Deinitialize the timer.
+proc getConfig*(timer: TimerHandle): TimerConfig {.importcpp: "#.GetConfig()".}
+  ## Returns the current configuration.
 
-proc deInit*(this: var TimerHandle): TimerResult
-  {.importcpp: "#.DeInit()".} =
-  ## Deinitialize the timer
-  ##
-  ## **Returns:** TIMER_OK on success, TIMER_ERR on failure
-  discard
-
-proc getConfig*(this: TimerHandle): TimerConfig
-  {.importcpp: "#.GetConfig()".} =
-  ## Returns the current configuration
-  ##
-  ## **Returns:** Timer configuration structure
-  discard
-
-proc setPeriod*(this: var TimerHandle, ticks: uint32): TimerResult
-  {.importcpp: "#.SetPeriod(#)".} =
-  ## Set the period of the timer
-  ##
-  ## This is the number of ticks before it wraps around.
-  ## Can be changed on-the-fly while timer is running.
-  ##
-  ## **Parameters:**
-  ## - `ticks` - Period in ticks (max 0xffff for 16-bit, 0xffffffff for 32-bit)
-  ##
-  ## **Returns:** TIMER_OK on success
+proc setPeriod*(timer: var TimerHandle, ticks: uint32): TimerResult {.importcpp: "#.SetPeriod(@)".}
+  ## Set the timer period in ticks; can be changed on-the-fly while running.
   ##
   ## **Example:**
   ## ```nim
-  ## # Set to wrap every second at 200MHz
-  ## discard timer.setPeriod(200_000_000)
+  ## discard timer.setPeriod(200_000_000)  # Wrap every second at 200MHz
   ## ```
-  discard
-
-proc setPrescaler*(this: var TimerHandle, val: uint32): TimerResult
-  {.importcpp: "#.SetPrescaler(#)".} =
-  ## Set the prescaler applied to the TIM peripheral
-  ##
-  ## Adjusts the rate of ticks: APBx_Freq / prescaler per tick
-  ## Can be changed on-the-fly while timer is running.
-  ##
-  ## **Parameters:**
-  ## - `val` - Prescaler value (0 to 0xffff)
-  ##
-  ## **Returns:** TIMER_OK on success
+proc setPrescaler*(timer: var TimerHandle, val: uint32): TimerResult {.importcpp: "#.SetPrescaler(@)".}
+  ## Set the prescaler applied to the TIM peripheral; can be changed on-the-fly.
   ##
   ## **Example:**
   ## ```nim
-  ## # Divide by 200 to get 1MHz ticks from 200MHz clock
-  ## discard timer.setPrescaler(200)
+  ## discard timer.setPrescaler(200)  # Divide by 200 to get 1MHz ticks from 200MHz
   ## ```
-  discard
 
-proc start*(this: var TimerHandle): TimerResult
-  {.importcpp: "#.Start()".} =
-  ## Start the timer peripheral
-  ##
-  ## **Returns:** TIMER_OK on success
-  discard
+proc start*(timer: var TimerHandle): TimerResult {.importcpp: "#.Start()".}
+  ## Start the timer peripheral.
+proc stop*(timer: var TimerHandle): TimerResult {.importcpp: "#.Stop()".}
+  ## Stop the timer peripheral.
 
-proc stop*(this: var TimerHandle): TimerResult
-  {.importcpp: "#.Stop()".} =
-  ## Stop the timer peripheral
-  ##
-  ## **Returns:** TIMER_OK on success
-  discard
-
-proc getFreq*(this: var TimerHandle): uint32
-  {.importcpp: "#.GetFreq()".} =
-  ## Returns the frequency of each tick in Hz
-  ##
-  ## **Returns:** Tick frequency in Hz
-  ##
-  ## **Example:**
-  ## ```nim
-  ## let freq = timer.getFreq()
-  ## echo "Timer ticks at ", freq, " Hz"
-  ## # Typically 200MHz or 240MHz (boost mode)
-  ## ```
-  discard
-
-proc getTick*(this: var TimerHandle): uint32
-  {.importcpp: "#.GetTick()".} =
-  ## Returns the current counter position
-  ##
-  ## Increments according to CounterDir and wraps at period.
-  ##
-  ## **Returns:** Current tick count
+proc getFreq*(timer: var TimerHandle): uint32 {.importcpp: "#.GetFreq()".}
+  ## Returns the tick frequency in Hz (typically 200MHz, or 240MHz in boost mode).
+proc getTick*(timer: var TimerHandle): uint32 {.importcpp: "#.GetTick()".}
+  ## Returns the current counter position.
   ##
   ## **Example:**
   ## ```nim
@@ -220,81 +139,46 @@ proc getTick*(this: var TimerHandle): uint32
   ## # ... do work ...
   ## let elapsed = timer.getTick() - start
   ## ```
-  discard
+proc getMs*(timer: var TimerHandle): uint32 {.importcpp: "#.GetMs()".}
+  ## Returns ticks scaled as milliseconds.
+  ##
+  ## **Warning:** Ensure the period can handle the max measurement to avoid wrapping!
+proc getUs*(timer: var TimerHandle): uint32 {.importcpp: "#.GetUs()".}
+  ## Returns ticks scaled as microseconds.
+  ##
+  ## **Warning:** Ensure the period can handle the max measurement to avoid wrapping!
 
-proc getMs*(this: var TimerHandle): uint32
-  {.importcpp: "#.GetMs()".} =
-  ## Returns ticks scaled as milliseconds
-  ##
-  ## **Warning:** Ensure period can handle max measurement to avoid wrapping!
-  ##
-  ## **Returns:** Current time in milliseconds
-  discard
-
-proc getUs*(this: var TimerHandle): uint32
-  {.importcpp: "#.GetUs()".} =
-  ## Returns ticks scaled as microseconds
-  ##
-  ## **Warning:** Ensure period can handle max measurement to avoid wrapping!
-  ##
-  ## **Returns:** Current time in microseconds
-  discard
-
-proc delayTick*(this: var TimerHandle, del: uint32)
-  {.importcpp: "#.DelayTick(#)".} =
-  ## Blocking delay for specified ticks
-  ##
-  ## **Parameters:**
-  ## - `del` - Number of ticks to delay
+proc delayTick*(timer: var TimerHandle, del: uint32) {.importcpp: "#.DelayTick(@)".}
+  ## Blocking delay for the specified number of ticks.
   ##
   ## **Example:**
   ## ```nim
   ## timer.delayTick(1000)  # Wait 1000 ticks
   ## ```
-  discard
-
-proc delayMs*(this: var TimerHandle, del: uint32)
-  {.importcpp: "#.DelayMs(#)".} =
-  ## Blocking delay for specified milliseconds
-  ##
-  ## **Parameters:**
-  ## - `del` - Number of milliseconds to delay
+proc delayMs*(timer: var TimerHandle, del: uint32) {.importcpp: "#.DelayMs(@)".}
+  ## Blocking delay for the specified number of milliseconds.
   ##
   ## **Example:**
   ## ```nim
   ## timer.delayMs(100)  # Wait 100ms
   ## ```
-  discard
-
-proc delayUs*(this: var TimerHandle, del: uint32)
-  {.importcpp: "#.DelayUs(#)".} =
-  ## Blocking delay for specified microseconds
-  ##
-  ## **Parameters:**
-  ## - `del` - Number of microseconds to delay
+proc delayUs*(timer: var TimerHandle, del: uint32) {.importcpp: "#.DelayUs(@)".}
+  ## Blocking delay for the specified number of microseconds.
   ##
   ## **Example:**
   ## ```nim
   ## timer.delayUs(500)  # Wait 500us (0.5ms)
   ## ```
-  discard
 
-proc setCallback*(this: var TimerHandle, cb: TimerCallback, data: pointer = nil)
-  {.importcpp: "#.SetCallback(#, #)".} =
-  ## Set callback that fires when timer reaches end of period
+proc setCallback*(timer: var TimerHandle, cb: TimerCallback, data: pointer = nil)
+  {.importcpp: "#.SetCallback(@)".}
+  ## Set the callback that fires when the timer reaches the end of a period.
   ##
-  ## **Note:** Requires `enable_irq = true` in config
-  ##
-  ## **Parameters:**
-  ## - `cb` - User callback function
-  ## - `data` - Optional pointer to user data (defaults to nil)
+  ## **Note:** Requires `enable_irq = true` in config.
   ##
   ## **Example:**
   ## ```nim
   ## proc onPeriod(data: pointer) {.cdecl.} =
-  ##   # Called every period
   ##   hw.setLed(true)
-  ##
   ## timer.setCallback(onPeriod, nil)
   ## ```
-  discard

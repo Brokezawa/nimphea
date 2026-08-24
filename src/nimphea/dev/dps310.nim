@@ -6,6 +6,9 @@
 ## The DPS310 is a high-precision barometric pressure sensor that can measure
 ## absolute pressure and calculate altitude. It supports both I2C and SPI interfaces.
 ##
+## The I2C and SPI variants share a single generic method set; only the driver
+## type differs (`Dps310I2C` vs `Dps310Spi`).
+##
 ## **Features:**
 ## - High-precision pressure measurement (±2 Pa, equivalent to ±0.5 m)
 ## - Temperature sensor for compensation
@@ -21,25 +24,24 @@
 ##
 ## var sensor: Dps310I2C
 ## var config: Dps310I2CConfig
-## 
+##
 ## # Configure I2C transport
 ## config.transport_config.address = DPS310_I2CADDR_DEFAULT
-## config.transport_config.periph = I2C_PERIPH_1
+## config.transport_config.periph = I2C_1
 ## config.transport_config.speed = I2C_400KHZ
-## config.transport_config.scl = seed.GetPin(11)  # PB8
-## config.transport_config.sda = seed.GetPin(12)  # PB9
+## config.transport_config.scl = newPin(PORTB, 8)
+## config.transport_config.sda = newPin(PORTB, 9)
 ##
 ## if sensor.init(config) == DPS310_OK:
 ##   while true:
 ##     sensor.process()
-##     let pressure = sensor.getPressure()      # in hPa
+##     let pressure = sensor.getPressure()       # in hPa
 ##     let temperature = sensor.getTemperature() # in °C
 ##     let altitude = sensor.getAltitude(1013.25) # sea level pressure
 ##     # Use sensor data...
 ## ```
 
 import nimphea
-import nimphea_macros
 import nimphea/per/i2c
 import nimphea/per/spi
 
@@ -51,7 +53,7 @@ useNimpheaModules(dps310)
 const
   DPS310_I2CADDR_DEFAULT* = 0x77'u8  ## Default I2C address
 
-# Enums
+# Enums (shared by both transports)
 
 type
   Dps310Rate* {.importcpp: "daisy::Dps310<daisy::Dps310I2CTransport>::dps310_rate_t", size: sizeof(cint).} = enum
@@ -65,7 +67,6 @@ type
     DPS310_64HZ  = 6  ## 64 Hz
     DPS310_128HZ = 7  ## 128 Hz
 
-type
   Dps310Oversample* {.importcpp: "daisy::Dps310<daisy::Dps310I2CTransport>::dps310_oversample_t", size: sizeof(cint).} = enum
     ## Oversample rate
     DPS310_1SAMPLE    = 0  ## 1 sample
@@ -77,7 +78,6 @@ type
     DPS310_64SAMPLES  = 6  ## 64 samples
     DPS310_128SAMPLES = 7  ## 128 samples
 
-type
   Dps310Mode* {.importcpp: "daisy::Dps310<daisy::Dps310I2CTransport>::dps310_mode_t", size: sizeof(cint).} = enum
     ## Operating mode
     DPS310_IDLE            = 0b000  ## Stopped/idle
@@ -87,13 +87,12 @@ type
     DPS310_CONT_TEMP       = 0b110  ## Continuous temperature measurements
     DPS310_CONT_PRESTEMP   = 0b111  ## Continuous temp+pressure measurements
 
-type
   Dps310Result* {.importcpp: "daisy::Dps310<daisy::Dps310I2CTransport>::Result", size: sizeof(cint).} = enum
     ## Operation result
     DPS310_OK  = 0  ## Success
     DPS310_ERR = 1  ## Error
 
-# I2C Transport Types
+# Transport Types
 
 type
   Dps310I2CTransportConfig* {.importcpp: "daisy::Dps310I2CTransport::Config", bycopy.} = object
@@ -104,13 +103,9 @@ type
     sda* {.importcpp: "sda".}: Pin
     address* {.importcpp: "address".}: uint8
 
-type
   Dps310I2CTransport* {.importcpp: "daisy::Dps310I2CTransport", bycopy.} = object
     ## I2C transport for DPS310
 
-# SPI Transport Types
-
-type
   Dps310SpiTransportConfig* {.importcpp: "daisy::Dps310SpiTransport::Config", bycopy.} = object
     ## SPI transport configuration
     periph* {.importcpp: "periph".}: SpiPeripheral
@@ -119,27 +114,20 @@ type
     mosi* {.importcpp: "mosi".}: Pin
     nss* {.importcpp: "nss".}: Pin
 
-type
   Dps310SpiTransport* {.importcpp: "daisy::Dps310SpiTransport", bycopy.} = object
     ## SPI transport for DPS310
 
-# Device Types
-
-type
   Dps310I2CConfig* {.importcpp: "daisy::Dps310I2C::Config", bycopy.} = object
     ## I2C device configuration
     transport_config* {.importcpp: "transport_config".}: Dps310I2CTransportConfig
 
-type
   Dps310I2C* {.importcpp: "daisy::Dps310I2C", bycopy.} = object
     ## DPS310 sensor with I2C transport
 
-type
   Dps310SpiConfig* {.importcpp: "daisy::Dps310Spi::Config", bycopy.} = object
     ## SPI device configuration
     transport_config* {.importcpp: "transport_config".}: Dps310SpiTransportConfig
 
-type
   Dps310Spi* {.importcpp: "daisy::Dps310Spi", bycopy.} = object
     ## DPS310 sensor with SPI transport
 
@@ -147,151 +135,64 @@ type
 
 # Constructors
 
-proc initDps310I2CTransportConfig*(): Dps310I2CTransportConfig {.constructor,
+proc newDps310I2CTransportConfig*(): Dps310I2CTransportConfig {.constructor,
     importcpp: "daisy::Dps310I2CTransport::Config(@)", header: "dev/dps310.h".}
   ## Initialize I2C transport config with defaults
-
-proc initDps310SpiTransportConfig*(): Dps310SpiTransportConfig {.constructor,
+proc newDps310SpiTransportConfig*(): Dps310SpiTransportConfig {.constructor,
     importcpp: "daisy::Dps310SpiTransport::Config(@)", header: "dev/dps310.h".}
   ## Initialize SPI transport config with defaults
-
-proc initDps310I2CConfig*(): Dps310I2CConfig {.constructor,
+proc newDps310I2CConfig*(): Dps310I2CConfig {.constructor,
     importcpp: "daisy::Dps310I2C::Config(@)", header: "dev/dps310.h".}
   ## Initialize I2C device config with defaults
-
-proc initDps310SpiConfig*(): Dps310SpiConfig {.constructor,
+proc newDps310SpiConfig*(): Dps310SpiConfig {.constructor,
     importcpp: "daisy::Dps310Spi::Config(@)", header: "dev/dps310.h".}
   ## Initialize SPI device config with defaults
 
-# Methods - I2C variant
+# Methods - shared generic set over I2C and SPI transports
+# The C++ driver is a template (daisy::Dps310<T>); both instantiations expose
+# the same method names, so a single generic binding covers both.
 
-proc init*(this: var Dps310I2C, config: Dps310I2CConfig): Dps310Result 
-  {.importcpp: "#.Init(#)", header: "dev/dps310.h".}
-  ## Initialize the DPS310 sensor
-  ## 
+proc init*[T: Dps310I2C | Dps310Spi, C](sensor: var T, config: C): Dps310Result
+  {.importcpp: "#.Init(@)", header: "dev/dps310.h".}
+  ## Initialize the DPS310 sensor.
+  ##
   ## **Parameters:**
   ## - `config` - Configuration struct with transport settings
-  ## 
+  ##
   ## **Returns:** DPS310_OK on success, DPS310_ERR on failure
-
-proc reset*(this: var Dps310I2C) 
+proc reset*[T: Dps310I2C | Dps310Spi](sensor: var T)
   {.importcpp: "#.reset()", header: "dev/dps310.h".}
   ## Perform a software reset
-
-proc process*(this: var Dps310I2C) 
+proc process*[T: Dps310I2C | Dps310Spi](sensor: var T)
   {.importcpp: "#.Process()", header: "dev/dps310.h".}
-  ## Update sensor readings
-  ##
-  ## Call this regularly to fetch new pressure and temperature data.
-
-proc getPressure*(this: var Dps310I2C): cfloat 
-  {.importcpp: "#.GetPressure()", header: "dev/dps310.h".}
-  ## Get the latest pressure reading
-  ##
-  ## **Returns:** Pressure in hPa (hectopascals)
-
-proc getTemperature*(this: var Dps310I2C): cfloat 
-  {.importcpp: "#.GetTemperature()", header: "dev/dps310.h".}
-  ## Get the latest temperature reading
-  ##
-  ## **Returns:** Temperature in degrees Celsius
-
-proc getAltitude*(this: var Dps310I2C, seaLevelhPa: cfloat): cfloat 
-  {.importcpp: "#.GetAltitude(#)", header: "dev/dps310.h".}
-  ## Calculate approximate altitude using barometric pressure
-  ##
-  ## **Parameters:**
-  ## - `seaLevelhPa` - Current sea level pressure in hPa (typically 1013.25)
-  ##
-  ## **Returns:** Approximate altitude above sea level in meters
-
-proc setMode*(this: var Dps310I2C, mode: Dps310Mode) 
-  {.importcpp: "#.setMode(#)", header: "dev/dps310.h".}
-  ## Set the operational mode
-  ##
-  ## **Parameters:**
-  ## - `mode` - Operating mode (idle, one-shot, or continuous)
-
-proc configurePressure*(this: var Dps310I2C, rate: Dps310Rate, oversample: Dps310Oversample) 
-  {.importcpp: "#.configurePressure(#, #)", header: "dev/dps310.h".}
-  ## Configure pressure measurement parameters
-  ##
-  ## **Parameters:**
-  ## - `rate` - Sample rate (1Hz to 128Hz)
-  ## - `oversample` - Oversampling rate (1 to 128 samples)
-
-proc configureTemperature*(this: var Dps310I2C, rate: Dps310Rate, oversample: Dps310Oversample) 
-  {.importcpp: "#.configureTemperature(#, #)", header: "dev/dps310.h".}
-  ## Configure temperature measurement parameters
-  ##
-  ## **Parameters:**
-  ## - `rate` - Sample rate (1Hz to 128Hz)
-  ## - `oversample` - Oversampling rate (1 to 128 samples)
-
-proc pressureAvailable*(this: var Dps310I2C): bool 
-  {.importcpp: "#.pressureAvailable()", header: "dev/dps310.h".}
-  ## Check if new pressure data is available
-  ##
-  ## **Returns:** true if new pressure data ready to read
-
-proc temperatureAvailable*(this: var Dps310I2C): bool 
-  {.importcpp: "#.temperatureAvailable()", header: "dev/dps310.h".}
-  ## Check if new temperature data is available
-  ##
-  ## **Returns:** true if new temperature data ready to read
-
-proc getTransportError*(this: var Dps310I2C): Dps310Result 
-  {.importcpp: "#.GetTransportError()", header: "dev/dps310.h".}
-  ## Get and reset the transport error flag
-  ##
-  ## **Returns:** DPS310_ERR if transport error occurred, DPS310_OK otherwise
-
-# Methods - SPI variant
-
-proc init*(this: var Dps310Spi, config: Dps310SpiConfig): Dps310Result 
-  {.importcpp: "#.Init(#)", header: "dev/dps310.h".}
-  ## Initialize the DPS310 sensor via SPI
-
-proc reset*(this: var Dps310Spi) 
-  {.importcpp: "#.reset()", header: "dev/dps310.h".}
-  ## Perform a software reset
-
-proc process*(this: var Dps310Spi) 
-  {.importcpp: "#.Process()", header: "dev/dps310.h".}
-  ## Update sensor readings
-
-proc getPressure*(this: var Dps310Spi): cfloat 
+  ## Update sensor readings. Call regularly to fetch new pressure/temperature data.
+proc getPressure*[T: Dps310I2C | Dps310Spi](sensor: var T): cfloat
   {.importcpp: "#.GetPressure()", header: "dev/dps310.h".}
   ## Get the latest pressure reading in hPa
-
-proc getTemperature*(this: var Dps310Spi): cfloat 
+proc getTemperature*[T: Dps310I2C | Dps310Spi](sensor: var T): cfloat
   {.importcpp: "#.GetTemperature()", header: "dev/dps310.h".}
   ## Get the latest temperature reading in °C
-
-proc getAltitude*(this: var Dps310Spi, seaLevelhPa: cfloat): cfloat 
-  {.importcpp: "#.GetAltitude(#)", header: "dev/dps310.h".}
-  ## Calculate approximate altitude using barometric pressure
-
-proc setMode*(this: var Dps310Spi, mode: Dps310Mode) 
-  {.importcpp: "#.setMode(#)", header: "dev/dps310.h".}
-  ## Set the operational mode
-
-proc configurePressure*(this: var Dps310Spi, rate: Dps310Rate, oversample: Dps310Oversample) 
-  {.importcpp: "#.configurePressure(#, #)", header: "dev/dps310.h".}
-  ## Configure pressure measurement parameters
-
-proc configureTemperature*(this: var Dps310Spi, rate: Dps310Rate, oversample: Dps310Oversample) 
-  {.importcpp: "#.configureTemperature(#, #)", header: "dev/dps310.h".}
-  ## Configure temperature measurement parameters
-
-proc pressureAvailable*(this: var Dps310Spi): bool 
+proc getAltitude*[T: Dps310I2C | Dps310Spi](sensor: var T, seaLevelhPa: cfloat): cfloat
+  {.importcpp: "#.GetAltitude(@)", header: "dev/dps310.h".}
+  ## Calculate approximate altitude using barometric pressure.
+  ## `seaLevelhPa` is the current sea level pressure (typically 1013.25);
+  ## returns altitude in meters.
+proc setMode*[T: Dps310I2C | Dps310Spi](sensor: var T, mode: Dps310Mode)
+  {.importcpp: "#.setMode(@)", header: "dev/dps310.h".}
+  ## Set the operational mode (idle, one-shot, or continuous).
+proc configurePressure*[T: Dps310I2C | Dps310Spi](sensor: var T, rate: Dps310Rate, oversample: Dps310Oversample)
+  {.importcpp: "#.configurePressure(@)", header: "dev/dps310.h".}
+  ## Configure pressure measurement parameters (sample rate + oversampling).
+proc configureTemperature*[T: Dps310I2C | Dps310Spi](sensor: var T, rate: Dps310Rate, oversample: Dps310Oversample)
+  {.importcpp: "#.configureTemperature(@)", header: "dev/dps310.h".}
+  ## Configure temperature measurement parameters (sample rate + oversampling).
+proc pressureAvailable*[T: Dps310I2C | Dps310Spi](sensor: var T): bool
   {.importcpp: "#.pressureAvailable()", header: "dev/dps310.h".}
-  ## Check if new pressure data is available
-
-proc temperatureAvailable*(this: var Dps310Spi): bool 
+  ## Check if new pressure data is available.
+proc temperatureAvailable*[T: Dps310I2C | Dps310Spi](sensor: var T): bool
   {.importcpp: "#.temperatureAvailable()", header: "dev/dps310.h".}
-  ## Check if new temperature data is available
-
-proc getTransportError*(this: var Dps310Spi): Dps310Result 
+  ## Check if new temperature data is available.
+proc getTransportError*[T: Dps310I2C | Dps310Spi](sensor: var T): Dps310Result
   {.importcpp: "#.GetTransportError()", header: "dev/dps310.h".}
-  ## Get and reset the transport error flag
+  ## Get and reset the transport error flag.
+  ## **Returns:** DPS310_ERR if a transport error occurred, DPS310_OK otherwise.

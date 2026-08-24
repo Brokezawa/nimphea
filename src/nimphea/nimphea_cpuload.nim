@@ -50,7 +50,7 @@
 ## - Smoothing filter reduces jitter in average reading
 ## - Reset() clears min/max/avg for new measurement period
 
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(cpuload)
 

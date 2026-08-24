@@ -76,7 +76,7 @@ This document covers all **98 modules** available in the library.
     *   [FIFO Queue](#fifo)
     *   [Ring Buffer](#ringbuffer)
     *   [Stack](#stack)
-    *   [FixedStr](#fixedstr)
+    *   [StackString](#stackstring)
 
 
 ## Core System
@@ -289,36 +289,48 @@ while true:
 
 ## WAV File Writer
 
-Record audio to SD card.
+Record audio to SD card. Both the writer and its config are generic over the internal sample-buffer size; use one of the provided aliases (`WavWriter16K`/`WavWriter32K`/`WavWriter64K`).
 
 ```nim
-type WavWriterConfig* = object
+type WavWriterConfig*[N: static int] = object
   samplerate*: cfloat
   channels*: int32
   bitspersample*: int32
 
-proc init*(writer: var WavWriter, config: WavWriterConfig)
-proc openFile*(writer: var WavWriter, name: cstring)
-proc sample*(writer: var WavWriter, input: ptr cfloat)
-proc write*(writer: var WavWriter)  # Call in main loop
-proc saveFile*(writer: var WavWriter)
-proc isRecording*(writer: WavWriter): bool
+proc createConfig*[N: static int](samplerate: float, channels, bitspersample: int): WavWriterConfig[N]
+proc init*[N](writer: var WavWriter[N], config: WavWriterConfig[N])
+proc openFile*[N](writer: var WavWriter[N], name: cstring)
+proc sample*[N](writer: var WavWriter[N], input: ptr cfloat)
+proc write*[N](writer: var WavWriter[N])  # Call in main loop
+proc saveFile*[N](writer: var WavWriter[N])
+proc isRecording*[N](writer: WavWriter[N]): bool
+
+# Example:
+# var w = WavWriter32K()
+# discard w.init(createConfig[32768](48000.0, 2, 32))
 ```
 
 ## WAV File Player
 
-Stream audio from SD card.
+Stream audio from SD card. Generic over the internal sample-buffer size; use `WavPlayer4K`/`WavPlayer8K`/`WavPlayer16K`.
 
 ```nim
-proc init*(player: var WavPlayer, name: cstring): WavPlayerResult
-proc open*(player: var WavPlayer, name: cstring): WavPlayerResult
-proc close*(player: var WavPlayer): WavPlayerResult
-proc prepare*(player: var WavPlayer): WavPlayerResult  # Call in main loop
-proc stream*(player: var WavPlayer, samples: ptr cfloat, numChannels: csize_t): WavPlayerResult
-proc setLooping*(player: var WavPlayer, state: bool)
-proc setPlaybackSpeedRatio*(player: var WavPlayer, speed: cfloat)
-proc getPosition*(player: WavPlayer): uint32
-proc setPlaying*(player: var WavPlayer, state: bool)
+type WavPlayerResult* = enum  # C++ WavPlayer::Result ordinals
+proc init*[N](player: var WavPlayer[N], name: cstring): WavPlayerResult
+proc open*[N](player: var WavPlayer[N], name: cstring): WavPlayerResult
+proc close*[N](player: var WavPlayer[N]): WavPlayerResult
+proc prepare*[N](player: var WavPlayer[N]): WavPlayerResult  # Call in main loop
+proc stream*[N](player: var WavPlayer[N], samples: ptr cfloat, numChannels: csize_t): WavPlayerResult
+proc setLooping*[N](player: var WavPlayer[N], state: bool)
+proc setPlaybackSpeedRatio*[N](player: var WavPlayer[N], speed: cfloat)
+proc getPosition*[N](player: WavPlayer[N]): uint32
+proc setPlaying*[N](player: var WavPlayer[N], state: bool)
+
+# Helpers:
+proc play*[N](player: var WavPlayer[N])
+proc stop*[N](player: var WavPlayer[N])
+proc durationSeconds*[N](player: WavPlayer[N]): float
+proc isEof*[N](player: WavPlayer[N]): bool
 ```
 
 ## WAV File Parser
@@ -544,10 +556,12 @@ proc blockingReceive*(uart: var UartHandler, buffer: var openArray[uint8])
 Pulse Width Modulation.
 
 ```nim
-proc initPwm*(peripheral: PwmPeripheral, frequency: float): PwmHandle
+proc initPwm*(peripheral: PwmPeripheral, frequency: float = 1000.0): PwmHandle
+proc initPwmCustom*(peripheral: PwmPeripheral, prescaler, period: uint32): PwmHandle
 proc channel1*(pwm: var PwmHandle): var PwmChannel
 # ... channel2, channel3, channel4
-proc init*(chan: var PwmChannel, pin: Pin)
+proc init*(chan: var PwmChannel, pin: Pin, polarity: PwmPolarity = POLARITY_HIGH): PwmResult
+proc init*(chan: var PwmChannel): PwmResult  # default pin
 proc set*(chan: var PwmChannel, duty: float) # 0.0-1.0
 ```
 
@@ -566,11 +580,11 @@ proc setCallback*(timer: var TimerHandle, cb: TimerCallback)
 
 ## RNG Module
 
-True Random Number Generator.
+True Random Number Generator (static, no instance needed).
 
 ```nim
 proc randomGetValue*(): uint32
-proc randomGetFloat*(min, max: cfloat): cfloat
+proc randomGetFloat*(min, max: cfloat): cfloat  # defaults 0.0, 1.0
 proc randomIsReady*(): bool
 ```
 
@@ -586,12 +600,13 @@ proc eraseSector*(qspi: var QSPIHandle, address: uint32)
 
 ## SDMMC Module
 
-SD Card hardware interface. Typically used via FatFS.
+SD Card hardware interface. Typically used via FatFS (re-exported).
 
 ```nim
-proc init*(sd: var SdmmcHandler, config: SdmmcHandlerConfig): SdmmcResult
-proc readBlocks*(sd: var SdmmcHandler, address: uint32, buffer: ptr uint8, count: uint32): SdmmcResult
-proc writeBlocks*(sd: var SdmmcHandler, address: uint32, buffer: ptr uint8, count: uint32): SdmmcResult
+proc init*(sd: var SdmmcHandler, cfg: SdmmcConfig): SdmmcResult
+proc readFile*(path: cstring, buffer: var openArray[uint8], bytesRead: var int): FRESULT
+proc writeFile*(path: cstring, data: openArray[uint8]): FRESULT
+proc listDirectory*(path: cstring, filenames: var openArray[array[256, char]], maxFiles: int): tuple[result: FRESULT, count: int]
 ```
 
 
@@ -601,17 +616,25 @@ proc writeBlocks*(sd: var SdmmcHandler, address: uint32, buffer: ptr uint8, coun
 
 **Encoder:**
 ```nim
-proc initEncoder*(pinA, pinB: Pin, clickPin: Pin, ...): Encoder
+proc initEncoder*(pinA, pinB: Pin, clickPin: Pin = Pin(), updateRate: float = 1000.0): Encoder
 proc update*(enc: var Encoder)
-proc increment*(enc: var Encoder): int
-proc pressed*(enc: var Encoder): bool
+proc increment*(enc: Encoder): int32
+proc pressed*(enc: Encoder): bool
 ```
 
 **AnalogControl (Knobs/CV):**
 ```nim
 proc initAnalogControl*(adcPtr: ptr uint16, sampleRate: float, ...): AnalogControl
-proc process*(ctrl: var AnalogControl): float
-proc value*(ctrl: AnalogControl): float
+proc initBipolarCv*(adcPtr: ptr uint16, sampleRate: float): AnalogControl
+proc process*(ctrl: var AnalogControl): cfloat
+proc value*(ctrl: AnalogControl): cfloat
+```
+
+**ADC reader (onboard ADC via DaisySeed):**
+```nim
+proc initAdc*(daisy: var DaisySeed, pins: openArray[Pin], oversampling: int = 4): AdcReader
+proc start*(adc: var AdcReader)
+proc value*(adc: var AdcReader, channel: int): float
 ```
 
 ## Switch Module
@@ -619,11 +642,12 @@ proc value*(ctrl: AnalogControl): float
 Momentary/Latching Switch with Debouncing.
 
 ```nim
-proc init*(sw: var Switch, pin: Pin, type: SwitchType, polarity: SwitchPolarity, pull: GpioPull)
+proc init*(sw: var Switch, pin: Pin, updateRate: cfloat = 0.0)
+proc init*(sw: var Switch, pin: Pin, updateRate: cfloat, switchType: SwitchType, polarity: SwitchPolarity, pull: GpioPull)
 proc debounce*(sw: var Switch)
 proc pressed*(sw: Switch): bool
 proc risingEdge*(sw: Switch): bool
-proc timeHeldMs*(sw: Switch): float
+proc timeHeldMs*(sw: Switch): cfloat
 ```
 
 ## Switch 3 Pos
@@ -1097,12 +1121,35 @@ proc write*(rb: var RingBuffer[N, T], val: T): bool
 proc read*(rb: var RingBuffer[N, T], val: var T): bool
 ```
 
-## FixedStr
-Stack-allocated string.
+## StackString
+Zero-heap string (vendored [nim-stack-strings](https://github.com/termermc/nim-stack-strings),
+MIT, kept pristine at `src/nimphea/stack_strings.nim`). `StackString[Size]`
+holds `Size` characters plus a hidden NUL; `toCstring` is always safe. Import
+via `import nimphea`.
+
 ```nim
-proc add*(s: var FixedStr[N], c: char)
-proc clear*(s: var FixedStr[N])
+var s: StackString[32]
+s.add("Cutoff: ")          # add(string/char) returns void, raises on overflow
+s.tryAdd('x')              # non-raising, returns bool
+s.addTruncate("long..")    # non-raising, appends up to capacity
+s.setLen(0)                # or unsafeSetLen(0)
+s.len, s.capacity
+s.toCstring                # NUL-terminated cstring (safe)
+s == "compare", s.find('x'), s.contains("abc")
+for ch in s: discard       # items/pairs iterators
+ss"literal"                # compile-time literal
 ```
+
+Numeric formatting (truncating, non-raising, byte-identical to `$`) comes from
+`nimphea/nimphea_stack_strings_utils`:
+
+```nim
+proc add*(ss: var StackString, value: int | float | float32): int   # returns count appended
+proc set*(ss: var StackString, text: string): int                   # replaces content
+```
+
+Notes: `$s` / `toString` allocate a heap string — use `toCstring` on device;
+`-d:warnOnStackStringDollar` / `-d:fatalOnStackStringDollar` guard against it.
 
 ## V/Oct Calibration
 

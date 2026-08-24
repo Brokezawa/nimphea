@@ -16,9 +16,9 @@
 ##
 ## **Example:**
 ## ```nim
-## import nimphea/src/nimphea
-## import nimphea/src/dev/codec_pcm3060
-## import nimphea/src/per/i2c
+## import nimphea
+## import nimphea/dev/codec_pcm3060
+## import nimphea/per/i2c
 ##
 ## var i2c: I2CHandle
 ## var codec: Pcm3060
@@ -32,7 +32,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/i2c
 
 useNimpheaModules(codec_pcm3060)
@@ -80,8 +80,8 @@ proc init*(this: var Pcm3060, i2c: I2CHandle): Pcm3060Result
   ## # Initialize I2C at 400kHz
   ## i2cCfg.periph = I2CPeripheral.I2C_1
   ## i2cCfg.speed = I2CSpeed.I2C_400KHZ
-  ## i2cCfg.pin_config.scl = seed.GetPin(11)
-  ## i2cCfg.pin_config.sda = seed.GetPin(12)
+  ## i2cCfg.pin_config.scl = newPin(PORTB, 8)
+  ## i2cCfg.pin_config.sda = newPin(PORTB, 9)
   ## i2c.init(i2cCfg)
   ## 
   ## let result = codec.init(i2c)

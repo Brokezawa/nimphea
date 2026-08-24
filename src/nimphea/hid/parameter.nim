@@ -38,7 +38,7 @@
 ## - Safe to call in audio callback
 ## - No memory allocation
 
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(parameter)
 

@@ -16,9 +16,9 @@
 ##
 ## **Example:**
 ## ```nim
-## import nimphea/src/nimphea
-## import nimphea/src/dev/codec_wm8731
-## import nimphea/src/per/i2c
+## import nimphea
+## import nimphea/dev/codec_wm8731
+## import nimphea/per/i2c
 ##
 ## var i2c: I2CHandle
 ## var codecCfg: Wm8731Config
@@ -31,7 +31,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/i2c
 
 useNimpheaModules(codec_wm8731)

@@ -5,7 +5,7 @@
 ##
 ## Run with: nimble test_unit
 
-import unittest2
+import std/unittest
 import std/math
 import nimphea/nimphea_mapped_value
 

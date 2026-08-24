@@ -41,7 +41,9 @@
 
 import nimphea
 import nimphea/per/spi
-import nimphea_macros
+import nimphea/nimphea_macros
+# Shared 2D drawing primitives (drawLine/drawRect/fillRect/drawCircle)
+import nimphea/hid/disp/draw2d
 
 useNimpheaModules(spi, ssd1351)
 
@@ -80,8 +82,8 @@ proc SetColorFG[T](display: var T, red, green, blue: uint8) {.importcpp: "#.SetC
 proc SetColorBG[T](display: var T, red, green, blue: uint8) {.importcpp: "#.SetColorBG(@)", header: "daisy_seed.h".}
 
 # Constructors
-proc cppNewSSD1351Spi(): SSD1351Spi128x128 {.importcpp: "SSD1351Spi128x128()", constructor, header: "daisy_seed.h".}
-proc cppNewSSD1351SpiConfig(): SSD1351SpiConfig {.importcpp: "SSD1351Spi128x128::Config()", constructor, header: "daisy_seed.h".}
+proc newSSD1351Spi(): SSD1351Spi128x128 {.importcpp: "SSD1351Spi128x128()", constructor, header: "daisy_seed.h".}
+proc newSSD1351SpiConfig(): SSD1351SpiConfig {.importcpp: "SSD1351Spi128x128::Config()", constructor, header: "daisy_seed.h".}
 
 # Transport defaults
 proc Defaults*(config: var SSD13514WireSpiTransportConfig) {.importcpp: "#.Defaults()", header: "daisy_seed.h".}
@@ -117,8 +119,8 @@ template initSSD1351Spi*(width, height: static[int],
   ## ```
   when (width, height) == (128, 128):
     block:
-      var result = cppNewSSD1351Spi()
-      var config = cppNewSSD1351SpiConfig()
+      var result = newSSD1351Spi()
+      var config = newSSD1351SpiConfig()
       config.transport_config.Defaults()
       config.transport_config.pin_config.dc = dcPin
       config.transport_config.pin_config.reset = resetPin
@@ -216,71 +218,22 @@ proc setBackground*(display: var SSD1351Spi128x128, color: uint16) =
   let b = uint8(color and 0x1F)
   display.SetColorBG(r, g, b)
 
-# Drawing helpers - same algorithms as other displays
+# 2D drawing primitives (shared Bresenham implementations from hid/disp/draw2d)
 proc drawLine*(display: var SSD1351Spi128x128, x0, y0, x1, y1: int, on: bool = true) =
-  ## Draw a line using Bresenham's algorithm
-  ## 
-  ## **Parameters:**
-  ## - `x0`, `y0` - Start point
-  ## - `x1`, `y1` - End point
-  ## - `on` - true for foreground color, false for background color
-  var x0 = x0; var y0 = y0
-  let dx = abs(x1 - x0); let dy = abs(y1 - y0)
-  let sx = if x0 < x1: 1 else: -1
-  let sy = if y0 < y1: 1 else: -1
-  var err = dx - dy
-  while true:
-    display.drawPixel(x0, y0, on)
-    if x0 == x1 and y0 == y1: break
-    let e2 = 2 * err
-    if e2 > -dy: err -= dy; x0 += sx
-    if e2 < dx: err += dx; y0 += sy
+  ## Draw a line using Bresenham's algorithm (see `hid/disp/draw2d`).
+  draw2d.drawLine(display, x0, y0, x1, y1, on)
 
 proc drawRect*(display: var SSD1351Spi128x128, x, y, w, h: int, on: bool = true) =
-  ## Draw a rectangle outline
-  ## 
-  ## **Parameters:**
-  ## - `x`, `y` - Top-left corner
-  ## - `w`, `h` - Width and height
-  ## - `on` - true for foreground color, false for background color
-  for i in 0..<w:
-    display.drawPixel(x + i, y, on)
-    display.drawPixel(x + i, y + h - 1, on)
-  for i in 0..<h:
-    display.drawPixel(x, y + i, on)
-    display.drawPixel(x + w - 1, y + i, on)
+  ## Draw a rectangle outline (see `hid/disp/draw2d`).
+  draw2d.drawRect(display, x, y, w, h, on)
 
 proc fillRect*(display: var SSD1351Spi128x128, x, y, w, h: int, on: bool = true) =
-  ## Draw a filled rectangle
-  ## 
-  ## **Parameters:**
-  ## - `x`, `y` - Top-left corner
-  ## - `w`, `h` - Width and height
-  ## - `on` - true for foreground color, false for background color
-  for j in 0..<h:
-    for i in 0..<w:
-      display.drawPixel(x + i, y + j, on)
+  ## Draw a filled rectangle (see `hid/disp/draw2d`).
+  draw2d.fillRect(display, x, y, w, h, on)
 
 proc drawCircle*(display: var SSD1351Spi128x128, x0, y0, radius: int, on: bool = true) =
-  ## Draw a circle outline using midpoint circle algorithm
-  ## 
-  ## **Parameters:**
-  ## - `x0`, `y0` - Center point
-  ## - `radius` - Circle radius in pixels
-  ## - `on` - true for foreground color, false for background color
-  var x = radius; var y = 0; var err = 0
-  while x >= y:
-    display.drawPixel(x0 + x, y0 + y, on)
-    display.drawPixel(x0 + y, y0 + x, on)
-    display.drawPixel(x0 - y, y0 + x, on)
-    display.drawPixel(x0 - x, y0 + y, on)
-    display.drawPixel(x0 - x, y0 - y, on)
-    display.drawPixel(x0 - y, y0 - x, on)
-    display.drawPixel(x0 + y, y0 - x, on)
-    display.drawPixel(x0 + x, y0 - y, on)
-    if err <= 0: inc y; err += 2 * y + 1
-    if err > 0: dec x; err -= 2 * x + 1
-
+  ## Draw a circle outline using the midpoint circle algorithm (see `hid/disp/draw2d`).
+  draw2d.drawCircle(display, x0, y0, radius, on)
 # RGB565 color helper function
 proc rgb565*(red, green, blue: uint8): uint16 {.inline.} =
   ## Convert RGB values to RGB565 format

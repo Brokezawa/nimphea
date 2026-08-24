@@ -85,6 +85,7 @@
 
 # Import libdaisy which provides the macro system
 import nimphea
+export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
 useNimpheaModules(i2c)
@@ -93,82 +94,44 @@ useNimpheaModules(i2c)
 {.push importcpp.}
 
 type
-  # Forward declaration for internal implementation
-  I2CHandleImpl* {.importcpp: "daisy::I2CHandle::Impl".} = object
-
-  # I2C Configuration enums
-  I2CMode* {.importcpp: "daisy::I2CHandle::Config::Mode", size: sizeof(cint).} = enum
-    I2C_MASTER = 0
-    I2C_SLAVE
-
-  I2CPeripheral* {.importcpp: "daisy::I2CHandle::Config::Peripheral", size: sizeof(cint).} = enum
-    I2C_1 = 0
-    I2C_2
-    I2C_3
-    I2C_4
-
-  I2CSpeed* {.importcpp: "daisy::I2CHandle::Config::Speed", size: sizeof(cint).} = enum
-    I2C_100KHZ = 0
-    I2C_400KHZ
-    I2C_1MHZ
-
-  I2CResult* {.importcpp: "daisy::I2CHandle::Result", size: sizeof(cint).} = enum
-    I2C_OK = 0
-    I2C_ERR
-
-  I2CDirection* {.importcpp: "daisy::I2CHandle::Direction", size: sizeof(cint).} = enum
-    I2C_TRANSMIT = 0
-    I2C_RECEIVE
-
-  # Pin configuration structure
-  I2CPinConfig* {.importcpp: "daisy::I2CHandle::Config::pin_config", bycopy.} = object
-    scl* {.importc: "scl".}: Pin
-    sda* {.importc: "sda".}: Pin
-
-  # I2C Configuration structure
-  I2CConfig* {.importcpp: "daisy::I2CHandle::Config", bycopy.} = object
-    periph* {.importc: "periph".}: I2CPeripheral
-    pin_config* {.importc: "pin_config".}: I2CPinConfig
-    speed* {.importc: "speed".}: I2CSpeed
-    mode* {.importc: "mode".}: I2CMode
-    address* {.importc: "address".}: uint8
-
   # I2C callback function pointer
   I2CCallbackFunctionPtr* = proc(context: pointer, result: I2CResult) {.cdecl.}
 
-  # Main I2C Handle
-  I2CHandle* {.importcpp: "daisy::I2CHandle".} = object
-    pimpl {.importc: "pimpl_".}: ptr I2CHandleImpl
+# Low-level C++ interface (bind-once)
+proc init*(i2c: var I2CHandle, config: I2CConfig): I2CResult {.importcpp: "#.Init(@)".}
+proc getConfig*(i2c: I2CHandle): I2CConfig {.importcpp: "#.GetConfig()".}
 
-# Low-level C++ interface
-proc Init*(this: var I2CHandle, config: I2CConfig): I2CResult {.importcpp: "#.Init(@)".}
-proc GetConfig*(this: I2CHandle): I2CConfig {.importcpp: "#.GetConfig()".}
+proc blockingTransmit*(i2c: var I2CHandle, address: uint16, data: ptr uint8,
+                       size: uint16, timeout: uint32): I2CResult {.importcpp: "#.TransmitBlocking(@)".}
+  ## Blocking transmit to an I2C device address
 
-proc TransmitBlocking*(this: var I2CHandle, address: uint16, data: ptr uint8, 
-                        size: uint16, timeout: uint32): I2CResult {.importcpp: "#.TransmitBlocking(@)".}
+proc blockingReceive*(i2c: var I2CHandle, address: uint16, data: ptr uint8,
+                      size: uint16, timeout: uint32): I2CResult {.importcpp: "#.ReceiveBlocking(@)".}
+  ## Blocking receive from an I2C device address
 
-proc ReceiveBlocking(this: var I2CHandle, address: uint16, data: ptr uint8, 
-                       size: uint16, timeout: uint32): I2CResult {.importcpp: "#.ReceiveBlocking(@)".}
+proc dmaTransmit*(i2c: var I2CHandle, address: uint16, data: ptr uint8, size: uint16,
+                  callback: I2CCallbackFunctionPtr, callback_context: pointer): I2CResult {.importcpp: "#.TransmitDma(@)".}
+  ## Non-blocking DMA transmit into a D2-memory buffer
 
-proc TransmitDma*(this: var I2CHandle, address: uint16, data: ptr uint8, size: uint16, 
-                   callback: I2CCallbackFunctionPtr, callback_context: pointer): I2CResult {.importcpp: "#.TransmitDma(@)".}
+proc dmaReceive*(i2c: var I2CHandle, address: uint16, data: ptr uint8, size: uint16,
+                 callback: I2CCallbackFunctionPtr, callback_context: pointer): I2CResult {.importcpp: "#.ReceiveDma(@)".}
+  ## Non-blocking DMA receive into a D2-memory buffer
 
-proc ReceiveDma(this: var I2CHandle, address: uint16, data: ptr uint8, size: uint16, 
-                  callback: I2CCallbackFunctionPtr, callback_context: pointer): I2CResult {.importcpp: "#.ReceiveDma(@)".}
+proc readDataAtAddress*(i2c: var I2CHandle, address: uint16, mem_address: uint16,
+                        mem_address_size: uint16, data: ptr uint8, data_size: uint16,
+                        timeout: uint32): I2CResult {.importcpp: "#.ReadDataAtAddress(@)".}
+  ## Read from a memory address on an I2C device
 
-proc ReadDataAtAddress(this: var I2CHandle, address: uint16, mem_address: uint16,
+proc writeDataAtAddress*(i2c: var I2CHandle, address: uint16, mem_address: uint16,
                          mem_address_size: uint16, data: ptr uint8, data_size: uint16,
-                         timeout: uint32): I2CResult {.importcpp: "#.ReadDataAtAddress(@)".}
-
-proc WriteDataAtAddress(this: var I2CHandle, address: uint16, mem_address: uint16,
-                          mem_address_size: uint16, data: ptr uint8, data_size: uint16,
-                          timeout: uint32): I2CResult {.importcpp: "#.WriteDataAtAddress(@)".}
+                         timeout: uint32): I2CResult {.importcpp: "#.WriteDataAtAddress(@)".}
+  ## Write to a memory address on an I2C device
 
 {.pop.} # importcpp
 {.pop.} # header
 
 # C++ constructor
-proc cppNewI2CHandle(): I2CHandle {.importcpp: "daisy::I2CHandle()", constructor, header: "daisy_seed.h".}
+proc newI2CHandle(): I2CHandle {.importcpp: "daisy::I2CHandle()", constructor, header: "daisy_seed.h".}
 
 # =============================================================================
 # High-Level Nim-Friendly API
@@ -191,7 +154,7 @@ proc initI2C*(peripheral: I2CPeripheral, sclPin, sdaPin: Pin,
   ## ```nim
   ## var i2c = initI2C(I2C_1, D11(), D12(), I2C_400KHZ)
   ## ```
-  result = cppNewI2CHandle()
+  result = newI2CHandle()
   var config: I2CConfig
   config.periph = peripheral
   config.pin_config.scl = sclPin
@@ -199,13 +162,13 @@ proc initI2C*(peripheral: I2CPeripheral, sclPin, sdaPin: Pin,
   config.speed = speed
   config.mode = mode
   config.address = slaveAddress
-  discard result.Init(config)
+  discard result.init(config)
 
 proc write*(i2c: var I2CHandle, deviceAddr: uint16, data: openArray[uint8], 
             timeout: uint32 = 100): I2CResult {.inline.} =
   ## Write bytes to an I2C device
   if data.len > 0:
-    result = i2c.TransmitBlocking(deviceAddr, addr data[0], uint16(data.len), timeout)
+    result = i2c.blockingTransmit(deviceAddr, addr data[0], uint16(data.len), timeout)
   else:
     result = I2C_OK
 
@@ -213,7 +176,7 @@ proc read*(i2c: var I2CHandle, deviceAddr: uint16, buffer: var openArray[uint8],
            timeout: uint32 = 100): I2CResult {.inline.} =
   ## Read bytes from an I2C device into provided buffer
   if buffer.len > 0:
-    result = i2c.ReceiveBlocking(deviceAddr, addr buffer[0], uint16(buffer.len), timeout)
+    result = i2c.blockingReceive(deviceAddr, addr buffer[0], uint16(buffer.len), timeout)
   else:
     result = I2C_OK
 
@@ -221,19 +184,19 @@ proc writeRegister*(i2c: var I2CHandle, deviceAddr: uint16, regAddr: uint8,
                     value: uint8, timeout: uint32 = 100): I2CResult {.inline.} =
   ## Write a single byte to a device register
   var data = value
-  result = i2c.WriteDataAtAddress(deviceAddr, regAddr, 1, addr data, 1, timeout)
+  result = i2c.writeDataAtAddress(deviceAddr, regAddr, 1, addr data, 1, timeout)
 
 proc readRegister*(i2c: var I2CHandle, deviceAddr: uint16, regAddr: uint8, 
                    timeout: uint32 = 100): tuple[result: I2CResult, value: uint8] {.inline.} =
   ## Read a single byte from a device register
   result.value = 0
-  result.result = i2c.ReadDataAtAddress(deviceAddr, regAddr, 1, addr result.value, 1, timeout)
+  result.result = i2c.readDataAtAddress(deviceAddr, regAddr, 1, addr result.value, 1, timeout)
 
 proc writeRegisters*(i2c: var I2CHandle, deviceAddr: uint16, regAddr: uint8,
                      values: openArray[uint8], timeout: uint32 = 100): I2CResult {.inline.} =
   ## Write multiple bytes to consecutive device registers
   if values.len > 0:
-    result = i2c.WriteDataAtAddress(deviceAddr, regAddr, 1, addr values[0], uint16(values.len), timeout)
+    result = i2c.writeDataAtAddress(deviceAddr, regAddr, 1, addr values[0], uint16(values.len), timeout)
   else:
     result = I2C_OK
 
@@ -241,7 +204,7 @@ proc readRegisters*(i2c: var I2CHandle, deviceAddr: uint16, regAddr: uint8,
                     buffer: var openArray[uint8], timeout: uint32 = 100): I2CResult {.inline.} =
   ## Read multiple bytes from consecutive device registers into provided buffer
   if buffer.len > 0:
-    result = i2c.ReadDataAtAddress(deviceAddr, regAddr, 1, addr buffer[0], uint16(buffer.len), timeout)
+    result = i2c.readDataAtAddress(deviceAddr, regAddr, 1, addr buffer[0], uint16(buffer.len), timeout)
   else:
     result = I2C_OK
 
@@ -256,7 +219,7 @@ proc scan*(i2c: var I2CHandle, found: var openArray[uint8], timeout: uint32 = 10
   for addr in 0x08'u16 .. 0x77'u16:
     if result >= found.len:
       break
-    let res = i2c.TransmitBlocking(addr, addr(dummy), 0, timeout)
+    let res = i2c.blockingTransmit(addr, addr(dummy), 0, timeout)
     if res == I2C_OK:
       found[result] = uint8(addr)
       inc result
@@ -265,7 +228,7 @@ proc scan*(i2c: var I2CHandle, found: var openArray[uint8], timeout: uint32 = 10
 # DMA (Non-Blocking) API
 # =============================================================================
 
-proc transmitDma*(i2c: var I2CHandle,
+proc dmaTransmit*(i2c: var I2CHandle,
                   deviceAddr: uint16,
                   buffer: var openArray[uint8],
                   callback: I2CCallbackFunctionPtr = nil,
@@ -299,12 +262,12 @@ proc transmitDma*(i2c: var I2CHandle,
   ## discard i2c.transmitDma(0x48, txBuf, onComplete, nil)
   ## ```
   if buffer.len > 0:
-    result = i2c.TransmitDma(deviceAddr, addr buffer[0], uint16(buffer.len), 
+    result = i2c.dmaTransmit(deviceAddr, addr buffer[0], uint16(buffer.len), 
                              callback, context)
   else:
     result = I2C_OK
 
-proc receiveDma*(i2c: var I2CHandle,
+proc dmaReceive*(i2c: var I2CHandle,
                  deviceAddr: uint16,
                  buffer: var openArray[uint8],
                  callback: I2CCallbackFunctionPtr = nil,
@@ -339,23 +302,10 @@ proc receiveDma*(i2c: var I2CHandle,
   ## discard i2c.receiveDma(0x48, rxBuf, onComplete, nil)
   ## ```
   if buffer.len > 0:
-    result = i2c.ReceiveDma(deviceAddr, addr buffer[0], uint16(buffer.len),
+    result = i2c.dmaReceive(deviceAddr, addr buffer[0], uint16(buffer.len),
                             callback, context)
   else:
     result = I2C_OK
-
-# Common I2C device addresses
-const
-  I2C_ADDR_MPU6050* = 0x68'u8      ## MPU6050 IMU
-  I2C_ADDR_BMP280* = 0x76'u8       ## BMP280 pressure sensor
-  I2C_ADDR_BMP280_ALT* = 0x77'u8   ## BMP280 alternate address
-  I2C_ADDR_SSD1306* = 0x3C'u8      ## SSD1306 OLED display
-  I2C_ADDR_SSD1306_ALT* = 0x3D'u8  ## SSD1306 alternate address
-  I2C_ADDR_PCF8574* = 0x20'u8      ## PCF8574 I/O expander
-  I2C_ADDR_MCP23017* = 0x20'u8     ## MCP23017 I/O expander
-  I2C_ADDR_ADS1115* = 0x48'u8      ## ADS1115 ADC
-  I2C_ADDR_DS3231* = 0x68'u8       ## DS3231 RTC
-  I2C_ADDR_AT24C32* = 0x50'u8      ## AT24C32 EEPROM
 
 when isMainModule:
   echo "libDaisy I2C wrapper - Clean API"

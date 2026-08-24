@@ -42,7 +42,7 @@
 ## var combined = red + purple
 ## ```
 
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(color)
 

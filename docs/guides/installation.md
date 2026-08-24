@@ -24,14 +24,22 @@ Required for flashing via USB.
 Nimphea requires Nim 2.0.0 or later.
 Follow the instructions at [nim-lang.org](https://nim-lang.org/install.html).
 
-## 3. Install Nimphea
-Install the Nimphea library and its C++ dependencies using Nimble:
+## 3. Get Nimphea
+
+Nimphea is package-manager-free. Clone the repo and build once:
 
 ```bash
-nimble install nimphea
+git clone https://github.com/Brokezawa/nimphea.git
+cd nimphea
+
+# Fetch and build libDaisy (+ optional fatfs/CMSIS-DSP libs)
+nim e scripts/init_libdaisy.nims
 ```
 
-> **Note**: This will automatically clone and build `libDaisy`. It may take a few minutes.
+`nimble install nimphea` also works (metadata-only; it does **not** clone or
+build libDaisy — run `nim e scripts/init_libdaisy.nims` once yourself). With a
+checkout, projects resolve it via the `NIMPHEA` environment variable or a
+sibling `../nimphea` directory — no installation step needed.
 
 ## 4. Verify Installation
 Check if you can run the ARM compiler:

@@ -32,18 +32,9 @@
 ## - Format: 96 bits = 3 x 32-bit words
 ## - Guaranteed unique across all STM32 devices
 
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(unique_id)
-
-# Simple toHex implementation for embedded (no heap allocation)
-proc toHexImpl(value: uint32, width: int): string =
-  const hexChars = "0123456789ABCDEF"
-  result = newString(width)
-  var val = value
-  for i in countdown(width - 1, 0):
-    result[i] = hexChars[val and 0xF]
-    val = val shr 4
 
 type
   UniqueId* = object
@@ -75,6 +66,21 @@ proc getUniqueId*(): UniqueId =
   ##   echo "Word 2: 0x", uid.w2.toHex(8)
   dsy_get_unique_id(addr result.w0, addr result.w1, addr result.w2)
 
+# Hex formatting into a caller-provided buffer (no heap allocation)
+proc writeHex(buf: var openArray[char], value: uint32, width: int) =
+  ## Write `value` as `width` uppercase hex digits into `buf[0..<width]`.
+  const hexChars = "0123456789ABCDEF"
+  for i in 0..<width:
+    buf[i] = hexChars[(value shr (4 * (width - 1 - i))) and 0xF]
+
+proc serialized(buf: var array[26, char], uid: UniqueId) =
+  ## Serialize a UniqueId into the 26-char "XXXXXXXX-XXXXXXXX-XXXXXXXX" form.
+  writeHex(buf.toOpenArray(0, 7), uid.w0, 8)
+  buf[8] = '-'
+  writeHex(buf.toOpenArray(9, 16), uid.w1, 8)
+  buf[17] = '-'
+  writeHex(buf.toOpenArray(18, 25), uid.w2, 8)
+
 proc getUniqueIdString*(): string =
   ## Read the unique ID and format as hyphen-separated hex string.
   ## 
@@ -86,15 +92,15 @@ proc getUniqueIdString*(): string =
   ## .. code-block:: nim
   ##   let serial = getUniqueIdString()
   ##   echo "Device Serial Number: ", serial
-  ##   # Output: Device Serial Number: 1A2B3C4D-5E6F7890-ABCDEF01
-  let uid = getUniqueId()
-  result = toHexImpl(uid.w0, 8) & "-" & toHexImpl(uid.w1, 8) & "-" & toHexImpl(uid.w2, 8)
+  ##   # Output: Device Serial Number: 1A2B4C4D-5E6F7890-ABCDEF01
+  var buf {.noinit.}: array[26, char]
+  serialized(buf, getUniqueId())
+  result = newString(26)
+  for i in 0..<26:
+    result[i] = buf[i]
 
 proc `$`*(uid: UniqueId): string =
   ## Convert UniqueId to string representation.
-  ## 
-  ## **Parameters:**
-  ## - uid: The UniqueId object
   ## 
   ## **Returns:**
   ## String in format "UniqueId(0xXXXXXXXX-0xXXXXXXXX-0xXXXXXXXX)"
@@ -104,7 +110,25 @@ proc `$`*(uid: UniqueId): string =
   ## .. code-block:: nim
   ##   let uid = getUniqueId()
   ##   echo uid  # UniqueId(0x1A2B3C4D-0x5E6F7890-0xABCDEF01)
-  result = "UniqueId(0x" & toHexImpl(uid.w0, 8) & "-0x" & toHexImpl(uid.w1, 8) & "-0x" & toHexImpl(uid.w2, 8) & ")"
+  result = newString(11 + 31)  # "UniqueId(0x" + 3 * 8 hex + 2 * "-0x" + ")"
+  var i = 0
+  for c in "UniqueId(0x":
+    result[i] = c
+    inc i
+  var buf {.noinit.}: array[8, char]
+  for w in [uid.w0, uid.w1, uid.w2]:
+    writeHex(buf, w, 8)
+    for c in buf:
+      result[i] = c
+      inc i
+    if i < result.len - 1:
+      result[i] = '-'
+      inc i
+      result[i] = '0'
+      inc i
+      result[i] = 'x'
+      inc i
+  result[i] = ')'
 
 proc `==`*(a, b: UniqueId): bool {.inline.} =
   ## Compare two UniqueId objects for equality.

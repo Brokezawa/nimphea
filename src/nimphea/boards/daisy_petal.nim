@@ -62,11 +62,13 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/hid/switch
 import nimphea/hid/led
 import nimphea/hid/rgb_led
 import nimphea/dev/leddriver
+import nimphea/nimphea_audio
+export nimphea_audio
 
 export switch  # Export Switch methods
 export leddriver  # Export LED driver methods
@@ -76,9 +78,8 @@ useNimpheaModules(petal)
 {.push header: "daisy_petal.h".}
 
 type
-  Encoder* {.importcpp: "daisy::Encoder",
-             header: "hid/encoder.h".} = object
-    ## Rotary encoder with integrated button
+  # Encoder and AnalogControl are defined in nimphea_core_types
+  # (re-exported via nimphea).
 
   PetalSwitch* {.importcpp: "daisy::DaisyPetal::Sw", size: sizeof(cint).} = enum
     ## Switch identifiers
@@ -128,11 +129,9 @@ type
     FOOTSWITCH_LED_2 = 1  ## Footswitch 2 LED
     FOOTSWITCH_LED_3 = 2  ## Footswitch 3 LED
     FOOTSWITCH_LED_4 = 3  ## Footswitch 4 LED
-  
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/expression pedal) wrapper
-  
+
+  # AnalogControl is defined in nimphea_core_types (re-exported via nimphea).
+
   DaisyPetal* {.importcpp: "daisy::DaisyPetal".} = object
     ## Daisy Petal board handle
     ##
@@ -180,83 +179,10 @@ proc delayMs*(this: var DaisyPetal, del: csize_t)
 # ============================================================================
 # Audio Control
 # ============================================================================
-
-# Board-specific audio callback globals (to avoid conflicts with other boards)
-var globalPetalAudioCallback: AudioCallback = nil
-var globalPetalInterleavingCallback: InterleavingAudioCallback = nil
-
-proc petalAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "petalAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalPetalAudioCallback.isNil:
-    globalPetalAudioCallback(cast[AudioBuffer](input),
-                             cast[AudioBuffer](output),
-                             size.int)
-
-proc petalInterleavingAudioCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "petalInterleavingAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalPetalInterleavingCallback.isNil:
-    globalPetalInterleavingCallback(cast[InterleavedAudioBuffer](input),
-                                    cast[InterleavedAudioBuffer](output),
-                                    size.int)
-
-proc startAudio*(this: var DaisyPetal, callback: AudioCallback) =
-  ## Start audio processing with multichannel callback
-  ##
-  ## **Parameters:**
-  ## - `callback` - Function called at audio rate for processing
-  ##
-  ## **Callback signature:**
-  ## ```nim
-  ## proc(input, output: AudioBuffer, size: int)
-  ## ```
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc myCallback(input, output: AudioBuffer, size: int) =
-  ##   for i in 0..<size:
-  ##     output[0][i] = input[0][i] * 0.5  # Left channel
-  ##     output[1][i] = input[1][i] * 0.5  # Right channel
-  ## 
-  ## petal.startAudio(myCallback)
-  ## ```
-  globalPetalAudioCallback = callback
-  {.emit: "`this`.StartAudio(reinterpret_cast<daisy::AudioHandle::AudioCallback>(petalAudioCallbackWrapper));".}
-
-proc startAudio*(this: var DaisyPetal, callback: InterleavingAudioCallback) =
-  ## Start audio processing with interleaved callback
-  ##
-  ## **Parameters:**
-  ## - `callback` - Function called at audio rate for processing
-  ##
-  ## **Callback signature:**
-  ## ```nim
-  ## proc(input, output: InterleavedAudioBuffer, size: int)
-  ## ```
-  ##
-  ## **Note:** Size is total samples (stereo = size/2 frames)
-  globalPetalInterleavingCallback = callback
-  {.emit: "`this`.StartAudio(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(petalInterleavingAudioCallbackWrapper));".}
-
-proc changeAudioCallback*(this: var DaisyPetal, callback: AudioCallback) =
-  ## Change audio callback function while audio is running
-  ##
-  ## **Parameters:**
-  ## - `callback` - New callback function
-  globalPetalAudioCallback = callback
-  {.emit: "`this`.ChangeAudioCallback(reinterpret_cast<daisy::AudioHandle::AudioCallback>(petalAudioCallbackWrapper));".}
-
-proc changeAudioCallback*(this: var DaisyPetal, callback: InterleavingAudioCallback) =
-  ## Change audio callback function while audio is running (interleaved version)
-  ##
-  ## **Parameters:**
-  ## - `callback` - New interleaved callback function
-  globalPetalInterleavingCallback = callback
-  {.emit: "`this`.ChangeAudioCallback(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(petalInterleavingAudioCallbackWrapper));".}
-
-proc stopAudio*(this: var DaisyPetal)
-  {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  ##
-  ## Stops the audio callback from being called.
-  discard
+#
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# petal.startAudio(cb) works directly.
 
 proc setAudioSampleRate*(this: var DaisyPetal, samplerate: SampleRate)
   {.importcpp: "#.SetAudioSampleRate(#)".} =

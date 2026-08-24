@@ -119,7 +119,8 @@
 ## - `examples/system_control.nim` - Complete usage example
 
 import nimphea
-import nimphea_macros
+export nimphea_core_types
+import nimphea/nimphea_macros
 
 useNimpheaModules(system)
 
@@ -268,15 +269,9 @@ type
     data*: uint32                ## Additional data for boot command
     version*: BootloaderVersion  ## Detected bootloader version
 
-  System* {.importcpp: "daisy::System".} = object
-    ## System controller for Daisy hardware.
-    ##
-    ## Manages clock configuration, timing, bootloader access,
-    ## and system-level initialization.
-    ##
-    ## **Note**: Most methods are static - you can call them without
-    ## creating a System object. The object is only needed for
-    ## initialization (`init()`, `deInit()`).
+  # System* type is defined in nimphea_core_types
+
+  # SystemConfig methods
 
 {.pop.} # header
 
@@ -318,7 +313,7 @@ proc init*(this: var System, config: SystemConfig) {.importcpp: "#.Init(#)".}
   ## sys.init(cfg)
   ## ```
 
-proc deInit*(this: var System) {.importcpp: "#.DeInit()".}
+proc deinit*(this: var System) {.importcpp: "#.DeInit()".}
   ## Deinitialize System and all peripherals.
   ##
   ## Reverses the initialization performed by `init()`.

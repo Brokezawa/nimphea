@@ -27,8 +27,8 @@
 ## config.transport_config.dev_addr = MPR121_I2CADDR_DEFAULT
 ## config.transport_config.periph = I2C_PERIPH_1
 ## config.transport_config.speed = I2C_400KHZ
-## config.transport_config.scl = seed.GetPin(11)  # PB8
-## config.transport_config.sda = seed.GetPin(12)  # PB9
+## config.transport_config.scl = newPin(PORTB, 8)  # PB8
+## config.transport_config.sda = newPin(PORTB, 9)  # PB9
 ## config.touch_threshold = 12
 ## config.release_threshold = 6
 ##
@@ -42,7 +42,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/i2c
 
 useNimpheaModules(mpr121)

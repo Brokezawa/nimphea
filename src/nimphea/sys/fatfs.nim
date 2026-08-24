@@ -67,6 +67,7 @@
 ## ```
 
 import nimphea
+export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
 useNimpheaModules(fatfs)
@@ -89,169 +90,105 @@ type
     FATFS_ERR_NO_MEDIA_SELECTED
     FATFS_ERR_GENERIC
 
-# FatFS types (from ff.h) - these are opaque to Nim
+# FatFS C types (from ff.h) - single source of truth for the whole library
+{.push header: "ff.h".}
+
 type
-  FATFS* {.importcpp: "FATFS", header: "ff.h".} = object
-  FIL* {.importcpp: "FIL", header: "ff.h".} = object
-  DIR* {.importcpp: "DIR", header: "ff.h".} = object
-  FILINFO* {.importcpp: "FILINFO", header: "ff.h".} = object
-  UINT* {.importcpp: "UINT", header: "ff.h".} = cuint
-  DWORD* {.importcpp: "DWORD", header: "ff.h".} = culong
-  FRESULT* {.importcpp: "FRESULT", header: "ff.h", size: sizeof(cint).} = enum
-    FR_OK = 0
-    FR_DISK_ERR
-    FR_INT_ERR
-    FR_NOT_READY
-    FR_NO_FILE
-    FR_NO_PATH
-    FR_INVALID_NAME
-    FR_DENIED
-    FR_EXIST
-    FR_INVALID_OBJECT
-    FR_WRITE_PROTECTED
-    FR_INVALID_DRIVE
-    FR_NOT_ENABLED
-    FR_NO_FILESYSTEM
-    FR_MKFS_ABORTED
-    FR_TIMEOUT
-    FR_LOCKED
-    FR_NOT_ENOUGH_CORE
-    FR_TOO_MANY_OPEN_FILES
-    FR_INVALID_PARAMETER
+  FRESULT* {.importc: "FRESULT", size: sizeof(cint).} = enum
+    FR_OK = 0                ## Succeeded
+    FR_DISK_ERR              ## A hard error occurred in the low level disk I/O layer
+    FR_INT_ERR               ## Assertion failed
+    FR_NOT_READY             ## The physical drive cannot work
+    FR_NO_FILE               ## Could not find the file
+    FR_NO_PATH               ## Could not find the path
+    FR_INVALID_NAME          ## The path name format is invalid
+    FR_DENIED                ## Access denied due to prohibited access or directory full
+    FR_EXIST                 ## Access denied due to prohibited access
+    FR_INVALID_OBJECT        ## The file/directory object is invalid
+    FR_WRITE_PROTECTED       ## The physical drive is write protected
+    FR_INVALID_DRIVE         ## The logical drive number is invalid
+    FR_NOT_ENABLED           ## The volume has no work area
+    FR_NO_FILESYSTEM         ## There is no valid FAT volume
+    FR_MKFS_ABORTED          ## The f_mkfs() aborted due to any problem
+    FR_TIMEOUT               ## Could not get a grant to access the volume within defined period
+    FR_LOCKED                ## The operation is rejected according to the file sharing policy
+    FR_NOT_ENOUGH_CORE       ## LFN working buffer could not be allocated
+    FR_TOO_MANY_OPEN_FILES   ## Number of open files > FF_FS_LOCK
+    FR_INVALID_PARAMETER     ## Given parameter is invalid
 
-# FatFS file access mode flags
+  # File object
+  FIL* {.importc: "FIL", bycopy.} = object
+
+  # Directory object
+  DIR* {.importc: "DIR", bycopy.} = object
+
+  # File information
+  FILINFO* {.importc: "FILINFO", bycopy.} = object
+    fsize* {.importc: "fsize".}: uint32     ## File size
+    fdate* {.importc: "fdate".}: uint16     ## Modified date
+    ftime* {.importc: "ftime".}: uint16     ## Modified time
+    fattrib* {.importc: "fattrib".}: uint8  ## File attributes
+    fname* {.importc: "fname".}: array[256, char]  ## File name
+
+  # Filesystem object
+  FATFS* {.importc: "FATFS", bycopy.} = object
+
+  # FatFS scalar aliases
+  FSIZE_t* = uint32
+  UINT* = cuint
+  BYTE* = uint8
+  DWORD* = culong
+
+# File access mode flags
 const
-  FA_READ* = 0x01'u8
-  FA_WRITE* = 0x02'u8
-  FA_OPEN_EXISTING* = 0x00'u8
-  FA_CREATE_NEW* = 0x04'u8
-  FA_CREATE_ALWAYS* = 0x08'u8
-  FA_OPEN_ALWAYS* = 0x10'u8
-  FA_OPEN_APPEND* = 0x30'u8
+  FA_READ* = 0x01'u8           ## Read access
+  FA_WRITE* = 0x02'u8          ## Write access
+  FA_OPEN_EXISTING* = 0x00'u8  ## Open existing file
+  FA_CREATE_NEW* = 0x04'u8     ## Create new file
+  FA_CREATE_ALWAYS* = 0x08'u8  ## Create new file, overwrite existing
+  FA_OPEN_ALWAYS* = 0x10'u8    ## Open existing or create new
+  FA_OPEN_APPEND* = 0x30'u8    ## Open existing and seek to end
 
-# Low-level C++ interface - FatFSInterface
-proc Init(this: var FatFSInterface, config: FatFSConfig): FatFSResult {.importcpp: "#.Init(@)".}
-proc Init(this: var FatFSInterface, media: uint8): FatFSResult {.importcpp: "#.Init(@)".}
-proc DeInit(this: var FatFSInterface): FatFSResult {.importcpp: "#.DeInit()".}
-proc Initialized(this: FatFSInterface): bool {.importcpp: "#.Initialized()".}
-proc GetConfig(this: FatFSInterface): FatFSConfig {.importcpp: "#.GetConfig()".}
-proc GetSDPath(this: FatFSInterface): cstring {.importcpp: "#.GetSDPath()".}
-proc GetUSBPath(this: FatFSInterface): cstring {.importcpp: "#.GetUSBPath()".}
-proc GetSDFileSystem(this: var FatFSInterface): var FATFS {.importcpp: "#.GetSDFileSystem()".}
-proc GetUSBFileSystem(this: var FatFSInterface): var FATFS {.importcpp: "#.GetUSBFileSystem()".}
-
-# FatFS standard API (from ff.h)
-proc f_mount*(fs: ptr FATFS, path: cstring, opt: cint): FRESULT {.importcpp: "f_mount(@)", header: "ff.h".}
-proc f_open*(fp: ptr FIL, path: cstring, mode: uint8): FRESULT {.importcpp: "f_open(@)", header: "ff.h".}
-proc f_close*(fp: ptr FIL): FRESULT {.importcpp: "f_close(@)", header: "ff.h".}
-proc f_read*(fp: ptr FIL, buff: pointer, btr: UINT, br: ptr UINT): FRESULT {.importcpp: "f_read(@)", header: "ff.h".}
-proc f_write*(fp: ptr FIL, buff: pointer, btw: UINT, bw: ptr UINT): FRESULT {.importcpp: "f_write(@)", header: "ff.h".}
-proc f_lseek*(fp: ptr FIL, ofs: DWORD): FRESULT {.importcpp: "f_lseek(@)", header: "ff.h".}
-proc f_sync*(fp: ptr FIL): FRESULT {.importcpp: "f_sync(@)", header: "ff.h".}
-proc f_opendir*(dp: ptr DIR, path: cstring): FRESULT {.importcpp: "f_opendir(@)", header: "ff.h".}
-proc f_closedir*(dp: ptr DIR): FRESULT {.importcpp: "f_closedir(@)", header: "ff.h".}
-proc f_readdir*(dp: ptr DIR, fno: ptr FILINFO): FRESULT {.importcpp: "f_readdir(@)", header: "ff.h".}
-proc f_mkdir*(path: cstring): FRESULT {.importcpp: "f_mkdir(@)", header: "ff.h".}
-proc f_unlink*(path: cstring): FRESULT {.importcpp: "f_unlink(@)", header: "ff.h".}
-proc f_rename*(oldPath: cstring, newPath: cstring): FRESULT {.importcpp: "f_rename(@)", header: "ff.h".}
-proc f_stat*(path: cstring, fno: ptr FILINFO): FRESULT {.importcpp: "f_stat(@)", header: "ff.h".}
-proc f_getfree*(path: cstring, nclst: ptr DWORD, fatfs: ptr ptr FATFS): FRESULT {.importcpp: "f_getfree(@)", header: "ff.h".}
-
-# Constructors
-proc newFatFSConfig*(): FatFSConfig {.importcpp: "daisy::FatFSInterface::Config()", constructor.}
+# FatFS C API (from ff.h)
+proc f_mount*(fs: ptr FATFS, path: cstring, opt: BYTE): FRESULT {.importc: "f_mount".}
+proc f_open*(fp: ptr FIL, path: cstring, mode: uint8): FRESULT {.importc: "f_open".}
+proc f_close*(fp: ptr FIL): FRESULT {.importc: "f_close".}
+proc f_read*(fp: ptr FIL, buff: pointer, btr: UINT, br: ptr UINT): FRESULT {.importc: "f_read".}
+proc f_write*(fp: ptr FIL, buff: pointer, btw: UINT, bw: ptr UINT): FRESULT {.importc: "f_write".}
+proc f_lseek*(fp: ptr FIL, ofs: FSIZE_t): FRESULT {.importc: "f_lseek".}
+proc f_sync*(fp: ptr FIL): FRESULT {.importc: "f_sync".}
+proc f_tell*(fp: ptr FIL): FSIZE_t {.importc: "f_tell".}
+proc f_size*(fp: ptr FIL): FSIZE_t {.importc: "f_size".}
+proc f_eof*(fp: ptr FIL): cint {.importc: "f_eof".}
+proc f_opendir*(dp: ptr DIR, path: cstring): FRESULT {.importc: "f_opendir".}
+proc f_closedir*(dp: ptr DIR): FRESULT {.importc: "f_closedir".}
+proc f_readdir*(dp: ptr DIR, fno: ptr FILINFO): FRESULT {.importc: "f_readdir".}
+proc f_mkdir*(path: cstring): FRESULT {.importc: "f_mkdir".}
+proc f_unlink*(path: cstring): FRESULT {.importc: "f_unlink".}
+proc f_rename*(oldname: cstring, newname: cstring): FRESULT {.importc: "f_rename".}
+proc f_stat*(path: cstring, fno: ptr FILINFO): FRESULT {.importc: "f_stat".}
+proc f_chmod*(path: cstring, attr: BYTE, mask: BYTE): FRESULT {.importc: "f_chmod".}
+proc f_getfree*(path: cstring, nclst: ptr DWORD, fatfs: ptr ptr FATFS): FRESULT {.importc: "f_getfree".}
+proc f_unmount*(path: cstring): FRESULT {.importc: "f_unmount".}
 
 {.pop.} # header
 
-# =============================================================================
-# High-Level Nim-Friendly API
-# =============================================================================
+# FatFSInterface (bind-once) - low-level C++ interface
+proc init*(fatfs: var FatFSInterface, config: FatFSConfig): FatFSResult {.importcpp: "#.Init(@)", header: "sys/fatfs.h".}
+proc init*(fatfs: var FatFSInterface, media: uint8): FatFSResult {.importcpp: "#.Init(@)", header: "sys/fatfs.h".}
+proc deinit*(fatfs: var FatFSInterface): FatFSResult {.importcpp: "#.DeInit()", header: "sys/fatfs.h".}
+proc isInitialized*(fatfs: FatFSInterface): bool {.importcpp: "#.Initialized()", header: "sys/fatfs.h".}
+proc getConfig*(fatfs: FatFSInterface): FatFSConfig {.importcpp: "#.GetConfig()", header: "sys/fatfs.h".}
+proc getSDPath*(fatfs: FatFSInterface): cstring {.importcpp: "#.GetSDPath()", header: "sys/fatfs.h".}
+proc getUSBPath*(fatfs: FatFSInterface): cstring {.importcpp: "#.GetUSBPath()", header: "sys/fatfs.h".}
+proc getSDFileSystem*(fatfs: var FatFSInterface): var FATFS {.importcpp: "#.GetSDFileSystem()", header: "sys/fatfs.h".}
+proc getUSBFileSystem*(fatfs: var FatFSInterface): var FATFS {.importcpp: "#.GetUSBFileSystem()", header: "sys/fatfs.h".}
 
-proc init*(fatfs: var FatFSInterface, config: FatFSConfig): FatFSResult {.inline.} =
-  ## Initialize FatFS with the given configuration.
-  ##
-  ## Parameters:
-  ##   fatfs: The FatFS interface to initialize
-  ##   config: Configuration specifying which media to use
-  ##
-  ## Returns:
-  ##   FATFS_OK on success, error code on failure
-  ##
-  ## Example:
-  ## ```nim
-  ## var fatfs: FatFSInterface
-  ## var config = newFatFSConfig()
-  ## config.media = MEDIA_SD
-  ## let result = fatfs.init(config)
-  ## ```
-  result = fatfs.Init(config)
+# Constructors
+proc newFatFSConfig*(): FatFSConfig {.importcpp: "daisy::FatFSInterface::Config()", constructor.}
+proc newFatFSInterface*(): FatFSInterface {.importcpp: "daisy::FatFSInterface()", constructor, header: "sys/fatfs.h".}
 
-proc init*(fatfs: var FatFSInterface, media: uint8): FatFSResult {.inline.} =
-  ## Initialize FatFS with the specified media (simplified API).
-  ##
-  ## Parameters:
-  ##   fatfs: The FatFS interface to initialize
-  ##   media: Media flags (MEDIA_SD, MEDIA_USB, or both OR'd together)
-  ##
-  ## Returns:
-  ##   FATFS_OK on success, error code on failure
-  ##
-  ## Example:
-  ## ```nim
-  ## var fatfs: FatFSInterface
-  ## let result = fatfs.init(MEDIA_SD)
-  ## # Or for multiple volumes:
-  ## # let result = fatfs.init(MEDIA_SD or MEDIA_USB)
-  ## ```
-  result = fatfs.Init(media)
-
-proc deinit*(fatfs: var FatFSInterface): FatFSResult {.inline.} =
-  ## Deinitialize FatFS and unlink from configured media.
-  ##
-  ## Returns:
-  ##   FATFS_OK on success, error code on failure
-  result = fatfs.DeInit()
-
-proc isInitialized*(fatfs: FatFSInterface): bool {.inline.} =
-  ## Check if FatFS is initialized.
-  ##
-  ## Returns:
-  ##   true if initialized, false otherwise
-  result = fatfs.Initialized()
-
-proc getConfig*(fatfs: FatFSInterface): FatFSConfig {.inline.} =
-  ## Get the current FatFS configuration.
-  ##
-  ## Returns:
-  ##   Current configuration
-  result = fatfs.GetConfig()
-
-proc getSDPath*(fatfs: FatFSInterface): cstring {.inline.} =
-  ## Get the path to the SD card volume for use with f_mount.
-  ##
-  ## Returns:
-  ##   Path string (typically "0:/")
-  result = fatfs.GetSDPath()
-
-proc getUSBPath*(fatfs: FatFSInterface): cstring {.inline.} =
-  ## Get the path to the USB volume for use with f_mount.
-  ##
-  ## Returns:
-  ##   Path string (typically "1:/" when SD is also mounted)
-  result = fatfs.GetUSBPath()
-
-proc getSDFileSystem*(fatfs: var FatFSInterface): var FATFS {.inline.} =
-  ## Get a reference to the SD card filesystem object.
-  ##
-  ## Returns:
-  ##   Reference to FATFS object for SD card
-  result = fatfs.GetSDFileSystem()
-
-proc getUSBFileSystem*(fatfs: var FatFSInterface): var FATFS {.inline.} =
-  ## Get a reference to the USB filesystem object.
-  ##
-  ## Returns:
-  ##   Reference to FATFS object for USB
-  result = fatfs.GetUSBFileSystem()
+{.pop.} # header
 
 # =============================================================================
 # Helper Procedures

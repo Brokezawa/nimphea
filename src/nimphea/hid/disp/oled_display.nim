@@ -25,55 +25,16 @@
 ## ```
 
 import nimphea
+export nimphea_core_types
 import nimphea/per/i2c
 import nimphea/per/spi
+# Shared 2D drawing primitives (drawLine/drawRect/fillRect/drawCircle)
+import nimphea/hid/disp/draw2d
 
 useNimpheaModules(i2c, spi, oled)
 
 {.push header: "daisy_seed.h".}
 {.push importcpp.}
-
-type
-  # Transport configurations
-  SSD130xI2CTransportConfig* {.importcpp: "daisy::SSD130xI2CTransport::Config", bycopy.} = object
-    i2c_config* {.importc: "i2c_config".}: I2CConfig
-    i2c_address* {.importc: "i2c_address".}: uint8
-  
-  SSD130xSpiPinConfig* {.importcpp: "daisy::SSD130x4WireSpiTransport::Config::pin_config", bycopy.} = object
-    dc* {.importc: "dc".}: Pin
-    reset* {.importc: "reset".}: Pin
-  
-  SSD130x4WireSpiTransportConfig* {.importcpp: "daisy::SSD130x4WireSpiTransport::Config", bycopy.} = object
-    spi_config* {.importc: "spi_config".}: SpiConfig
-    pin_config* {.importc: "pin_config".}: SSD130xSpiPinConfig
-    useDma* {.importc: "useDma".}: bool
-  
-  # Pre-instantiated OLED Display types from libDaisy
-  # I2C variants
-  OledDisplay128x64I2c* {.importcpp: "daisy::SSD130xI2c128x64Driver".} = object
-  OledDisplay128x32I2c* {.importcpp: "daisy::SSD130xI2c128x32Driver".} = object
-  OledDisplay64x48I2c* {.importcpp: "daisy::SSD130xI2c64x48Driver".} = object
-  OledDisplay64x32I2c* {.importcpp: "daisy::SSD130xI2c64x32Driver".} = object
-  
-  # SPI variants
-  OledDisplay128x64Spi* {.importcpp: "daisy::SSD130x4WireSpi128x64Driver".} = object
-  OledDisplay128x32Spi* {.importcpp: "daisy::SSD130x4WireSpi128x32Driver".} = object
-  OledDisplay64x48Spi* {.importcpp: "daisy::SSD130x4WireSpi64x48Driver".} = object
-  OledDisplay64x32Spi* {.importcpp: "daisy::SSD130x4WireSpi64x32Driver".} = object
-  
-  # Config structs
-  OledDisplayI2cConfig* {.importcpp: "daisy::SSD130xI2c128x64Driver::Config", bycopy.} = object
-    transport_config* {.importc: "transport_config".}: SSD130xI2CTransportConfig
-  
-  OledDisplaySpiConfig* {.importcpp: "daisy::SSD130x4WireSpi128x64Driver::Config", bycopy.} = object
-    transport_config* {.importc: "transport_config".}: SSD130x4WireSpiTransportConfig
-  
-  # Union type for generic operations
-  OledDisplay* = OledDisplay128x64I2c | OledDisplay128x32I2c | OledDisplay64x48I2c | OledDisplay64x32I2c |
-                 OledDisplay128x64Spi | OledDisplay128x32Spi | OledDisplay64x48Spi | OledDisplay64x32Spi
-
-{.pop.} # importcpp
-{.pop.} # header
 
 # Generic C++ member functions
 proc Init[T, C](display: var T, config: C) {.importcpp: "#.Init(@)", header: "daisy_seed.h".}
@@ -84,18 +45,18 @@ proc Fill[T](display: var T, on: bool) {.importcpp: "#.Fill(@)", header: "daisy_
 proc Update[T](display: var T) {.importcpp: "#.Update()", header: "daisy_seed.h".}
 
 # Constructors
-proc cppNew128x64I2c(): OledDisplay128x64I2c {.importcpp: "daisy::SSD130xI2c128x64Driver()", constructor, header: "daisy_seed.h".}
-proc cppNew128x32I2c(): OledDisplay128x32I2c {.importcpp: "daisy::SSD130xI2c128x32Driver()", constructor, header: "daisy_seed.h".}
-proc cppNew64x48I2c(): OledDisplay64x48I2c {.importcpp: "daisy::SSD130xI2c64x48Driver()", constructor, header: "daisy_seed.h".}
-proc cppNew64x32I2c(): OledDisplay64x32I2c {.importcpp: "daisy::SSD130xI2c64x32Driver()", constructor, header: "daisy_seed.h".}
+proc new128x64I2c(): OledDisplay128x64I2c {.importcpp: "daisy::SSD130xI2c128x64Driver()", constructor, header: "daisy_seed.h".}
+proc new128x32I2c(): OledDisplay128x32I2c {.importcpp: "daisy::SSD130xI2c128x32Driver()", constructor, header: "daisy_seed.h".}
+proc new64x48I2c(): OledDisplay64x48I2c {.importcpp: "daisy::SSD130xI2c64x48Driver()", constructor, header: "daisy_seed.h".}
+proc new64x32I2c(): OledDisplay64x32I2c {.importcpp: "daisy::SSD130xI2c64x32Driver()", constructor, header: "daisy_seed.h".}
 
-proc cppNew128x64Spi(): OledDisplay128x64Spi {.importcpp: "daisy::SSD130x4WireSpi128x64Driver()", constructor, header: "daisy_seed.h".}
-proc cppNew128x32Spi(): OledDisplay128x32Spi {.importcpp: "daisy::SSD130x4WireSpi128x32Driver()", constructor, header: "daisy_seed.h".}
-proc cppNew64x48Spi(): OledDisplay64x48Spi {.importcpp: "daisy::SSD130x4WireSpi64x48Driver()", constructor, header: "daisy_seed.h".}
-proc cppNew64x32Spi(): OledDisplay64x32Spi {.importcpp: "daisy::SSD130x4WireSpi64x32Driver()", constructor, header: "daisy_seed.h".}
+proc new128x64Spi(): OledDisplay128x64Spi {.importcpp: "daisy::SSD130x4WireSpi128x64Driver()", constructor, header: "daisy_seed.h".}
+proc new128x32Spi(): OledDisplay128x32Spi {.importcpp: "daisy::SSD130x4WireSpi128x32Driver()", constructor, header: "daisy_seed.h".}
+proc new64x48Spi(): OledDisplay64x48Spi {.importcpp: "daisy::SSD130x4WireSpi64x48Driver()", constructor, header: "daisy_seed.h".}
+proc new64x32Spi(): OledDisplay64x32Spi {.importcpp: "daisy::SSD130x4WireSpi64x32Driver()", constructor, header: "daisy_seed.h".}
 
-proc cppNewI2cConfig(): OledDisplayI2cConfig {.importcpp: "daisy::SSD130xI2c128x64Driver::Config()", constructor, header: "daisy_seed.h".}
-proc cppNewSpiConfig(): OledDisplaySpiConfig {.importcpp: "daisy::SSD130x4WireSpi128x64Driver::Config()", constructor, header: "daisy_seed.h".}
+proc newI2cConfig(): OledDisplayI2cConfig {.importcpp: "daisy::SSD130xI2c128x64Driver::Config()", constructor, header: "daisy_seed.h".}
+proc newSpiConfig(): OledDisplaySpiConfig {.importcpp: "daisy::SSD130x4WireSpi128x64Driver::Config()", constructor, header: "daisy_seed.h".}
 
 # Transport defaults
 proc Defaults*(config: var SSD130xI2CTransportConfig) {.importcpp: "#.Defaults()", header: "daisy_seed.h".}
@@ -112,8 +73,8 @@ template initOledI2c*(width, height: static[int],
   ## Initialize OLED via I2C - selects correct template instantiation at compile time
   when (width, height) == (128, 64):
     block:
-      var result = cppNew128x64I2c()
-      var config = cppNewI2cConfig()
+      var result = new128x64I2c()
+      var config = newI2cConfig()
       config.transport_config.Defaults()
       config.transport_config.i2c_config.pin_config.scl = sclPin
       config.transport_config.i2c_config.pin_config.sda = sdaPin
@@ -122,8 +83,8 @@ template initOledI2c*(width, height: static[int],
       result
   elif (width, height) == (128, 32):
     block:
-      var result = cppNew128x32I2c()
-      var config = cppNewI2cConfig()
+      var result = new128x32I2c()
+      var config = newI2cConfig()
       config.transport_config.Defaults()
       config.transport_config.i2c_config.pin_config.scl = sclPin
       config.transport_config.i2c_config.pin_config.sda = sdaPin
@@ -132,8 +93,8 @@ template initOledI2c*(width, height: static[int],
       result
   elif (width, height) == (64, 48):
     block:
-      var result = cppNew64x48I2c()
-      var config = cppNewI2cConfig()
+      var result = new64x48I2c()
+      var config = newI2cConfig()
       config.transport_config.Defaults()
       config.transport_config.i2c_config.pin_config.scl = sclPin
       config.transport_config.i2c_config.pin_config.sda = sdaPin
@@ -142,8 +103,8 @@ template initOledI2c*(width, height: static[int],
       result
   elif (width, height) == (64, 32):
     block:
-      var result = cppNew64x32I2c()
-      var config = cppNewI2cConfig()
+      var result = new64x32I2c()
+      var config = newI2cConfig()
       config.transport_config.Defaults()
       config.transport_config.i2c_config.pin_config.scl = sclPin
       config.transport_config.i2c_config.pin_config.sda = sdaPin
@@ -162,8 +123,8 @@ template initOledSpi*(width, height: static[int],
   ## Initialize OLED via SPI - selects correct template instantiation at compile time
   when (width, height) == (128, 64):
     block:
-      var result = cppNew128x64Spi()
-      var config = cppNewSpiConfig()
+      var result = new128x64Spi()
+      var config = newSpiConfig()
       config.transport_config.Defaults()
       config.transport_config.pin_config.dc = dcPin
       config.transport_config.pin_config.reset = resetPin
@@ -174,8 +135,8 @@ template initOledSpi*(width, height: static[int],
       result
   elif (width, height) == (128, 32):
     block:
-      var result = cppNew128x32Spi()
-      var config = cppNewSpiConfig()
+      var result = new128x32Spi()
+      var config = newSpiConfig()
       config.transport_config.Defaults()
       config.transport_config.pin_config.dc = dcPin
       config.transport_config.pin_config.reset = resetPin
@@ -186,8 +147,8 @@ template initOledSpi*(width, height: static[int],
       result
   elif (width, height) == (64, 48):
     block:
-      var result = cppNew64x48Spi()
-      var config = cppNewSpiConfig()
+      var result = new64x48Spi()
+      var config = newSpiConfig()
       config.transport_config.Defaults()
       config.transport_config.pin_config.dc = dcPin
       config.transport_config.pin_config.reset = resetPin
@@ -198,8 +159,8 @@ template initOledSpi*(width, height: static[int],
       result
   elif (width, height) == (64, 32):
     block:
-      var result = cppNew64x32Spi()
-      var config = cppNewSpiConfig()
+      var result = new64x32Spi()
+      var config = newSpiConfig()
       config.transport_config.Defaults()
       config.transport_config.pin_config.dc = dcPin
       config.transport_config.pin_config.reset = resetPin
@@ -218,46 +179,22 @@ proc drawPixel*(display: var OledDisplay, x, y: int, on: bool = true) = display.
 proc fill*(display: var OledDisplay, on: bool = true) = display.Fill(on)
 proc update*(display: var OledDisplay) = display.Update()
 
-# Drawing helpers
+# 2D drawing primitives (shared Bresenham implementations from hid/disp/draw2d)
 proc drawLine*(display: var OledDisplay, x0, y0, x1, y1: int, on: bool = true) =
-  var x0 = x0; var y0 = y0
-  let dx = abs(x1 - x0); let dy = abs(y1 - y0)
-  let sx = if x0 < x1: 1 else: -1
-  let sy = if y0 < y1: 1 else: -1
-  var err = dx - dy
-  while true:
-    display.drawPixel(x0, y0, on)
-    if x0 == x1 and y0 == y1: break
-    let e2 = 2 * err
-    if e2 > -dy: err -= dy; x0 += sx
-    if e2 < dx: err += dx; y0 += sy
+  ## Draw a line using Bresenham's algorithm (see `hid/disp/draw2d`).
+  draw2d.drawLine(display, x0, y0, x1, y1, on)
 
 proc drawRect*(display: var OledDisplay, x, y, w, h: int, on: bool = true) =
-  for i in 0..<w:
-    display.drawPixel(x + i, y, on)
-    display.drawPixel(x + i, y + h - 1, on)
-  for i in 0..<h:
-    display.drawPixel(x, y + i, on)
-    display.drawPixel(x + w - 1, y + i, on)
+  ## Draw a rectangle outline (see `hid/disp/draw2d`).
+  draw2d.drawRect(display, x, y, w, h, on)
 
 proc fillRect*(display: var OledDisplay, x, y, w, h: int, on: bool = true) =
-  for j in 0..<h:
-    for i in 0..<w:
-      display.drawPixel(x + i, y + j, on)
+  ## Draw a filled rectangle (see `hid/disp/draw2d`).
+  draw2d.fillRect(display, x, y, w, h, on)
 
 proc drawCircle*(display: var OledDisplay, x0, y0, radius: int, on: bool = true) =
-  var x = radius; var y = 0; var err = 0
-  while x >= y:
-    display.drawPixel(x0 + x, y0 + y, on)
-    display.drawPixel(x0 + y, y0 + x, on)
-    display.drawPixel(x0 - y, y0 + x, on)
-    display.drawPixel(x0 - x, y0 + y, on)
-    display.drawPixel(x0 - x, y0 - y, on)
-    display.drawPixel(x0 - y, y0 - x, on)
-    display.drawPixel(x0 + y, y0 - x, on)
-    display.drawPixel(x0 + x, y0 - y, on)
-    if err <= 0: inc y; err += 2 * y + 1
-    if err > 0: dec x; err -= 2 * x + 1
+  ## Draw a circle outline using the midpoint circle algorithm (see `hid/disp/draw2d`).
+  draw2d.drawCircle(display, x0, y0, radius, on)
 
 const
   OLED_I2C_ADDRESS_DEFAULT* = 0x3C

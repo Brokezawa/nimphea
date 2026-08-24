@@ -65,7 +65,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea_ui_events
 import nimphea_menu  # For UiPage type
 

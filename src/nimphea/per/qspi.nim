@@ -68,8 +68,9 @@
 
 {.push header: "per/qspi.h".}
 
-import nimphea_macros
-import nimphea # Import nimphea to get QSPIConfig type
+import nimphea
+export nimphea_core_types
+import nimphea/nimphea_macros
 
 useNimpheaModules(qspi)
 
@@ -85,10 +86,7 @@ type
     E_SWITCHING_MODES = "daisy::QSPIHandle::Status::E_SWITCHING_MODES"
     E_INVALID_MODE = "daisy::QSPIHandle::Status::E_INVALID_MODE"
 
-  # QSPIDevice, QSPIMode, QSPIConfig moved to libdaisy.nim
-
-  QSPIHandle* {.importcpp: "daisy::QSPIHandle", byref.} = object
-    ## QSPI flash memory interface
+  # QSPIDevice, QSPIMode, QSPIConfig and QSPIHandle are defined in nimphea_core_types.
 
 {.pop.}
 
@@ -123,7 +121,7 @@ proc init*(qspi: var QSPIHandle, config: QSPIConfig): QSPIResult {.
   ##   echo "QSPI init failed"
   ## ```
 
-proc deInit*(qspi: var QSPIHandle): QSPIResult {.
+proc deinit*(qspi: var QSPIHandle): QSPIResult {.
   importcpp: "#.DeInit()", cdecl.}
   ## Deinitialize the QSPI peripheral.
   ## 
@@ -300,14 +298,11 @@ proc getStatus*(qspi: var QSPIHandle): QSPIStatus {.
 
 const
   QSPI_SECTOR_SIZE* = 4096'u32  ## 4KB sector size
-  QSPI_BLOCK_32K_SIZE* = 32768'u32  ## 32KB block size
-  QSPI_BLOCK_64K_SIZE* = 65536'u32  ## 64KB block size
   QSPI_PAGE_SIZE* = 256'u32  ## 256 byte page size
-  QSPI_MEMORY_MAPPED_BASE* = 0x90000000'u32  ## Memory-mapped base address
 
 proc alignToSector*(address: uint32): uint32 {.inline.} =
   ## Align an address down to the nearest sector boundary (4KB).
-  ## 
+  ##
   ## Example:
   ## ```nim
   ## let aligned = alignToSector(4200)  # Returns 4096
@@ -316,7 +311,7 @@ proc alignToSector*(address: uint32): uint32 {.inline.} =
 
 proc alignToPage*(address: uint32): uint32 {.inline.} =
   ## Align an address down to the nearest page boundary (256 bytes).
-  ## 
+  ##
   ## Example:
   ## ```nim
   ## let aligned = alignToPage(300)  # Returns 256
@@ -333,7 +328,7 @@ proc isSectorAligned*(address: uint32): bool {.inline.} =
 
 proc sectorCount*(startAddr, endAddr: uint32): uint32 {.inline.} =
   ## Calculate number of sectors between two addresses.
-  ## 
+  ##
   ## Example:
   ## ```nim
   ## let sectors = sectorCount(0, 8192)  # Returns 2 (8KB = 2 sectors)

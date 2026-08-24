@@ -20,20 +20,20 @@
 ##
 ## **Example:**
 ## ```nim
-## import nimphea/src/nimphea
-## import nimphea/src/dev/lcd_hd44780
+## import nimphea
+## import nimphea/dev/lcd_hd44780
 ##
 ## var lcd: LcdHD44780
 ## var lcdCfg: LcdHD44780Config
 ##
 ## lcdCfg.cursor_on = false
 ## lcdCfg.cursor_blink = false
-## lcdCfg.rs = seed.GetPin(1)
-## lcdCfg.en = seed.GetPin(2)
-## lcdCfg.d4 = seed.GetPin(3)
-## lcdCfg.d5 = seed.GetPin(4)
-## lcdCfg.d6 = seed.GetPin(5)
-## lcdCfg.d7 = seed.GetPin(6)
+## lcdCfg.rs = newPin(PORTB, 1)
+## lcdCfg.en = newPin(PORTB, 2)
+## lcdCfg.d4 = newPin(PORTB, 3)
+## lcdCfg.d5 = newPin(PORTB, 4)
+## lcdCfg.d6 = newPin(PORTB, 5)
+## lcdCfg.d7 = newPin(PORTB, 6)
 ##
 ## lcd.init(lcdCfg)
 ## lcd.clear()
@@ -43,7 +43,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(lcd_hd44780)
 
@@ -82,12 +82,12 @@ proc init*(this: var LcdHD44780, config: LcdHD44780Config)
   ## var cfg: LcdHD44780Config
   ## cfg.cursor_on = false
   ## cfg.cursor_blink = false
-  ## cfg.rs = seed.GetPin(1)
-  ## cfg.en = seed.GetPin(2)
-  ## cfg.d4 = seed.GetPin(3)
-  ## cfg.d5 = seed.GetPin(4)
-  ## cfg.d6 = seed.GetPin(5)
-  ## cfg.d7 = seed.GetPin(6)
+  ## cfg.rs = newPin(PORTB, 1)
+  ## cfg.en = newPin(PORTB, 2)
+  ## cfg.d4 = newPin(PORTB, 3)
+  ## cfg.d5 = newPin(PORTB, 4)
+  ## cfg.d6 = newPin(PORTB, 5)
+  ## cfg.d7 = newPin(PORTB, 6)
   ## lcd.init(cfg)
   ## ```
 

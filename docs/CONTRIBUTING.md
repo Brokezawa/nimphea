@@ -19,7 +19,7 @@ cd nimphea
 
 ### 3. Initialize libDaisy
 ```bash
-nimble init_libdaisy
+nim e scripts/init_libdaisy.nims
 ```
 
 ## Repository Structure
@@ -37,7 +37,7 @@ nimble init_libdaisy
 
 ### 2. New Examples
 - Examples are hosted in a separate repository: [nimphea-examples](https://github.com/Brokezawa/nimphea-examples).
-- To contribute an example, create a standalone directory with its own `.nimble` file and submit a PR to that repo.
+- To contribute an example, create a standalone directory with `config.nims` + task scripts (see `templates/basic/`) and submit a PR to that repo.
 
 ## Code Standards
 
@@ -240,20 +240,19 @@ when isMainModule:
 ```bash
 cd nimphea
 
-# Syntax check your new wrapper
-nimble test
+# Run the unit tests
+nim e scripts/test.nims
 
-# Build your new wrapper example for ARM
-nimble make dac_simple
+# Build your new wrapper example for ARM (from the example's directory)
+nim e make.nims
 
 # Flash to hardware (requires Daisy in bootloader mode)
-nimble flash dac_simple
+nim e flash.nims
 ```
 
 **Expected output**:
-- `nimble test` shows dac_simple passes
-- `nimble make dac_simple` produces `build/dac_simple.bin`
-- `nimble flash dac_simple` displays " Flash complete!"
+- `nim e make.nims` produces `build/dac_simple.bin`
+- `nim e flash.nims` displays "Flash complete!"
 
 **Step 8: Document**
 
@@ -327,21 +326,21 @@ Nimphea uses a **two-tier testing approach**:
 
 **What:** Pure logic testing for data structures and utilities  
 **Where:** Runs on your development computer (no hardware required)  
-**Framework:** nim-unittest2  
+**Framework:** std/unittest (standard library)
 
 ```bash
 # Run all unit tests
-nimble test_unit
+nim e scripts/test.nims
 
 # Expected output:
-# [Suite] FixedStr - Basics ...... (0.00s)
-# [Suite] FixedStr - Edge Cases .... (0.00s)
-# [Summary] 22 tests run (0.00s): 22 OK, 0 FAILED, 0 SKIPPED
+# [Suite] FIFO ... (0.00s)
+# [Suite] Stack ... (0.00s)
+# [Summary] 121 tests run (0.00s): 121 OK, 0 FAILED, 0 SKIPPED
 #  All unit tests passed!
 ```
 
 **When to write unit tests:**
-- Adding or modifying pure logic modules (FIFO, Stack, FixedStr, etc.)
+- Adding or modifying pure logic modules (FIFO, Stack, RingBuffer, StackString utils, etc.)
 - Implementing utility functions (value mapping, color conversion, etc.)
 - Working with file format parsers (WAV, JSON, etc.)
 
@@ -364,8 +363,9 @@ All examples must pass compilation checks. We use a **two-tier testing approach*
 
 **Tier 1: Quick Syntax Check** (required for all PRs)
 ```bash
-# Fast (~7 seconds) - checks syntax and types only
-nimble test
+# Fast - checks syntax and types only
+nim e scripts/test.nims
+nim check src/nimphea.nim
 ```
 
 What it checks:
@@ -378,8 +378,8 @@ What it checks:
 
 **Tier 2: Full Build Test** (required before releases)
 ```bash
-# Slow (~45 minutes) - builds all examples with ARM toolchain
-nimble test_build
+# Slow - builds all examples with the ARM toolchain
+nim e <nimphea-examples>/build_all.nims
 ```
 
 What it checks:
@@ -389,29 +389,22 @@ What it checks:
 -  Binary sizes are reasonable
 
 **For Contributors:**
-- **During development**: Use `nimble test` for fast feedback
-- **Before submitting PR**: Ensure `nimble test` passes
-- **For major changes**: Run `nimble test_build` to catch linker issues
-- **Maintainers**: Will run `nimble test_build` before merges/releases
+- **During development**: Use `nim e scripts/test.nims` for fast feedback
+- **Before submitting PR**: Ensure `nim e scripts/test.nims` passes
+- **For major changes**: Run `nim e <nimphea-examples>/build_all.nims` to catch linker issues
+- **Maintainers**: Will run `nim e <nimphea-examples>/build_all.nims` before merges/releases
 
-**Expected output from `nimble test`**:
+**Expected output from `nim e scripts/check_examples.nims`**:
 ```
-=== Quick Syntax Check (all examples) ===
 ============================================================
-Checking blink                           ...  PASS
-Checking audio_demo                      ...  PASS
-Checking pod_demo                        ...  PASS
+blink                                    [OK]
+audio_demo                               [OK]
 ...
 ============================================================
-SUMMARY:
-  Passed: 43
-  Failed: 0
-============================================================
-
- All examples passed syntax check!
+All examples passed syntax check!
 
 Note: This only checks syntax. For full build validation:
-  nimble test_build    # Compile all examples with ARM toolchain
+  nim e <nimphea-examples>/build_all.nims    # Compile all examples with ARM toolchain
 ```
 
 #### Hardware Tests
@@ -431,29 +424,31 @@ Ensure you haven't broken existing functionality:
 
 ```bash
 # Quick syntax check (required)
-nimble test
+nim e scripts/check_examples.nims
 
 # Run unit tests (required if you modified testable modules)
-nimble test_unit
+nim e scripts/test.nims
 
 # For major changes: full build validation (optional but recommended)
-nimble test_build
+nim e <nimphea-examples>/build_all.nims
 
 # Build and test 2-3 existing examples on hardware (if available)
-nimble make blink
-nimble flash blink
+cd <nimphea-examples>/examples/blink
+nim e make.nims
+nim e flash.nims
 
 # Try another example
-nimble make audio_demo
-nimble flash audio_demo
+cd ../audio_demo
+nim e make.nims
+nim e flash.nims
 ```
 
 **All existing examples should**:
-- Pass `nimble test` (syntax check) - **REQUIRED**
-- Pass `nimble test_unit` (unit tests) - **REQUIRED**
-- Pass `nimble test_build` (full build) - **RECOMMENDED** for major changes
-- Build successfully with `nimble make` - **REQUIRED** for changed examples
-- Flash successfully with `nimble flash` - **OPTIONAL** (hardware dependent)
+- Pass `nim e scripts/check_examples.nims` (syntax check) - **REQUIRED**
+- Pass `nim e scripts/test.nims` (unit tests) - **REQUIRED**
+- Pass `nim e <nimphea-examples>/build_all.nims` (full build) - **RECOMMENDED** for major changes
+- Build successfully with `nim e make.nims` - **REQUIRED** for changed examples
+- Flash successfully with `nim e flash.nims` - **OPTIONAL** (hardware dependent)
 - Run correctly on hardware - **OPTIONAL** (hardware dependent)
 
 ### Writing Unit Tests
@@ -463,7 +458,7 @@ When adding testable modules, create corresponding unit tests:
 **1. Create test file:** `tests/test_yourmodule.nim`
 
 ```nim
-import unittest2
+import std/unittest
 import ../src/nimphea_yourmodule
 
 suite "YourModule: Basic Functionality":
@@ -486,7 +481,7 @@ import test_yourmodule
 **3. Run tests:**
 
 ```bash
-nimble test_unit
+nim e scripts/test.nims
 ```
 
 **Test Organization:**
@@ -495,7 +490,8 @@ nimble test_unit
 - Test basics, edge cases, and practical usage
 - Mirror libDaisy's googletest structure when applicable
 
-See `tests/test_fixedstr.nim` for a comprehensive example.
+See `tests/test_stack_strings_utils.nim` and `tests/test_fifo.nim` for
+comprehensive examples.
 
 ## Hardware Testing
 
@@ -508,14 +504,15 @@ Community hardware testing is essential to validate examples on different Daisy 
 1. **Compilation Testing** (Required for all PRs)
     ```bash
     cd /path/to/nimphea
-    nimble test
+    nim e scripts/check_examples.nims
     ```
-    Fast syntax checking without ARM compilation. All 40+ examples must pass.
+    Fast syntax checking without ARM compilation. All 44 examples must pass.
 
 2. **Basic Hardware Testing**
     ```bash
-    nimble make blink
-    nimble flash blink
+    cd <nimphea-examples>/examples/blink
+    nim e make.nims
+    nim e flash.nims
     ```
     LED, GPIO, Audio, SDRAM, USB, RNG, Timers
 
@@ -776,7 +773,7 @@ The Nim wrapper should have minimal performance overhead. For audio code, this i
 4. **Profile before optimizing** - use actual measurements
    ```bash
    # Build with performance monitoring enabled
-   nimble make myexample
+   nim e make.nims
    
    # Check flash and RAM usage
    arm-none-eabi-size build/myexample.elf
@@ -936,7 +933,7 @@ Relates to #456 (if applicable)
 - All examples compile.
 - New example works and follows conventions.
 - Tested on hardware.
-- Ran nimble clear and rebuilt from scratch.
+- Ran `nim e clear.nims` (or `nim e scripts/clear.nims`) and rebuilt from scratch.
 
 ## Checklist
 - Code follows Nim style guidelines.

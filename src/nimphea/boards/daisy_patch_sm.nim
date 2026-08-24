@@ -66,10 +66,12 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/hid/gatein
 import nimphea/per/dac
 import nimphea/dev/codec_pcm3060
+import nimphea/nimphea_audio
+export nimphea_audio
 
 useNimpheaModules(patch_sm, codec_pcm3060)
 
@@ -117,11 +119,9 @@ type
     PIN_BANK_B = 1 ## Bank B (header B)
     PIN_BANK_C = 2 ## Bank C (header C)
     PIN_BANK_D = 3 ## Bank D (header D)
-  
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/CV input) wrapper
-  
+
+  # AnalogControl is defined in nimphea_core_types (re-exported via nimphea).
+
   DaisyPatchSM* {.importcpp: "daisy::patch_sm::DaisyPatchSM".} = object
     ## Daisy Patch SM board handle
     ##
@@ -178,76 +178,10 @@ proc delay*(this: var DaisyPatchSM, milliseconds: uint32)
 # ============================================================================
 # Audio Control
 # ============================================================================
-
-# Global callback storage (one set per board type to avoid conflicts)
-var globalPatchSmAudioCallback: AudioCallback = nil
-var globalPatchSmInterleavingCallback: InterleavingAudioCallback = nil
-
-# C-compatible wrapper functions
-proc patchSmAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "patchSmAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalPatchSmAudioCallback.isNil:
-    globalPatchSmAudioCallback(cast[AudioBuffer](input),
-                              cast[AudioBuffer](output),
-                              size.int)
-
-proc patchSmInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "patchSmInterleavingCallbackWrapper", cdecl, raises: [].} =
-  if not globalPatchSmInterleavingCallback.isNil:
-    globalPatchSmInterleavingCallback(cast[InterleavedAudioBuffer](input),
-                                     cast[InterleavedAudioBuffer](output),
-                                     size.int)
-
-proc startAudio*(patchsm: var DaisyPatchSM, callback: AudioCallback) =
-  ## Start audio processing with multi-channel (non-interleaved) callback
-  ##
-  ## The callback receives separate channels as arrays of float samples.
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     output[0][i] = input[0][i] * 0.5  # Left channel
-  ##     output[1][i] = input[1][i] * 0.5  # Right channel
-  ##
-  ## patchsm.startAudio(audioCallback)
-  ## ```
-  globalPatchSmAudioCallback = callback
-  {.emit: "`patchsm`.StartAudio(reinterpret_cast<daisy::AudioHandle::AudioCallback>(patchSmAudioCallbackWrapper));".}
-
-proc startAudio*(patchsm: var DaisyPatchSM, callback: InterleavingAudioCallback) =
-  ## Start audio processing with interleaved callback
-  ##
-  ## The callback receives interleaved samples (L, R, L, R, ...)
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: InterleavedAudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     output[i * 2] = input[i * 2] * 0.5      # Left
-  ##     output[i * 2 + 1] = input[i * 2 + 1] * 0.5  # Right
-  ##
-  ## patchsm.startAudio(audioCallback)
-  ## ```
-  globalPatchSmInterleavingCallback = callback
-  {.emit: "`patchsm`.StartAudio(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(patchSmInterleavingCallbackWrapper));".}
-
-proc changeAudioCallback*(patchsm: var DaisyPatchSM, callback: AudioCallback) =
-  ## Change the audio callback while audio is running
-  ##
-  ## **Note:** May cause clicks if done while audio is processing.
-  globalPatchSmAudioCallback = callback
-
-proc changeAudioCallback*(patchsm: var DaisyPatchSM, callback: InterleavingAudioCallback) =
-  ## Change the interleaved audio callback while audio is running
-  ##
-  ## **Note:** May cause clicks if done while audio is processing.
-  globalPatchSmInterleavingCallback = callback
-
-proc stopAudio*(patchsm: var DaisyPatchSM) {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  ##
-  ## Stops the audio callback and codec.
-  globalPatchSmAudioCallback = nil
-  globalPatchSmInterleavingCallback = nil
+#
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# patchsm.startAudio(cb) works directly.
 
 proc setAudioBlockSize*(this: var DaisyPatchSM, size: csize_t)
   {.importcpp: "#.SetAudioBlockSize(#)".} =

@@ -42,25 +42,3 @@ template clearAndDraw*(display: var auto, body: untyped) =
   display.fill(false)
   body
   display.update()
-
-# Generic display utilities
-
-proc drawCenteredText*(display: var auto, y: int, text: string) =
-  ## Draw text centered horizontally (placeholder - text rendering TBD)
-  ## This is a template for future text rendering support
-  discard
-
-proc drawProgressBar*(display: var auto, x, y, width, height: int, progress: float) =
-  ## Draw a progress bar (0.0 to 1.0)
-  let fillWidth = int(float(width) * progress.clamp(0.0, 1.0))
-  display.drawRect(x, y, width, height, true)
-  if fillWidth > 0:
-    display.fillRect(x, y, fillWidth, height, true)
-
-template measureTime*(display: var auto, label: static string, body: untyped) =
-  ## Measure execution time and display on screen (debug helper)
-  ## Note: Requires text rendering support
-  let startTime = getTime()  # Would need actual timer
-  body
-  let elapsed = getTime() - startTime
-  # Display timing info (TBD with text support)

@@ -32,11 +32,13 @@
 ##     patch.delayMs(10)
 ## ```
 
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea
 import nimphea/hid/ctrl
 import nimphea/hid/disp/oled_display
 import nimphea/hid/gatein
+import nimphea/nimphea_audio
+export nimphea_audio
 
 useNimpheaModules(patch)
 
@@ -57,25 +59,8 @@ type
     GATE_IN_2 = 1     ## Gate input 2
     GATE_IN_LAST = 2  ## Sentinel value
 
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/CV input) wrapper
-
-  GateIn* {.importcpp: "daisy::GateIn",
-            header: "hid/gatein.h".} = object
-    ## Gate input wrapper
-
-  MidiUartTransport* {.importcpp: "daisy::MidiUartTransport",
-                       header: "hid/midi.h".} = object
-    ## MIDI UART transport
-
-  MidiUartHandler* {.importcpp: "daisy::MidiHandler<daisy::MidiUartTransport>",
-                     header: "hid/midi.h".} = object
-    ## MIDI UART handler
-
-  Ak4556* {.importcpp: "daisy::Ak4556",
-            header: "per/ak4556.h".} = object
-    ## AK4556 codec (used by Patch for additional audio channels)
+  # AnalogControl, GateIn, MidiUartTransport, MidiUartHandler, Ak4556 and
+  # Encoder are defined in core modules (re-exported via nimphea).
 
   DaisyPatch* {.importcpp: "daisy::DaisyPatch",
                  header: "daisy_patch.h".} = object
@@ -105,26 +90,10 @@ proc delayMs*(this: var DaisyPatch, del: csize_t)
   ## - `del` - Delay time in milliseconds
   discard
 
-proc startAudio*(this: var DaisyPatch, cb: AudioCallback)
-  {.importcpp: "#.StartAudio(#)".} =
-  ## Start audio processing with callback
-  ##
-  ## **Parameters:**
-  ## - `cb` - Audio callback function
-  discard
-
-proc changeAudioCallback*(this: var DaisyPatch, cb: AudioCallback)
-  {.importcpp: "#.ChangeAudioCallback(#)".} =
-  ## Switch to a different audio callback
-  ##
-  ## **Parameters:**
-  ## - `cb` - New audio callback function
-  discard
-
-proc stopAudio*(this: var DaisyPatch)
-  {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  discard
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# patch.startAudio(cb) works directly.
+# Note: libDaisy's DaisyPatch lacks the interleaving StartAudio overload.
 
 proc setAudioSampleRate*(this: var DaisyPatch, samplerate: SampleRate)
   {.importcpp: "#.SetAudioSampleRate(#)".} =

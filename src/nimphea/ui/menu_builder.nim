@@ -31,7 +31,7 @@
 ## Pass `mainMenu` (or `mainMenu.menu`) to `ui.openPage()`.
 
 import nimphea_menu
-import nimphea_macros
+import nimphea/nimphea_macros
 import macros
 
 useNimpheaModules(menu)

@@ -3,225 +3,41 @@
 ##
 ## USB and UART logging for debugging Daisy applications.
 ##
-## This module provides simple logging capabilities to output debug information
-## via USB serial or UART. Useful for debugging without a hardware debugger.
+## The libDaisy `Logger<Destination>` template class is exposed as a set of
+## pre-instantiated types (one per destination), because C++ non-type template
+## parameters do not map to Nim generics. Use these types directly:
 ##
-## Logger Destinations
-## -------------------
+## - `UsbLogger` (= `LoggerInternal`) - internal USB (built into Daisy Seed)
+## - `LoggerExternal` - external USB (if available on your board)
+## - `LoggerSemihost` - stdout (requires a debugger connection)
+## - `LoggerNone` - muted (all logging disabled, zero overhead)
 ##
-## The Logger supports multiple output destinations:
+## **Basic Usage:**
+## ```nim
+## import nimphea
+## import nimphea/hid/logger
 ##
-## - **LOGGER_INTERNAL** - Internal USB port (most common, built into Daisy Seed)
-## - **LOGGER_EXTERNAL** - External USB port (if available on your board)
-## - **LOGGER_SEMIHOST** - stdout (requires debugger connection)
-## - **LOGGER_NONE** - Muted (all logging disabled, zero overhead)
+## proc main() =
+##   var hw = initDaisy()
+##   UsbLogger.startLog(false)         # false = don't wait for PC connection
 ##
-## Basic Usage
-## -----------
+##   UsbLogger.printLine("=== Daisy Seed Startup ===")
 ##
-## **Step 1: Import and create logger**
+##   var counter = 0
+##   while true:
+##     hw.delay(1000)
+##     UsbLogger.printLine(cstring("Counter: " & $counter))
+##     inc counter
 ##
-## .. code-block:: nim
-##    import nimphea/hid/logger
-##    
-##    # UsbLogger is a built-in type alias for LoggerInternal
+## when isMainModule:
+##   main()
+## ```
 ##
-## **Step 2: Start logging session**
-##
-## .. code-block:: nim
-##    proc main() =
-##      UsbLogger.startLog(false)  # Don't wait for PC connection
-##      # Or: UsbLogger.startLog(true)  # Block until PC connects
-##
-## **Step 3: Log messages**
-##
-## .. code-block:: nim
-##    UsbLogger.print("Hello from Daisy!")
-##    UsbLogger.printLine("This adds a newline")
-##
-## Complete Example
-## ----------------
-##
-## .. code-block:: nim
-##    import nimphea
-##    import nimphea/hid/logger
-##    import std/strformat  # For string formatting
-##    
-##    # UsbLogger is built-in, no need to define
-##    
-##    proc main() =
-##      var hw = initDaisy()
-##      
-##      # Start logger (don't block)
-##      UsbLogger.startLog(false)
-##      
-##      UsbLogger.printLine("=== Daisy Seed Startup ===")
-##      UsbLogger.printLine("Firmware v1.0.0")
-##      
-##      var counter = 0
-##      while true:
-##        hw.delay(1000)
-##        
-##        # Use Nim's string formatting
-##        let msg = &"Counter: {counter}"
-##        UsbLogger.printLine(cstring(msg))
-##        
-##        counter += 1
-##    
-##    when isMainModule:
-##      main()
-##
-## String Formatting in Nim
-## -------------------------
-##
-## This module uses **Nim's string formatting**, not C printf-style formatting.
-##
-## **Available formatting options:**
-##
-## **Option 1: String concatenation with `&` operator**
-##
-## .. code-block:: nim
-##    let value = 42
-##    let voltage = 3.14159
-##    
-##    UsbLogger.printLine(cstring("Value: " & $value))
-##    UsbLogger.printLine(cstring("Voltage: " & $voltage & " V"))
-##
-## **Option 2: `strformat` module (recommended)**
-##
-## .. code-block:: nim
-##    import std/strformat
-##    
-##    let temp = 25.3
-##    let humidity = 67
-##    
-##    let msg = &"Temperature: {temp:.1f}°C, Humidity: {humidity}%"
-##    UsbLogger.printLine(cstring(msg))
-##    # Output: "Temperature: 25.3°C, Humidity: 67%"
-##
-## **Option 3: `strutils` module functions**
-##
-## .. code-block:: nim
-##    import std/strutils
-##    
-##    let freq = 440.0
-##    let msg = "Frequency: " & formatFloat(freq, ffDecimal, 2) & " Hz"
-##    UsbLogger.printLine(cstring(msg))
-##    # Output: "Frequency: 440.00 Hz"
-##
-## Performance Profiling Example
-## ------------------------------
-##
-## Use Logger with System timing functions for performance analysis:
-##
-## .. code-block:: nim
-##    import nimphea_system
-##    import nimphea/hid/logger
-##    import std/strformat
-##    
-##    type UsbLogger = Logger[LOGGER_INTERNAL]
-##    
-##    proc benchmarkFunction() =
-##      # ... some code to benchmark
-##      for i in 0..<1000:
-##        discard i * 2
-##    
-##    proc main() =
-##      UsbLogger.startLog()
-##      
-##      let startUs = getUs()
-##      benchmarkFunction()
-##      let endUs = getUs()
-##      let duration = endUs - startUs
-##      
-##      let msg = &"Benchmark took {duration} microseconds"
-##      UsbLogger.printLine(cstring(msg))
-##
-## Logging Best Practices
-## ----------------------
-##
-## **1. Use `printLine()` for most messages** (adds newline automatically)
-##
-## .. code-block:: nim
-##    UsbLogger.printLine("Starting initialization...")  # Good
-##    UsbLogger.print("Done\n")  # Avoid manual newlines
-##
-## **2. Don't log in audio callback** (causes glitches)
-##
-## .. code-block:: nim
-##    proc audioCallback(input, output: ptr float32, size: int) =
-##      # ❌ BAD: Logging in ISR
-##      # UsbLogger.printLine("Audio callback")
-##      
-##      processAudio(input, output, size)
-##
-## **3. Use LOGGER_NONE for production builds** (zero overhead)
-##
-## .. code-block:: nim
-##    when defined(release):
-##      type AppLogger = Logger[LOGGER_NONE]  # Muted
-##    else:
-##      type AppLogger = Logger[LOGGER_INTERNAL]  # Active
-##
-## **4. Convert to cstring for C++ compatibility**
-##
-## .. code-block:: nim
-##    let nimString = "Hello"
-##    UsbLogger.print(cstring(nimString))  # Explicit conversion
-##
-## Viewing Log Output
-## ------------------
-##
-## **On Linux/macOS:**
-##
-## .. code-block:: bash
-##    # Find the USB serial port
-##    ls /dev/tty.usb*  # macOS
-##    ls /dev/ttyACM*   # Linux
-##    
-##    # Connect with screen
-##    screen /dev/tty.usbmodem12345 115200
-##    
-##    # Or use minicom
-##    minicom -D /dev/ttyACM0 -b 115200
-##
-## **On Windows:**
-##
-## - Use PuTTY, TeraTerm, or Arduino Serial Monitor
-## - Baud rate: 115200 (actual rate doesn't matter for USB CDC)
-##
-## Multiple Logger Instances
-## --------------------------
-##
-## You can create multiple logger types for different destinations:
-##
-## .. code-block:: nim
-##    type
-##      UsbLogger = Logger[LOGGER_INTERNAL]
-##      UartLogger = Logger[LOGGER_EXTERNAL]
-##      NullLogger = Logger[LOGGER_NONE]
-##    
-##    UsbLogger.startLog()
-##    UartLogger.startLog()
-##    
-##    UsbLogger.printLine("Via internal USB")
-##    UartLogger.printLine("Via external USB")
-##    NullLogger.printLine("This is discarded (no overhead)")
-##
-## Technical Details
-## -----------------
-##
-## - **Buffer size**: 128 bytes (internal buffer)
-## - **Newline sequence**: "\\r\\n" (Windows-style, works everywhere)
-## - **Blocking behavior**: Initially non-blocking, becomes blocking after sync
-## - **USB CDC class**: No baud rate configuration needed
-##
-## See Also
-## --------
-## - `sys/system <system.html>`_ - Timing functions for profiling
-## - `examples/advanced_logging.nim` - Performance profiling example
-## - Nim's `strformat` module - Modern string interpolation
-## - Nim's `strutils` module - String formatting utilities
+## **Notes:**
+## - `print`/`printLine` take `cstring`; convert Nim strings explicitly (`cstring(s)`).
+## - Do **not** log from the audio callback (causes glitches).
+## - Buffer size 128 bytes; newline is `\r\n`; USB CDC needs no baud configuration.
+## - For production, `LoggerNone` mutes all output with zero overhead.
 
 import nimphea
 import nimphea/nimphea_macros

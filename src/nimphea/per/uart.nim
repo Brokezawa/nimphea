@@ -24,7 +24,7 @@
 ##   while true:
 ##     printLine($counter)
 ##     counter += 1
-##     hw.delayMs(1000)
+##     hw.delay(1000)
 ## ```
 ##
 ## UART Usage (Low-Level):
@@ -44,6 +44,7 @@
 
 # Import libdaisy which provides the macro system
 import nimphea
+export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
 # Serial module includes both per/uart.h and hid/logger.h
@@ -52,87 +53,14 @@ useNimpheaModules(serial)
 {.push header: "per/uart.h".}
 {.push importcpp.}
 
-type
-  # UART Peripheral selection
-  UartPeripheral* {.importcpp: "daisy::UartHandler::Config::Peripheral", 
-                    size: sizeof(cint).} = enum
-    USART_1 = 0
-    USART_2
-    USART_3
-    UART_4
-    UART_5
-    USART_6
-    UART_7
-    UART_8
-    LPUART_1
-
-  # Stop bits configuration
-  UartStopBits* {.importcpp: "daisy::UartHandler::Config::StopBits",
-                  size: sizeof(cint).} = enum
-    STOP_BITS_0_5 = 0
-    STOP_BITS_1
-    STOP_BITS_1_5
-    STOP_BITS_2
-
-  # Parity configuration
-  UartParity* {.importcpp: "daisy::UartHandler::Config::Parity",
-                size: sizeof(cint).} = enum
-    PARITY_NONE = 0
-    PARITY_EVEN
-    PARITY_ODD
-
-  # UART mode (RX, TX, or both)
-  UartMode* {.importcpp: "daisy::UartHandler::Config::Mode",
-             size: sizeof(cint).} = enum
-    MODE_RX = 0
-    MODE_TX
-    MODE_TX_RX
-
-  # Word length
-  UartWordLength* {.importcpp: "daisy::UartHandler::Config::WordLength",
-                    size: sizeof(cint).} = enum
-    WORD_BITS_7 = 0
-    WORD_BITS_8
-    WORD_BITS_9
-
-  # UART result codes
-  UartResult* {.importcpp: "daisy::UartHandler::Result",
-                size: sizeof(cint).} = enum
-    UART_OK = 0
-    UART_ERR
-
-  # DMA direction
-  UartDmaDirection* {.importcpp: "daisy::UartHandler::DmaDirection",
-                      size: sizeof(cint).} = enum
-    DMA_RX = 0
-    DMA_TX
-
-  # Pin configuration for UART
-  UartPinConfig* {.importcpp: "daisy::UartHandler::Config::pin_config".} = object
-    tx* {.importcpp: "tx".}: Pin
-    rx* {.importcpp: "rx".}: Pin
-
-  # UART Configuration
-  UartConfig* {.importcpp: "daisy::UartHandler::Config".} = object
-    pin_config* {.importcpp: "pin_config".}: UartPinConfig
-    periph* {.importcpp: "periph".}: UartPeripheral
-    stopbits* {.importcpp: "stopbits".}: UartStopBits
-    parity* {.importcpp: "parity".}: UartParity
-    mode* {.importcpp: "mode".}: UartMode
-    wordlength* {.importcpp: "wordlength".}: UartWordLength
-    baudrate* {.importcpp: "baudrate".}: uint32
-
-  # UART Handler
-  UartHandler* {.importcpp: "daisy::UartHandler".} = object
-
 # UART Handler methods
 proc init*(this: var UartHandler, config: UartConfig): UartResult {.importcpp: "#.Init(@)".}
 proc getConfig*(this: UartHandler): UartConfig {.importcpp: "#.GetConfig()".}
 
 proc blockingTransmit*(this: var UartHandler, buff: ptr uint8, size: csize_t, 
-                       timeout: uint32 = 100): UartResult {.importcpp: "BlockingTransmit".}
+                       timeout: uint32 = 100): UartResult {.importcpp: "#.BlockingTransmit(@)".}
 proc blockingReceive*(this: var UartHandler, buffer: ptr uint8, size: uint16,
-                      timeout: uint32 = 100): UartResult {.importcpp: "BlockingReceive".}
+                      timeout: uint32 = 100): UartResult {.importcpp: "#.BlockingReceive(@)".}
 
 proc checkError*(this: var UartHandler): cint {.importcpp: "#.CheckError()".}
 
@@ -227,110 +155,24 @@ proc configureForMidi*(config: var UartConfig, txPin, rxPin: Pin) =
 ## ```nim
 ## import nimphea
 ## import nimphea/per/uart
-## 
+##
 ## var hw = newDaisySeed()
-## 
+##
 ## proc main() =
 ##   hw.init()
 ##   startLog()  # Initialize USB CDC serial
-##   
+##
 ##   printLine("Daisy Seed Started!")
-##   printLine()
-##   
+##
 ##   var counter = 0
 ##   while true:
 ##     print("Counter: ")
 ##     printLine(counter)
-##     
-##     # Or use printf-style:
-##     # printf("Counter: %d\n", counter)
-##     
 ##     counter += 1
-##     hw.delayMs(1000)
-## 
+##     hw.delay(1000)
+##
 ## when isMainModule:
 ##   main()
-## ```
-
-## UART Debug Output Example:
-## ```nim
-## import nimphea
-## import nimphea/per/uart
-## 
-## var hw = newDaisySeed()
-## var uart = newUartHandler()
-## 
-## proc uartPrint(msg: string) =
-##   discard uart.blockingTransmit(msg)
-## 
-## proc main() =
-##   hw.init()
-##   
-##   # Configure UART on pins D14/D15
-##   var config = newUartConfig()
-##   config.configureForDebug(hw.getPin(14), hw.getPin(15))
-##   
-##   if uart.init(config) != UART_OK:
-##     return
-##   
-##   uartPrint("UART Debug Started\r\n")
-##   
-##   var counter = 0
-##   while true:
-##     uartPrint("Count: ")
-##     uartPrint($counter)
-##     uartPrint("\r\n")
-##     counter += 1
-##     hw.delayMs(1000)
-## ```
-
-## UART Echo Example:
-## ```nim
-## import nimphea
-## import nimphea/per/uart
-## 
-## var hw = newDaisySeed()
-## var uart = newUartHandler()
-## 
-## proc main() =
-##   hw.init()
-##   
-##   var config = newUartConfig()
-##   config.configureForDebug(hw.getPin(14), hw.getPin(15))
-##   
-##   if uart.init(config) != UART_OK:
-##     return
-##   
-##   discard uart.blockingTransmit("UART Echo Ready\r\n")
-##   
-##   while true:
-##     # Receive one byte
-##     let (result, data) = uart.blockingReceive(1, timeout = 1000)
-##     
-##     if result == UART_OK and data.len > 0:
-##       # Echo it back
-##       discard uart.blockingTransmit(data)
-## ```
-
-## Multiple UART Ports Example:
-## ```nim
-## var uart1 = newUartHandler()
-## var uart2 = newUartHandler()
-## 
-## var config1 = newUartConfig()
-## config1.periph = USART_1
-## config1.pin_config.tx = hw.getPin(14)
-## config1.pin_config.rx = hw.getPin(15)
-## config1.baudrate = BAUD_115200
-## 
-## var config2 = newUartConfig()
-## config2.periph = USART_2
-## config2.pin_config.tx = hw.getPin(16)
-## config2.pin_config.rx = hw.getPin(17)
-## config2.baudrate = BAUD_9600
-## 
-## discard uart1.init(config1)
-## discard uart2.init(config2)
 ## ```
 
 when isMainModule:

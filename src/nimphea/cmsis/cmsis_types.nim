@@ -23,10 +23,3 @@ type
     ARM_MATH_SINGULAR = 5                ## Generated matrix is singular and cannot be inverted
     ARM_MATH_TEST_FAILURE = 6            ## Test failed
     ARM_MATH_DECOMPOSITION_FAILURE = 7   ## Matrix decomposition failed
-
-# Buffer types for pointer-based operations
-type
-  CmsisBufferF32* = ptr UncheckedArray[float32_t]
-  CmsisBufferQ31* = ptr UncheckedArray[q31_t]
-  CmsisBufferQ15* = ptr UncheckedArray[q15_t]
-  CmsisBufferQ7* = ptr UncheckedArray[q7_t]

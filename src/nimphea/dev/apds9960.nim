@@ -40,7 +40,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/i2c
 
 useNimpheaModules(apds9960)

@@ -136,7 +136,7 @@
 ## ```
 
 import nimphea/per/qspi
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(qspi, persistent_storage)
 

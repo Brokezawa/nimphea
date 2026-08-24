@@ -61,7 +61,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/hid/disp/oled_display
 import nimphea/hid/gatein
 import nimphea/hid/switch
@@ -70,6 +70,8 @@ import nimphea/dev/leddriver
 export oled_display  # Export OLED types and methods
 export leddriver  # Export LED driver methods
 export gatein  # Export GateIn methods for gate input access
+import nimphea/nimphea_audio  # Shared audio callback bridge
+export nimphea_audio
 
 useNimpheaModules(field)
 
@@ -132,17 +134,8 @@ type
     LED_SW_1 = 24
     LED_SW_2 = 25
 
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/CV input) wrapper
-
-  MidiUartTransport* {.importcpp: "daisy::MidiUartTransport",
-                       header: "hid/midi.h".} = object
-    ## MIDI UART transport
-
-  MidiUartHandler* {.importcpp: "daisy::MidiHandler<daisy::MidiUartTransport>",
-                     header: "hid/midi.h".} = object
-    ## MIDI UART handler
+  # AnalogControl, MidiUartTransport and MidiUartHandler are defined in
+  # nimphea_core_types (re-exported via nimphea).
 
   DaisyField* {.importcpp: "daisy::DaisyField".} = object
     ## Daisy Field board handle
@@ -196,62 +189,10 @@ proc delayMs*(this: var DaisyField, del: csize_t)
 # ============================================================================
 # Audio Control
 # ============================================================================
-
-# Global callback storage
-var globalFieldAudioCallback: AudioCallback = nil
-var globalFieldInterleavingCallback: InterleavingAudioCallback = nil
-
-# C-compatible wrapper functions
-proc fieldAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "fieldAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalFieldAudioCallback.isNil:
-    globalFieldAudioCallback(cast[AudioBuffer](input),
-                            cast[AudioBuffer](output),
-                            size.int)
-
-proc fieldInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "fieldInterleavingCallbackWrapper", cdecl, raises: [].} =
-  if not globalFieldInterleavingCallback.isNil:
-    globalFieldInterleavingCallback(cast[InterleavedAudioBuffer](input),
-                                   cast[InterleavedAudioBuffer](output),
-                                   size.int)
-
-proc startAudio*(field: var DaisyField, callback: AudioCallback) =
-  ## Start audio processing with multi-channel (non-interleaved) callback
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     output[0][i] = input[0][i] * 0.5
-  ##     output[1][i] = input[1][i] * 0.5
-  ## ```
-  globalFieldAudioCallback = callback
-  {.emit: "`field`.StartAudio(reinterpret_cast<daisy::AudioHandle::AudioCallback>(fieldAudioCallbackWrapper));".}
-
-proc startAudio*(field: var DaisyField, callback: InterleavingAudioCallback) =
-  ## Start audio processing with interleaved callback
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: InterleavedAudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     output[i * 2] = input[i * 2] * 0.5
-  ##     output[i * 2 + 1] = input[i * 2 + 1] * 0.5
-  ## ```
-  globalFieldInterleavingCallback = callback
-  {.emit: "`field`.StartAudio(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(fieldInterleavingCallbackWrapper));".}
-
-proc changeAudioCallback*(field: var DaisyField, callback: AudioCallback) =
-  ## Change the audio callback while audio is running
-  globalFieldAudioCallback = callback
-
-proc changeAudioCallback*(field: var DaisyField, callback: InterleavingAudioCallback) =
-  ## Change the interleaved audio callback while audio is running
-  globalFieldInterleavingCallback = callback
-
-proc stopAudio*(field: var DaisyField) {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  globalFieldAudioCallback = nil
-  globalFieldInterleavingCallback = nil
+#
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# field.startAudio(cb) works directly.
 
 proc setAudioSampleRate*(this: var DaisyField, samplerate: SampleRate)
   {.importcpp: "#.SetAudioSampleRate(#)".} =

@@ -235,7 +235,7 @@
 ## - `examples/system_control.nim` - Interrupt protection examples
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(scoped_irq)
 

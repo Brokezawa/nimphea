@@ -47,72 +47,54 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(sr4021)
 
 {.push header: "dev/sr_4021.h".}
 
 type
-  ShiftRegister4021Config*[NumDaisy, NumParallel: static int] 
+  ShiftRegister4021Config*[NumDaisy, NumParallel: static int]
     {.importcpp: "daisy::ShiftRegister4021<#,#>::Config", bycopy.} = object
     clk* {.importcpp: "clk".}: Pin
     latch* {.importcpp: "latch".}: Pin
-    data* {.importcpp: "data".}: UncheckedArray[Pin]
+    data* {.importcpp: "data".}: array[NumParallel, Pin]
     delay_ticks* {.importcpp: "delay_ticks".}: uint32
 
-  ShiftRegister4021*[NumDaisy, NumParallel: static int] 
+  ShiftRegister4021*[NumDaisy, NumParallel: static int]
     {.importcpp: "daisy::ShiftRegister4021<#,#>", bycopy.} = object
 
-# C++ API
-proc cppInit[ND, NP](this: var ShiftRegister4021[ND, NP], 
-                      cfg: ShiftRegister4021Config[ND, NP]) 
-  {.importcpp: "#.Init(@)".}
-
-proc cppUpdate[ND, NP](this: var ShiftRegister4021[ND, NP]) 
-  {.importcpp: "#.Update()".}
-
-proc cppState[ND, NP](this: ShiftRegister4021[ND, NP], index: cint): bool 
-  {.importcpp: "#.State(@)".}
-
-proc cppGetConfig[ND, NP](this: ShiftRegister4021[ND, NP]): ShiftRegister4021Config[ND, NP] 
-  {.importcpp: "#.GetConfig()".}
-
-{.pop.}
-
-# High-level Nim API
-proc init*[ND, NP](sr: var ShiftRegister4021[ND, NP], 
-                   cfg: ShiftRegister4021Config[ND, NP]) =
-  ## Initialize shift register(s)
+# C++ API (bind-once)
+proc init*[ND, NP](sr: var ShiftRegister4021[ND, NP],
+                   cfg: ShiftRegister4021Config[ND, NP]) {.importcpp: "#.Init(@)".}
+  ## Initialize shift register(s).
   ##
   ## **Parameters:**
   ## - `cfg`: Configuration with pins and delay settings
   ##
   ## **Template Parameters:**
-  ## - `ND`: Number of daisy-chained devices (default 1)
-  ## - `NP`: Number of parallel chains (default 1)
+  ## - `ND`: Number of daisy-chained devices
+  ## - `NP`: Number of parallel chains
   ##
   ## Total inputs = 8 × ND × NP
-  cppInit(sr, cfg)
-
-proc update*[ND, NP](sr: var ShiftRegister4021[ND, NP]) =
-  ## Read all inputs from shift register(s)
+proc update*[ND, NP](sr: var ShiftRegister4021[ND, NP]) {.importcpp: "#.Update()".}
+  ## Read all inputs from shift register(s).
   ##
   ## Call this periodically (e.g., in your main loop) to sample all inputs.
   ## The states are stored internally and can be read with `state()`.
-  cppUpdate(sr)
+proc state*[ND, NP](sr: ShiftRegister4021[ND, NP], index: cint): bool {.importcpp: "#.State(@)".}
+  ## Get the state of an input by C++ index.
+proc getConfig*[ND, NP](sr: ShiftRegister4021[ND, NP]): ShiftRegister4021Config[ND, NP]
+  {.importcpp: "#.GetConfig()".}
+  ## Get the current configuration.
 
-proc state*[ND, NP](sr: ShiftRegister4021[ND, NP], index: int): bool =
-  ## Get the state of an input
+# Retained ergonomics overload: Nim int index cast to cint (see design D1)
+proc state*[ND, NP](sr: ShiftRegister4021[ND, NP], index: int): bool {.inline.} = sr.state(index.cint)
+  ## Get the state of an input.
   ##
   ## **Parameters:**
   ## - `index`: Input index (0 to 8×ND×NP - 1)
   ##
   ## **Returns:** true if input is HIGH, false if LOW
   ##
-  ## **Note:** Call `update()` first to refresh the input states
-  cppState(sr, index.cint)
-
-proc getConfig*[ND, NP](sr: ShiftRegister4021[ND, NP]): ShiftRegister4021Config[ND, NP] =
-  ## Get the current configuration
-  cppGetConfig(sr)
+  ## **Note:** Call `update()` first to refresh the input states.

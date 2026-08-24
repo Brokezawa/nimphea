@@ -2,7 +2,7 @@
 ##
 ## Device driver for MAX11300 PIXI - 20-port ADC/DAC/GPIO device.
 ## Highly opinionated implementation optimized for Eurorack modular synthesis.
-## 
+##
 ## This is a full wrapper around libDaisy's MAX11300 C++ driver, supporting:
 ## - 20 configurable pins (ADC, DAC, GPIO input/output)
 ## - DMA-based continuous updates via Start() method
@@ -16,27 +16,26 @@
 ##
 ## Example:
 ## ```nim
-## var pixi: MAX11300[1]  # Single device
-## var config: MAX11300Config[1]
+## var pixi: MAX11300  # Single device
+## var config: MAX11300Config
 ## config.transport_config.pin_config.defaults()
-## 
+##
 ## if pixi.init(config) != MAX_OK:
 ##   # Handle error
-## 
+##
 ## # Configure pins
 ## discard pixi.configurePinAsAnalogRead(0, PIN_0, ADC_NEG5_TO_5)
 ## discard pixi.configurePinAsAnalogWrite(0, PIN_1, DAC_NEG5_TO_5)
-## 
+##
 ## # Start DMA updates (optional)
 ## discard pixi.start(nil, nil)
-## 
+##
 ## # Read/write
 ## let cvIn = pixi.readAnalogPinVolts(0, PIN_0)
 ## pixi.writeAnalogPinVolts(0, PIN_1, cvIn)
 ## ```
 
 import nimphea
-import nimphea_macros
 import nimphea/per/spi
 
 # Need to expose SPI types in the module
@@ -103,11 +102,7 @@ type
     ## Callback called after each successful DMA update cycle
 
 # ============================================================================
-# Transport Layer Types
-# ============================================================================
-
-# ============================================================================
-# Transport Layer Types (N=1 only - C++ templates are complex)
+# Transport Layer Types (N=1 only - the libDaisy template is complex)
 # ============================================================================
 
 type
@@ -130,11 +125,24 @@ type
 
 type
   MAX11300Config* {.importcpp: "daisy::MAX11300<1>::Config", bycopy.} = object
-    ## MAX11300 device configuration (currently supports N=1 only)
+    ## MAX11300 device configuration (supports N=1 only)
     transport_config* {.importc: "transport_config".}: MAX11300TransportConfig
 
+  MAX11300* = object
+    ## MAX11300 device wrapper (single device, N=1).
+    ##
+    ## The embedded `dmaBuffer` keeps SPI DMA buffers co-located with the
+    ## driver object (must live in DMA-accessible memory on the target).
+    cpp: MAX11300Cpp
+    dmaBuffer {.align(4).}: MAX11300DmaBuffer
+    numDevices: csize_t
+
   MAX11300Cpp* {.importcpp: "daisy::MAX11300<1>".} = object
-    ## C++ MAX11300 driver object (opaque wrapper)
+    ## Underlying C++ MAX11300 driver object
+    ##
+    ## Note: MAX11300Cpp* must be declared after MAX11300 for Nim's
+    ## forward reference handling within this module. It is exported for
+    ## advanced use but normal code only touches `MAX11300`.
 
 {.pop.}  # header
 
@@ -143,7 +151,7 @@ type
 # ============================================================================
 
 proc defaults*(config: var MAX11300TransportPinConfig) =
-  ## Set default pin configuration for Daisy Seed
+  ## Set default pin configuration for Daisy Seed.
   ## Default pins match libDaisy defaults:
   ## - SPI1: PORTB.5 (MOSI), PORTB.4 (MISO), PORTG.11 (SCLK)
   ## - CS0: PORTG.10
@@ -153,324 +161,113 @@ proc defaults*(config: var MAX11300TransportPinConfig) =
   config.nss[0] = newPin(PORTG, 10)
 
 proc defaults*(config: var MAX11300TransportConfig) =
-  ## Set default transport configuration
+  ## Set default transport configuration.
   config.pin_config.defaults()
   config.periph = SPI_1
   config.baud_prescaler = SPI_PS_8
 
 # ============================================================================
-# C++ Method Wrappers
+# Device Driver API (bind-once via `#.cpp.` access path)
 # ============================================================================
 
 {.push header: "dev/max11300.h".}
 
-proc cppInit(this: var MAX11300Cpp, config: MAX11300Config, 
-                dma_buffer: ptr MAX11300DmaBuffer): MAX11300Result
-  {.importcpp: "#.Init(@)".}
+# --- Initialization ---
 
-proc cppConfigurePinAsAnalogRead(this: var MAX11300Cpp, device: csize_t,
-                                     pin: MAX11300Pin, range: AdcVoltageRange): MAX11300Result
-  {.importcpp: "#.ConfigurePinAsAnalogRead(@)".}
+proc init*(max: var MAX11300, config: MAX11300Config, dmaBuffer: ptr MAX11300DmaBuffer): MAX11300Result
+  {.importcpp: "#.cpp.Init(@)".}
 
-proc cppConfigurePinAsAnalogWrite(this: var MAX11300Cpp, device: csize_t,
-                                      pin: MAX11300Pin, range: DacVoltageRange): MAX11300Result
-  {.importcpp: "#.ConfigurePinAsAnalogWrite(@)".}
-
-proc cppConfigurePinAsDigitalRead(this: var MAX11300Cpp, device: csize_t,
-                                      pin: MAX11300Pin, threshold: cfloat): MAX11300Result
-  {.importcpp: "#.ConfigurePinAsDigitalRead(@)".}
-
-proc cppConfigurePinAsDigitalWrite(this: var MAX11300Cpp, device: csize_t,
-                                       pin: MAX11300Pin, voltage: cfloat): MAX11300Result
-  {.importcpp: "#.ConfigurePinAsDigitalWrite(@)".}
-
-proc cppDisablePin(this: var MAX11300Cpp, device: csize_t, pin: MAX11300Pin): MAX11300Result
-  {.importcpp: "#.DisablePin(@)".}
-
-proc cppReadAnalogPinRaw(this: var MAX11300Cpp, device: csize_t, pin: MAX11300Pin): uint16
-  {.importcpp: "#.ReadAnalogPinRaw(@)".}
-
-proc cppReadAnalogPinVolts(this: var MAX11300Cpp, device: csize_t, pin: MAX11300Pin): cfloat
-  {.importcpp: "#.ReadAnalogPinVolts(@)".}
-
-proc cppWriteAnalogPinRaw(this: var MAX11300Cpp, device: csize_t, 
-                              pin: MAX11300Pin, value: uint16)
-  {.importcpp: "#.WriteAnalogPinRaw(@)".}
-
-proc cppWriteAnalogPinVolts(this: var MAX11300Cpp, device: csize_t,
-                                pin: MAX11300Pin, voltage: cfloat)
-  {.importcpp: "#.WriteAnalogPinVolts(@)".}
-
-proc cppReadDigitalPin(this: var MAX11300Cpp, device: csize_t, pin: MAX11300Pin): bool
-  {.importcpp: "#.ReadDigitalPin(@)".}
-
-proc cppWriteDigitalPin(this: var MAX11300Cpp, device: csize_t,
-                            pin: MAX11300Pin, value: bool)
-  {.importcpp: "#.WriteDigitalPin(@)".}
-
-proc cppStart(this: var MAX11300Cpp, callback: UpdateCompleteCallback,
-                 context: pointer): MAX11300Result
-  {.importcpp: "#.Start(@)".}
-
-proc cppStop(this: var MAX11300Cpp)
-  {.importcpp: "#.Stop()".}
-
-proc cppVoltsTo12BitUint(volts: cfloat, range: DacVoltageRange): uint16
-  {.importcpp: "daisy::MAX11300<1>::VoltsTo12BitUint(@)".}
-
-proc cppTwelveBitUintToVolts(value: uint16, range: AdcVoltageRange): cfloat
-  {.importcpp: "daisy::MAX11300<1>::TwelveBitUintToVolts(@)".}
-
-{.pop.}  # header
-
-# ============================================================================
-# Nim Wrapper Type & Public API
-# ============================================================================
-
-type
-  MAX11300*[N: static int] {.bycopy, nodecl.} = object
-    ## MAX11300 device wrapper (currently supports N=1 only)
-    ## 
-    ## Note: The libDaisy C++ template is complex to wrap with multiple devices.
-    ## This wrapper is hard-coded for single device (N=1). Multi-device support
-    ## would require additional Nim/C++ template instantiation work.
-    cpp: MAX11300Cpp
-    dmaBuffer {.align(4).}: MAX11300DmaBuffer  # Note: Must be in DMA-accessible memory
-    numDevices: csize_t
-
-# ----------------------------------------------------------------------------
-# Initialization
-# ----------------------------------------------------------------------------
-
-proc init*[N](max: var MAX11300[N], config: MAX11300Config): MAX11300Result =
-  ## Initialize MAX11300 device(s)
-  ## 
+proc init*(max: var MAX11300, config: MAX11300Config): MAX11300Result =
+  ## Initialize the MAX11300 device(s), passing the embedded DMA buffer
+  ## (retained: avoids exposing the DMA-buffer pointer to callers).
+  ##
   ## This performs:
   ## - SPI initialization and connectivity verification
   ## - Device configuration (ADC/DAC modes, conversion rates, etc.)
   ## - All pins initialized to High-Z (disabled) mode
-  ## 
-  ## **Parameters:**
-  ## - `config` - Configuration including SPI pins and settings
-  ## 
+  ##
   ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  ## 
-  ## **Note:** Call this once at startup before configuring pins
-  when N != 1:
-    {.error: "MAX11300 currently only supports N=1 (single device). Multi-device support requires additional C++ template work.".}
-  max.numDevices = N.csize_t
-  result = max.cpp.cppInit(config, addr max.dmaBuffer)
+  ##
+  ## **Note:** Call this once at startup before configuring pins.
+  result = max.init(config, addr max.dmaBuffer)
 
-# ----------------------------------------------------------------------------
-# Pin Configuration
-# ----------------------------------------------------------------------------
+# --- Pin Configuration ---
 
-proc configurePinAsAnalogRead*[N](max: var MAX11300[N], device: csize_t, 
-                                   pin: MAX11300Pin, range: AdcVoltageRange): MAX11300Result =
-  ## Configure pin as analog input (ADC)
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number (PIN_0 to PIN_19)
-  ## - `range` - Voltage range (ADC_0_TO_10, ADC_NEG5_TO_5, etc.)
-  ## 
-  ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  ## 
-  ## **Note:** Requires appropriate power supply for chosen range
-  result = max.cpp.cppConfigurePinAsAnalogRead(device, pin, range)
-
-proc configurePinAsAnalogWrite*[N](max: var MAX11300[N], device: csize_t,
-                                    pin: MAX11300Pin, range: DacVoltageRange): MAX11300Result =
-  ## Configure pin as analog output (DAC)
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number (PIN_0 to PIN_19)
-  ## - `range` - Voltage range (DAC_0_TO_10, DAC_NEG5_TO_5, etc.)
-  ## 
-  ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  ## 
-  ## **Note:** Requires appropriate power supply for chosen range
-  result = max.cpp.cppConfigurePinAsAnalogWrite(device, pin, range)
-
-proc configurePinAsDigitalRead*[N](max: var MAX11300[N], device: csize_t,
-                                    pin: MAX11300Pin, threshold: float32 = 2.5): MAX11300Result =
-  ## Configure pin as digital input (GPI)
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number (PIN_0 to PIN_19)
-  ## - `threshold` - Logic level threshold voltage (default 2.5V)
-  ## 
-  ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  ## 
+proc configurePinAsAnalogRead*(max: var MAX11300, device: csize_t,
+                               pin: MAX11300Pin, range: AdcVoltageRange): MAX11300Result
+  {.importcpp: "#.cpp.ConfigurePinAsAnalogRead(@)".}
+  ## Configure pin as analog input (ADC).
+  ## Requires appropriate power supply for the chosen range.
+proc configurePinAsAnalogWrite*(max: var MAX11300, device: csize_t,
+                                pin: MAX11300Pin, range: DacVoltageRange): MAX11300Result
+  {.importcpp: "#.cpp.ConfigurePinAsAnalogWrite(@)".}
+  ## Configure pin as analog output (DAC).
+  ## Requires appropriate power supply for the chosen range.
+proc configurePinAsDigitalRead*(max: var MAX11300, device: csize_t,
+                                pin: MAX11300Pin, threshold: cfloat = 2.5'f32): MAX11300Result
+  {.importcpp: "#.cpp.ConfigurePinAsDigitalRead(@)".}
+  ## Configure pin as digital input (GPI); threshold defaults to 2.5V.
+  ##
   ## **WARNING:** Digital input pins are 0-5V only. Voltages below -250mV
   ## will corrupt ALL analog readings on the device!
-  result = max.cpp.cppConfigurePinAsDigitalRead(device, pin, threshold.cfloat)
+proc configurePinAsDigitalWrite*(max: var MAX11300, device: csize_t,
+                                 pin: MAX11300Pin, voltage: cfloat = 5.0'f32): MAX11300Result
+  {.importcpp: "#.cpp.ConfigurePinAsDigitalWrite(@)".}
+  ## Configure pin as digital output (GPO); voltage (logic HIGH) defaults to 5.0V.
+  ## Note: Digital outputs are 0-5V only (no negative voltages).
+proc disablePin*(max: var MAX11300, device: csize_t, pin: MAX11300Pin): MAX11300Result
+  {.importcpp: "#.cpp.DisablePin(@)".}
+  ## Disable pin (set to High-Z mode).
 
-proc configurePinAsDigitalWrite*[N](max: var MAX11300[N], device: csize_t,
-                                     pin: MAX11300Pin, voltage: float32 = 5.0): MAX11300Result =
-  ## Configure pin as digital output (GPO)
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number (PIN_0 to PIN_19)
-  ## - `voltage` - Output voltage for logic HIGH (default 5.0V)
-  ## 
-  ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  ## 
-  ## **Note:** Digital outputs are 0-5V only (no negative voltages)
-  result = max.cpp.cppConfigurePinAsDigitalWrite(device, pin, voltage.cfloat)
+# --- Analog I/O ---
 
-proc disablePin*[N](max: var MAX11300[N], device: csize_t, pin: MAX11300Pin): MAX11300Result =
-  ## Disable pin (set to High-Z mode)
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number (PIN_0 to PIN_19)
-  ## 
-  ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  result = max.cpp.cppDisablePin(device, pin)
+proc readAnalogPinRaw*(max: var MAX11300, device: csize_t, pin: MAX11300Pin): uint16
+  {.importcpp: "#.cpp.ReadAnalogPinRaw(@)".}
+  ## Read raw 12-bit ADC value (0-4095) from the local buffer.
+  ## Call `start()` for DMA updates, otherwise values may be stale.
+proc readAnalogPinVolts*(max: var MAX11300, device: csize_t, pin: MAX11300Pin): cfloat
+  {.importcpp: "#.cpp.ReadAnalogPinVolts(@)".}
+  ## Read ADC value in volts from the local buffer (per configured range).
+proc writeAnalogPinRaw*(max: var MAX11300, device: csize_t,
+                        pin: MAX11300Pin, value: uint16)
+  {.importcpp: "#.cpp.WriteAnalogPinRaw(@)".}
+  ## Write raw 12-bit DAC value (0-4095) to the local buffer.
+proc writeAnalogPinVolts*(max: var MAX11300, device: csize_t,
+                          pin: MAX11300Pin, voltage: cfloat)
+  {.importcpp: "#.cpp.WriteAnalogPinVolts(@)".}
+  ## Write DAC value in volts to the local buffer (clamped to configured range).
 
-# ----------------------------------------------------------------------------
-# Analog I/O
-# ----------------------------------------------------------------------------
+# --- Digital I/O ---
 
-proc readAnalogPinRaw*[N](max: var MAX11300[N], device: csize_t, pin: MAX11300Pin): uint16 =
-  ## Read raw 12-bit ADC value (0-4095)
-  ## 
-  ## **Note:** This reads from local buffer. Call start() to enable
-  ## automatic DMA updates, or values will be stale.
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number configured as ADC
-  ## 
-  ## **Returns:** Raw 12-bit value (0-4095)
-  result = max.cpp.cppReadAnalogPinRaw(device, pin)
+proc readDigitalPin*(max: var MAX11300, device: csize_t, pin: MAX11300Pin): bool
+  {.importcpp: "#.cpp.ReadDigitalPin(@)".}
+  ## Read digital input state from the local buffer (true if above threshold).
+proc writeDigitalPin*(max: var MAX11300, device: csize_t,
+                      pin: MAX11300Pin, value: bool)
+  {.importcpp: "#.cpp.WriteDigitalPin(@)".}
+  ## Write digital output state to the local buffer.
 
-proc readAnalogPinVolts*[N](max: var MAX11300[N], device: csize_t, pin: MAX11300Pin): float32 =
-  ## Read ADC value in volts
-  ## 
-  ## **Note:** This reads from local buffer. Call start() to enable
-  ## automatic DMA updates, or values will be stale.
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number configured as ADC
-  ## 
-  ## **Returns:** Voltage value according to configured range
-  result = max.cpp.cppReadAnalogPinVolts(device, pin).float32
+# --- DMA Update Control ---
 
-proc writeAnalogPinRaw*[N](max: var MAX11300[N], device: csize_t,
-                            pin: MAX11300Pin, value: uint16) =
-  ## Write raw 12-bit DAC value (0-4095)
-  ## 
-  ## **Note:** This writes to local buffer. Call start() to enable
-  ## automatic DMA updates, or values won't reach hardware.
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number configured as DAC
-  ## - `value` - Raw 12-bit value (0-4095)
-  max.cpp.cppWriteAnalogPinRaw(device, pin, value)
-
-proc writeAnalogPinVolts*[N](max: var MAX11300[N], device: csize_t,
-                              pin: MAX11300Pin, voltage: float32) =
-  ## Write DAC value in volts
-  ## 
-  ## **Note:** This writes to local buffer. Call start() to enable
-  ## automatic DMA updates, or values won't reach hardware.
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number configured as DAC
-  ## - `voltage` - Voltage value (clamped to configured range)
-  max.cpp.cppWriteAnalogPinVolts(device, pin, voltage.cfloat)
-
-# ----------------------------------------------------------------------------
-# Digital I/O
-# ----------------------------------------------------------------------------
-
-proc readDigitalPin*[N](max: var MAX11300[N], device: csize_t, pin: MAX11300Pin): bool =
-  ## Read digital input state
-  ## 
-  ## **Note:** This reads from local buffer. Call start() to enable
-  ## automatic DMA updates, or values will be stale.
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number configured as GPI
-  ## 
-  ## **Returns:** true if above threshold, false otherwise
-  result = max.cpp.cppReadDigitalPin(device, pin)
-
-proc writeDigitalPin*[N](max: var MAX11300[N], device: csize_t,
-                          pin: MAX11300Pin, value: bool) =
-  ## Write digital output state
-  ## 
-  ## **Note:** This writes to local buffer. Call start() to enable
-  ## automatic DMA updates, or values won't reach hardware.
-  ## 
-  ## **Parameters:**
-  ## - `device` - Device index (0 to N-1)
-  ## - `pin` - Pin number configured as GPO
-  ## - `value` - true for HIGH, false for LOW
-  max.cpp.cppWriteDigitalPin(device, pin, value)
-
-# ----------------------------------------------------------------------------
-# DMA Update Control
-# ----------------------------------------------------------------------------
-
-proc start*[N](max: var MAX11300[N], callback: UpdateCompleteCallback = nil,
-               context: pointer = nil): MAX11300Result =
-  ## Start continuous DMA updates
-  ## 
-  ## This begins automatic background updates that:
-  ## - Write all DAC values to hardware
-  ## - Read all ADC values from hardware
-  ## - Write all GPO states to hardware
-  ## - Read all GPI states from hardware
-  ## - Call callback when complete (from interrupt context)
-  ## - Repeat continuously
-  ## 
-  ## **Parameters:**
-  ## - `callback` - Optional callback after each update (keep it fast!)
-  ## - `context` - Optional context pointer passed to callback
-  ## 
-  ## **Returns:** MAX_OK on success, MAX_ERR on failure
-  ## 
-  ## **Note:** Can work without calling this (polling mode), but DMA
+proc start*(max: var MAX11300, callback: UpdateCompleteCallback = nil,
+            context: pointer = nil): MAX11300Result
+  {.importcpp: "#.cpp.Start(@)".}
+  ## Start continuous DMA updates.
+  ##
+  ## Begins automatic background updates that write all DAC/GPO values to
+  ## hardware, read all ADC/GPI values from hardware, and invoke the
+  ## callback (from interrupt context) after each cycle.
+  ##
+  ## **Note:** Reads/writes work in polling mode without this, but DMA
   ## updates provide much better performance and timing.
-  result = max.cpp.cppStart(callback, context)
+proc stop*(max: var MAX11300) {.importcpp: "#.cpp.Stop()".}
+  ## Stop continuous DMA updates (completes the current cycle first).
 
-proc stop*[N](max: var MAX11300[N]) =
-  ## Stop continuous DMA updates
-  ## 
-  ## Completes the current update cycle then stops. After this,
-  ## read/write operations access local buffers only (polling mode).
-  max.cpp.cppStop()
+# --- Utility Functions (static) ---
 
-# ----------------------------------------------------------------------------
-# Utility Functions (Static)
-# ----------------------------------------------------------------------------
-
-proc voltsTo12BitUint*(volts: float32, range: DacVoltageRange): uint16 =
-  ## Convert voltage to 12-bit DAC code
-  ## 
-  ## **Parameters:**
-  ## - `volts` - Voltage value
-  ## - `range` - DAC voltage range
-  ## 
-  ## **Returns:** 12-bit value (0-4095), clamped to range
-  result = cppVoltsTo12BitUint(volts.cfloat, range)
-
-proc twelveBitUintToVolts*(value: uint16, range: AdcVoltageRange): float32 =
-  ## Convert 12-bit ADC code to voltage
-  ## 
-  ## **Parameters:**
-  ## - `value` - Raw 12-bit value (0-4095)
-  ## - `range` - ADC voltage range
-  ## 
-  ## **Returns:** Voltage value
-  result = cppTwelveBitUintToVolts(value, range).float32
+proc voltsTo12BitUint*(volts: cfloat, range: DacVoltageRange): uint16
+  {.importcpp: "daisy::MAX11300<1>::VoltsTo12BitUint(@)".}
+  ## Convert voltage to a 12-bit DAC code (0-4095, clamped to range).
+proc twelveBitUintToVolts*(value: uint16, range: AdcVoltageRange): cfloat
+  {.importcpp: "daisy::MAX11300<1>::TwelveBitUintToVolts(@)".}
+  ## Convert a 12-bit ADC code to voltage.

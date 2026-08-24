@@ -52,8 +52,12 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+export nimphea_core_types
 import nimphea/per/i2c
+# NeoPixelI2C type + pixel methods (setPixelColor/show/clear/...) are canonical in neopixel
+import nimphea/dev/neopixel
+export neopixel
+import nimphea/nimphea_macros
 
 useNimpheaModules(neotrellis)
 
@@ -97,15 +101,6 @@ type
   NeoTrellisI2CTransport* {.importcpp: "daisy::NeoTrellisI2CTransport", bycopy.} = object
     ## I2C transport for NeoTrellis
 
-# Forward declaration for NeoPixelI2C
-type
-  NeoPixelI2CConfig* {.importcpp: "daisy::NeoPixelI2C::Config", bycopy.} = object
-    ## NeoPixel I2C configuration (from dev/neopixel.h)
-
-type
-  NeoPixelI2C* {.importcpp: "daisy::NeoPixelI2C", bycopy.} = object
-    ## NeoPixel I2C controller (from dev/neopixel.h)
-
 # Event Types
 
 type
@@ -134,11 +129,11 @@ type
 
 # Constructors
 
-proc initNeoTrellisI2CTransportConfig*(): NeoTrellisI2CTransportConfig {.constructor,
+proc newNeoTrellisI2CTransportConfig*(): NeoTrellisI2CTransportConfig {.constructor,
     importcpp: "daisy::NeoTrellisI2CTransport::Config(@)", header: "dev/neotrellis.h".}
   ## Initialize I2C transport config with defaults
 
-proc initNeoTrellisConfig*(): NeoTrellisConfig {.constructor,
+proc newNeoTrellisConfig*(): NeoTrellisConfig {.constructor,
     importcpp: "daisy::NeoTrellisI2C::Config(@)", header: "dev/neotrellis.h".}
   ## Initialize device config with defaults
 
@@ -274,26 +269,3 @@ proc getTransportError*(this: var NeoTrellisI2C): NeoTrellisResult
   ## Get and reset the transport error flag
   ##
   ## **Returns:** NEOTRELLIS_ERR if error occurred, NEOTRELLIS_OK otherwise
-
-# NeoPixel I2C methods (accessed via trellis.pixels)
-# Note: Full NeoPixel API would be in a separate neopixel.nim wrapper
-
-proc setPixelColor*(this: var NeoPixelI2C, pixel: uint16, r: uint8, g: uint8, b: uint8) 
-  {.importcpp: "#.SetPixelColor(#, #, #, #)", header: "dev/neopixel.h".}
-  ## Set a pixel's RGB color
-  ##
-  ## **Parameters:**
-  ## - `pixel` - Pixel index (0-15 for NeoTrellis)
-  ## - `r` - Red value (0-255)
-  ## - `g` - Green value (0-255)
-  ## - `b` - Blue value (0-255)
-
-proc show*(this: var NeoPixelI2C) 
-  {.importcpp: "#.Show()", header: "dev/neopixel.h".}
-  ## Update all pixels with buffered color values
-  ##
-  ## Must be called after setPixelColor() to actually display the colors.
-
-proc clear*(this: var NeoPixelI2C) 
-  {.importcpp: "#.Clear()", header: "dev/neopixel.h".}
-  ## Clear all pixels (set to off/black)

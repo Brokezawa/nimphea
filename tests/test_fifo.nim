@@ -5,18 +5,18 @@
 ##
 ## Run with: nimble test_unit
 
-import unittest2
+import std/unittest
 import std/strutils
 import nimphea/nimphea_fifo
 
 suite "FIFO: Basic Properties":
   test "should report correct capacity":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
-    check fifo.capacity() == 3
+    check fifo.capacity() == 4
   
   test "should start empty after init":
-    var fifo: Fifo[5, int]
+    var fifo: Fifo[8, int]
     fifo.init()
     check:
       fifo.len() == 0
@@ -39,7 +39,7 @@ suite "FIFO: Basic Properties":
 
 suite "FIFO: Push and Pop Operations":
   test "should push and pop single item (FIFO order)":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     # Push single item
@@ -58,7 +58,7 @@ suite "FIFO: Push and Pop Operations":
       fifo.isEmpty() == true
   
   test "should maintain FIFO order (first-in-first-out)":
-    var fifo: Fifo[5, int]
+    var fifo: Fifo[8, int]
     fifo.init()
     
     # Push three values
@@ -79,35 +79,37 @@ suite "FIFO: Push and Pop Operations":
       val3 == 3
   
   test "should fill to capacity":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     # Fill completely
     check fifo.push(10) == true
     check fifo.push(20) == true
     check fifo.push(30) == true
+    check fifo.push(40) == true
     
     check:
-      fifo.len() == 3
+      fifo.len() == 4
       fifo.isFull() == true
       fifo.isEmpty() == false
   
   test "should reject push when full":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
-    # Fill to capacity
+    # Fill to capacity (power-of-2 size: 4)
     check fifo.push(1) == true
     check fifo.push(2) == true
     check fifo.push(3) == true
+    check fifo.push(4) == true
     check fifo.isFull() == true
     
     # Cannot push more
-    check fifo.push(4) == false
-    check fifo.len() == 3  # Still only 3 items
+    check fifo.push(5) == false
+    check fifo.len() == 4  # Still only 4 items
   
   test "should return false when popping from empty queue":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     var value: int
@@ -116,79 +118,85 @@ suite "FIFO: Push and Pop Operations":
 
 suite "FIFO: Wraparound Behavior":
   test "should wrap around buffer correctly":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     # Fill queue
     check fifo.push(1) == true
     check fifo.push(2) == true
     check fifo.push(3) == true
+    check fifo.push(4) == true
     check fifo.isFull() == true
     
     # Pop one item (head advances)
     var val: int
     check fifo.pop(val) == true
     check val == 1
-    check fifo.len() == 2
+    check fifo.len() == 3
     
     # Push another (tail wraps around)
-    check fifo.push(4) == true
-    check fifo.len() == 3
+    check fifo.push(5) == true
+    check fifo.len() == 4
     check fifo.isFull() == true
     
     # Pop all and verify order
-    var val2, val3, val4: int
+    var val2, val3, val4, val5: int
     check fifo.pop(val2) == true
     check fifo.pop(val3) == true
     check fifo.pop(val4) == true
+    check fifo.pop(val5) == true
     
     check:
       val2 == 2
       val3 == 3
-      val4 == 4  # Wraparound worked correctly
+      val4 == 4
+      val5 == 5  # Wraparound worked correctly
   
   test "should handle multiple wraparounds":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
-    # First cycle: Fill queue
+    # First cycle: Fill queue (power-of-2 size: 4)
     discard fifo.push(1)
     discard fifo.push(2)
     discard fifo.push(3)
+    discard fifo.push(4)
     
     # Pop two items
     var val: int
     discard fifo.pop(val)  # Remove 1
     discard fifo.pop(val)  # Remove 2
-    # Queue now has: 3
+    # Queue now has: 3, 4
     
     # Second cycle: Add more (wraps around buffer)
-    discard fifo.push(4)
     discard fifo.push(5)
-    # Queue now has: 3, 4, 5 (full)
+    discard fifo.push(6)
+    # Queue now has: 3, 4, 5, 6 (full)
     
     # Pop one
     discard fifo.pop(val)  # Remove 3
-    # Queue now has: 4, 5
+    # Queue now has: 4, 5, 6
     
     # Third cycle: Add more (wraps around again)
-    discard fifo.push(6)
-    # Queue now has: 4, 5, 6 (full)
+    discard fifo.push(7)
+    # Queue now has: 4, 5, 6, 7 (full)
     
     # Verify final state
-    var v1, v2, v3: int
+    var v1, v2, v3, v4: int
     check fifo.pop(v1) == true
     check fifo.pop(v2) == true
     check fifo.pop(v3) == true
+    check fifo.pop(v4) == true
     
     check:
       v1 == 4
       v2 == 5
       v3 == 6
+      v4 == 7
 
 suite "FIFO: Peek Operation":
   test "should peek without removing":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     discard fifo.push(42)
@@ -203,14 +211,14 @@ suite "FIFO: Peek Operation":
     check value == 42
   
   test "should return false when peeking empty queue":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     var value: int
     check fifo.peek(value) == false
   
   test "should peek at correct front element":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     discard fifo.push(10)
@@ -223,7 +231,7 @@ suite "FIFO: Peek Operation":
 
 suite "FIFO: Clear Operation":
   test "should clear all elements":
-    var fifo: Fifo[5, int]
+    var fifo: Fifo[8, int]
     fifo.init()
     
     # Add some elements
@@ -241,7 +249,7 @@ suite "FIFO: Clear Operation":
       fifo.isFull() == false
   
   test "should be reusable after clear":
-    var fifo: Fifo[3, int]
+    var fifo: Fifo[4, int]
     fifo.init()
     
     # First use
@@ -299,7 +307,7 @@ suite "FIFO: Edge Cases":
     check fifo.isEmpty() == true
   
   test "should handle float32 values":
-    var fifo: Fifo[3, float32]
+    var fifo: Fifo[4, float32]
     fifo.init()
     
     check fifo.push(3.14) == true

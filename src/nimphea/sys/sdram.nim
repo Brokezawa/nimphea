@@ -44,6 +44,7 @@
 
 # Import libdaisy which provides the macro system
 import nimphea
+export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
 useNimpheaModules(sdram)
@@ -56,31 +57,18 @@ type
     SDRAM_OK = 0
     SDRAM_ERR
 
-  # SDRAM Handle
-  SdramHandle* {.importcpp: "SdramHandle".} = object
-
 # SDRAM Handle methods
 proc init*(this: var SdramHandle): SdramResult {.importcpp: "#.Init(@)", header: "dev/sdram.h".}
-proc deInit*(this: var SdramHandle): SdramResult {.importcpp: "#.DeInit(@)", header: "dev/sdram.h".}
+proc deinit*(this: var SdramHandle): SdramResult {.importcpp: "#.DeInit(@)", header: "dev/sdram.h".}
 
 # Nim-friendly constructor
-proc newSdramHandle*(): SdramHandle {.importcpp: "SdramHandle()", constructor, header: "dev/sdram.h".}
+proc newSdramHandle*(): SdramHandle {.importcpp: "daisy::SdramHandle()", constructor, header: "dev/sdram.h".}
 
-# SDRAM memory information constants
+# SDRAM memory information constants (use these directly; getters were removed in v2)
 const
   SDRAM_BASE_ADDRESS* = 0xC0000000'u32  ## Base address of SDRAM
   SDRAM_SIZE* = 64 * 1024 * 1024        ## Total SDRAM size (64MB)
   SDRAM_SPEED* = 100_000_000            ## SDRAM clock speed (100MHz)
-
-# Helper functions for SDRAM management
-
-proc getSdramAddress*(): uint32 =
-  ## Get the base address of SDRAM
-  result = SDRAM_BASE_ADDRESS
-
-proc getSdramSize*(): int =
-  ## Get the total size of SDRAM in bytes
-  result = SDRAM_SIZE
 
 # External linker symbols
 var ssdram_bss {.importc: "_ssdram_bss", nodecl.}: uint32

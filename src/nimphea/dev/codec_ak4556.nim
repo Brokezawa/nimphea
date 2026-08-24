@@ -13,46 +13,29 @@
 ##
 ## **Example:**
 ## ```nim
-## import nimphea/src/nimphea
-## import nimphea/src/dev/codec_ak4556
-## import nimphea/src/per/gpio
+## import nimphea
+## import nimphea/dev/codec_ak4556
 ##
 ## var codec: Ak4556
-## codec.init(seed.GetPin(0))  # Initialize with reset pin
+## codec.init(newPin(PORTB, 1))  # Initialize with reset pin (adjust pin as needed)
 ## # ... configure audio ...
-## codec.deInit()  # Clean up when done
+## codec.deinit()  # Clean up when done
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(codec_ak4556)
 
-{.push header: "dev/codec_ak4556.h".}
+# Ak4556 type is canonical in nimphea_core_types
 
-# Type definition moved to libdaisy.nim to prevent ambiguity
-# type
-#   Ak4556* {.importcpp: "daisy::Ak4556".} = object
-#     ## AK4556 codec driver
-#     ## 
-#     ## Simple codec requiring only a reset pin for initialization.
-#     ## Used on Daisy Seed 1.0 and other basic audio platforms.
-
-{.pop.}
-
-proc init*(this: var Ak4556, resetPin: Pin) {.importcpp: "#.Init(#)".}
-  ## Initialize the AK4556 codec with the specified reset pin
-  ## 
+proc init*(this: var Ak4556, resetPin: Pin) {.importcpp: "#.Init(#)", header: "dev/codec_ak4556.h".}
+  ## Initialize the AK4556 codec with the specified reset pin.
+  ##
   ## **Parameters:**
   ## - `resetPin` - GPIO pin connected to the codec's reset line
-  ## 
-  ## **Example:**
-  ## ```nim
-  ## var codec: Ak4556
-  ## codec.init(seed.GetPin(0))
-  ## ```
 
-proc deInit*(this: var Ak4556) {.importcpp: "#.DeInit()".}
-  ## Deinitialize the AK4556 codec
-  ## 
+proc deinit*(this: var Ak4556) {.importcpp: "#.DeInit()", header: "dev/codec_ak4556.h".}
+  ## Deinitialize the AK4556 codec.
+  ##
   ## Releases resources and resets the codec to its default state.

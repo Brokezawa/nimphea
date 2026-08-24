@@ -18,7 +18,7 @@
 ##   echo "Channels: ", header.NbrChannels
 ## ```
 
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(wav_format)
 

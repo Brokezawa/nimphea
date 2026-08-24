@@ -43,12 +43,24 @@
 ## echo queue.isFull()   # false
 ## ```
 
+template isPowerOfTwo(n: static int): bool =
+  ## Compile-time check if a number is a power of 2
+  (n and (n - 1)) == 0 and n > 0
+
+template checkedN(N: static int): int =
+  ## Array-length guard that rejects non-power-of-2 capacities at the type
+  ## instantiation, so mask-based indexing can never misbehave.
+  when not isPowerOfTwo(N):
+    {.error: "Fifo size N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, ...)".}
+  else:
+    N
+
 type
   Fifo*[N: static int, T] = object
     ## Fixed-capacity FIFO queue
     ##
     ## **Generic Parameters:**
-    ## - `N` - Capacity (must be known at compile time)
+    ## - `N` - Capacity (must be a power of 2, enforced at compile time)
     ## - `T` - Element type
     ##
     ## **Fields:**
@@ -56,7 +68,7 @@ type
     ## - `head` - Read position
     ## - `tail` - Write position  
     ## - `count` - Current number of elements
-    data: array[N, T]
+    data: array[checkedN(N), T]
     head: int
     tail: int
     count: int
@@ -147,7 +159,7 @@ proc push*[N: static int, T](this: var Fifo[N, T], value: T): bool {.inline.} =
     return false
   
   this.data[this.tail] = value
-  this.tail = (this.tail + 1) mod N
+  this.tail = (this.tail + 1) and (N - 1)
   this.count.inc
   return true
 
@@ -171,7 +183,7 @@ proc pop*[N: static int, T](this: var Fifo[N, T], value: var T): bool {.inline.}
     return false
   
   value = this.data[this.head]
-  this.head = (this.head + 1) mod N
+  this.head = (this.head + 1) and (N - 1)
   this.count.dec
   return true
 

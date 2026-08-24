@@ -59,7 +59,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/hid/ctrl
 import nimphea/hid/rgb_led
 {.push warning[UnusedImport]: off.}
@@ -67,6 +67,8 @@ import nimphea/hid/midi  # Types used via importcpp (MidiUartTransport, MidiUart
 {.pop.}
 
 export rgb_led  # Export RgbLed methods for user convenience
+import nimphea/nimphea_audio
+export nimphea_audio
 
 useNimpheaModules(pod)
 
@@ -83,17 +85,8 @@ type
     KNOB_1 = 0  ## Left knob
     KNOB_2 = 1  ## Right knob
 
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/CV input) wrapper
-
-  MidiUartTransport* {.importcpp: "daisy::MidiUartTransport",
-                       header: "hid/midi.h".} = object
-    ## MIDI UART transport
-
-  MidiUartHandler* {.importcpp: "daisy::MidiHandler<daisy::MidiUartTransport>",
-                     header: "hid/midi.h".} = object
-    ## MIDI UART handler
+  # AnalogControl, MidiUartTransport and MidiUartHandler are defined in
+  # nimphea_core_types (re-exported via nimphea).
 
   DaisyPod* {.importcpp: "daisy::DaisyPod".} = object
     ## Daisy Pod board handle
@@ -152,111 +145,9 @@ proc delayMs*(this: var DaisyPod, del: csize_t)
 # Audio Control
 # ============================================================================
 
-# Global callback storage (one set per board type to avoid conflicts)
-var globalPodAudioCallback: AudioCallback = nil
-var globalPodInterleavingCallback: InterleavingAudioCallback = nil
-
-# C-compatible wrapper functions
-proc podAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "podAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalPodAudioCallback.isNil:
-    globalPodAudioCallback(cast[AudioBuffer](input),
-                          cast[AudioBuffer](output),
-                          size.int)
-
-proc podInterleavingCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "podInterleavingCallbackWrapper", cdecl, raises: [].} =
-  if not globalPodInterleavingCallback.isNil:
-    globalPodInterleavingCallback(cast[InterleavedAudioBuffer](input),
-                                 cast[InterleavedAudioBuffer](output),
-                                 size.int)
-
-proc startAudio*(pod: var DaisyPod, callback: AudioCallback) =
-  ## Start audio processing with multi-channel (non-interleaved) callback
-  ##
-  ## The callback receives separate channels as arrays of float samples.
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     output[0][i] = input[0][i] * 0.5  # Left channel
-  ##     output[1][i] = input[1][i] * 0.5  # Right channel
-  ##
-  ## pod.startAudio(audioCallback)
-  ## ```
-  globalPodAudioCallback = callback
-  {.emit: "`pod`.StartAudio(reinterpret_cast<daisy::AudioHandle::AudioCallback>(podAudioCallbackWrapper));".}
-
-proc startAudio*(pod: var DaisyPod, callback: InterleavingAudioCallback) =
-  ## Start audio processing with interleaved callback
-  ##
-  ## The callback receives interleaved samples (L, R, L, R, ...)
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: InterleavedAudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     output[i * 2] = input[i * 2] * 0.5      # Left
-  ##     output[i * 2 + 1] = input[i * 2 + 1] * 0.5  # Right
-  ##
-  ## pod.startAudio(audioCallback)
-  ## ```
-  globalPodInterleavingCallback = callback
-  {.emit: "`pod`.StartAudio(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(podInterleavingCallbackWrapper));".}
-
-proc changeAudioCallback*(pod: var DaisyPod, callback: AudioCallback) =
-  ## Change the audio callback while audio is running
-  globalPodAudioCallback = callback
-
-proc changeAudioCallback*(pod: var DaisyPod, callback: InterleavingAudioCallback) =
-  ## Change the interleaved audio callback while audio is running
-  globalPodInterleavingCallback = callback
-
-proc stopAudio*(pod: var DaisyPod) {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  globalPodAudioCallback = nil
-  globalPodInterleavingCallback = nil
-
-proc startAudio*(this: var DaisyPod, cb: AudioCallbackC)
-  {.importcpp: "#.StartAudio(#)".} =
-  ## Start audio processing with multi-channel callback
-  ##
-  ## **Parameters:**
-  ## - `cb` - Audio callback function with separate channels
-  ##
-  ## **Callback signature:**
-  ## ```nim
-  ## proc audioCallback(input, output: ptr ptr cfloat, size: csize_t) {.cdecl.}
-  ## ```
-  ##
-  ## **Audio format:** input[0] = left, input[1] = right
-  discard
-
-proc changeAudioCallback*(this: var DaisyPod, cb: InterleavingAudioCallbackC)
-  {.importcpp: "#.ChangeAudioCallback(#)".} =
-  ## Switch to a different interleaved audio callback
-  ##
-  ## Can be called while audio is running.
-  ##
-  ## **Parameters:**
-  ## - `cb` - New audio callback function
-  discard
-
-proc changeAudioCallback*(this: var DaisyPod, cb: AudioCallbackC)
-  {.importcpp: "#.ChangeAudioCallback(#)".} =
-  ## Switch to a different multi-channel audio callback
-  ##
-  ## Can be called while audio is running.
-  ##
-  ## **Parameters:**
-  ## - `cb` - New audio callback function
-  discard
-
-proc stopAudio*(this: var DaisyPod)
-  {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  ##
-  ## Stops the audio callback and codec.
-  discard
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# pod.startAudio(cb) works directly.
 
 proc setAudioSampleRate*(this: var DaisyPod, samplerate: SampleRate)
   {.importcpp: "#.SetAudioSampleRate(#)".} =

@@ -38,9 +38,6 @@ proc getCmsisHeaders*(moduleName: string): string =
   of "dsp_matrix": "#include \"dsp/matrix_functions.h\"\n"
   of "dsp_controller": "#include \"dsp/controller_functions.h\"\n"
   of "dsp_interpolation": "#include \"dsp/interpolation_functions.h\"\n"
-  of "dsp_distance": "#include \"dsp/distance_functions.h\"\n"
-  of "dsp_ml": "#include \"dsp/svm_functions.h\"\n#include \"dsp/bayes_functions.h\"\n"
-  of "dsp_quaternion": "#include \"dsp/quaternion_math_functions.h\"\n"
   else: ""
 
 macro useCmsisModules*(modules: varargs[untyped]): untyped =

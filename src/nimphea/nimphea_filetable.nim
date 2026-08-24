@@ -263,7 +263,7 @@
 ## - FatFs documentation - Underlying filesystem library
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(file_table)
 

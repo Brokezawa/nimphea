@@ -26,7 +26,9 @@
 ##   dac.writeValue(DAC_CHN_ONE, 2048)  # Mid-range voltage
 ## ```
 
-import nimphea_macros
+import nimphea
+export nimphea_core_types
+import nimphea/nimphea_macros
 
 useNimpheaModules(dac)
 
@@ -57,9 +59,7 @@ type
     DAC_BUFFER_ENABLED = 0   ## Output buffer enabled for higher drive
     DAC_BUFFER_DISABLED = 1  ## Output buffer disabled
 
-  DacHandle* {.importcpp: "daisy::DacHandle",
-                header: "per/dac.h".} = object
-    ## DAC peripheral handle
+  # DacHandle is defined in nimphea_core_types.
 
   DacConfig* {.importcpp: "daisy::DacHandle::Config".} = object
     ## DAC configuration structure

@@ -32,14 +32,14 @@
 ##             newPin(PORTB, 2)]  # DATA
 ##
 ## sr.init(addr pins[0], 2)  # 2 devices daisy-chained (16 outputs)
-## 
+##
 ## sr.set(0, true)   # Set output QA on first device HIGH
 ## sr.set(15, true)  # Set output QH on second device HIGH
 ## sr.write()        # Shift out the data
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 useNimpheaModules(sr595)
 
@@ -48,7 +48,7 @@ useNimpheaModules(sr595)
 const kMaxSr595DaisyChain* = 16
 
 type
-  ShiftRegister595Pins* {.importcpp: "daisy::ShiftRegister595::Pins", 
+  ShiftRegister595Pins* {.importcpp: "daisy::ShiftRegister595::Pins",
                           size: sizeof(cint).} = enum
     PIN_LATCH = 0  ## LATCH corresponds to Pin 12 "RCLK"
     PIN_CLK = 1    ## CLK corresponds to Pin 11 "SRCLK"
@@ -57,23 +57,10 @@ type
 
   ShiftRegister595* {.importcpp: "daisy::ShiftRegister595", bycopy.} = object
 
-# C++ API
-proc cppInit(this: var ShiftRegister595, pin_cfg: ptr Pin, 
-             num_daisy_chained: csize_t = 1) 
-  {.importcpp: "#.Init(@)".}
-
-proc cppSet(this: var ShiftRegister595, idx: uint8, state: bool) 
-  {.importcpp: "#.Set(@)".}
-
-proc cppWrite(this: var ShiftRegister595) 
-  {.importcpp: "#.Write()".}
-
-{.pop.}
-
-# High-level Nim API
-proc init*(sr: var ShiftRegister595, pin_cfg: ptr Pin, 
-           num_daisy_chained: csize_t = 1) =
-  ## Initialize shift register(s)
+# C++ API (bind-once)
+proc init*(sr: var ShiftRegister595, pin_cfg: ptr Pin,
+           num_daisy_chained: csize_t = 1) {.importcpp: "#.Init(@)".}
+  ## Initialize shift register(s).
   ##
   ## **Parameters:**
   ## - `pin_cfg`: Array of 3 pins [LATCH, CLK, DATA]
@@ -83,10 +70,8 @@ proc init*(sr: var ShiftRegister595, pin_cfg: ptr Pin,
   ## - pin_cfg[0] = LATCH (Pin 12 RCLK)
   ## - pin_cfg[1] = CLK (Pin 11 SRCLK)
   ## - pin_cfg[2] = DATA (Pin 14 SER)
-  cppInit(sr, pin_cfg, num_daisy_chained)
-
-proc set*(sr: var ShiftRegister595, idx: uint8, state: bool) =
-  ## Set the state of a specific output
+proc set*(sr: var ShiftRegister595, idx: uint8, state: bool) {.importcpp: "#.Set(@)".}
+  ## Set the state of a specific output.
   ##
   ## **Parameters:**
   ## - `idx`: Output index (0-127 depending on daisy chain length)
@@ -96,11 +81,8 @@ proc set*(sr: var ShiftRegister595, idx: uint8, state: bool) =
   ## - `state`: true = HIGH, false = LOW
   ##
   ## **Note:** Call `write()` to shift the data out to the hardware
-  cppSet(sr, idx, state)
-
-proc write*(sr: var ShiftRegister595) =
-  ## Shift out all buffered data to the shift register(s)
+proc write*(sr: var ShiftRegister595) {.importcpp: "#.Write()".}
+  ## Shift out all buffered data to the shift register(s).
   ##
   ## This latches the data to the output pins.
   ## Call this after setting all desired outputs with `set()`.
-  cppWrite(sr)

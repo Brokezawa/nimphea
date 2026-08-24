@@ -4,7 +4,7 @@
 ## Currently supports I2C transport only (polling mode).
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/per/i2c
 
 useNimpheaModules(mcp23x17, i2c)
@@ -13,11 +13,6 @@ type
   MCPPort* = enum
     MCP_PORT_A = 0
     MCP_PORT_B = 1
-
-  MCPMode* = enum
-    MCP_INPUT
-    MCP_INPUT_PULLUP
-    MCP_OUTPUT
 
   Mcp23017TransportConfig* = object
     periph*: I2CPeripheral

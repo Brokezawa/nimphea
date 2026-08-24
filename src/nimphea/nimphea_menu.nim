@@ -58,7 +58,7 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 
 # Include menu-related headers and typedefs
 useNimpheaModules(menu)

@@ -36,7 +36,7 @@ float buffer[256];          // Stack allocated
 # All containers are stack-allocated by default
 var buffer: array[256, float]   # Stack allocated
 var fifo: FIFO[float, 128]      # Stack allocated
-var str: FixedStr[32]           # Stack allocated - no heap!
+var str: StackString[32]        # Zero-heap - no allocation!
 
 # Compile-time enforcement
 when defined(danger):
@@ -143,9 +143,10 @@ if not fifo.isEmpty():
 - Native Nim error handling
 - Clearer API naming
 
-### FixedStr (Fixed-Size Strings)
+### StackString (Zero-Heaps Strings)
 
-A **zero-allocation** string type for embedded systems.
+A **zero-allocation** string type for embedded systems (vendored
+[nim-stack-strings](https://github.com/termermc/nim-stack-strings)).
 
 **The Problem:**
 ```nim
@@ -157,13 +158,14 @@ var name = "Daisy"  # Heap allocated - NOT safe in audio callbacks!
 ```nim
 import nimphea
 
-var name: FixedStr[32]  # Stack allocated, max 32 chars
-name = "Daisy Seed"     # No heap allocation!
-name.add(" Audio")      # Still no heap!
+var name: StackString[32]  # Zero-heap, max 32 chars
+name.add("Daisy Seed")     # No heap allocation!
+name.add(" Audio")         # Still no heap (raises on overflow —
+                           # use addTruncate/tryAdd for safe truncation)
 
-echo name              # "Daisy Seed Audio"
-echo name.len          # 16
-echo name.capacity     # 32
+echo name.len              # 16
+echo name.capacity         # 32
+name.toCstring             # NUL-safe cstring for printing
 ```
 
 **Features:**
@@ -177,16 +179,16 @@ echo name.capacity     # 32
 ```nim
 # Display text without heap allocation
 var display: OledDisplay
-var msg: FixedStr[20]
-msg = "Volume: "
-msg.add($volumeLevel)  # String conversion, still no heap!
-display.writeString(0, 0, msg.cstring, Font_7x10, true)
+var msg: StackString[20]
+msg.add("Volume: ")
+msg.add(volumeLevel.int)  # numeric add, still no heap!
+display.writeString(0, 0, msg.toCstring, Font_7x10, true)
 
 # Debug logging in realtime code
-var log: FixedStr[64]
-log = "Sample rate: "
-log.add($sampleRate)
-usbLogger.print(log)
+var log: StackString[64]
+log.add("Sample rate: ")
+log.add(sampleRate)  # numeric add, still no heap!
+usbLogger.printLine(log.toCstring)
 ```
 
 ### RingBuffer
@@ -752,4 +754,4 @@ This document highlights Nim's strengths. Modern C++ (especially C++20+) has evo
 
 - See [API Reference](API_REFERENCE.md) for complete API documentation
 - See the [Nimphea Examples](https://github.com/Brokezawa/nimphea-examples) repository for practical usage examples
-- See [Build System](BUILD_SYSTEM.md) for build instructions
+- See [Getting Started](guides/getting-started.md) for project setup and build instructions

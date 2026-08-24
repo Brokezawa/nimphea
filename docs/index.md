@@ -44,7 +44,7 @@ sensors, and storage.
 
 ## Additional Documentation
 
-- [Build System Reference](BUILD_SYSTEM.html)
+- [Getting Started](guides/getting-started.html) — project setup and build commands
 - [Flashing Guide](FLASH_GUIDE.html) — DFU and ST-Link methods
 - [Boot Modes](BOOT_MODES.html)
 - [Nim Features](NIM_FEATURES.html)

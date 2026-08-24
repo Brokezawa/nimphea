@@ -4,8 +4,13 @@
 ## Nim-friendly event handling utilities providing closure-based APIs
 ## over the low-level UiEventQueue system.
 ##
-## This module provides a higher-level, more Nim-idiomatic way to handle
-## UI events using closures and callbacks instead of polling the event queue.
+## This module provides a higher-level way to handle UI events using
+## callbacks instead of polling the event queue.
+##
+## **Zero-allocation:** the dispatcher stores handlers in fixed-size slot
+## arrays; registration and dispatch never allocate on the heap. Up to
+## `MAX_HANDLERS` handlers per event type are supported; further
+## registrations are ignored (documented limit).
 
 import nimphea_ui_events
 
@@ -22,22 +27,27 @@ type
   PotHandler* = proc(id: uint16, value: float32) {.closure.}
     ## Closure type for potentiometer change events
 
+const
+  MAX_HANDLERS* = 8
+    ## Maximum number of handlers per event type (fixed slot capacity)
+
 type
   EventDispatcher* = object
-    ## Event dispatcher that manages closure-based event handlers
+    ## Event dispatcher that manages closure-based event handlers.
+    ## Handlers are stored in fixed-size slot arrays (no heap allocation).
     queue: ptr UiEventQueue
-    buttonHandlers: seq[ButtonHandler]
-    buttonReleaseHandlers: seq[ButtonReleaseHandler]
-    encoderHandlers: seq[EncoderHandler]
-    potHandlers: seq[PotHandler]
+    buttonHandlers: array[MAX_HANDLERS, ButtonHandler]
+    buttonCount: int
+    buttonReleaseHandlers: array[MAX_HANDLERS, ButtonReleaseHandler]
+    buttonReleaseCount: int
+    encoderHandlers: array[MAX_HANDLERS, EncoderHandler]
+    encoderCount: int
+    potHandlers: array[MAX_HANDLERS, PotHandler]
+    potCount: int
 
 proc createEventDispatcher*(queue: var UiEventQueue): EventDispatcher =
   ## Create a new event dispatcher for the given event queue
   result.queue = addr queue
-  result.buttonHandlers = @[]
-  result.buttonReleaseHandlers = @[]
-  result.encoderHandlers = @[]
-  result.potHandlers = @[]
 
 proc onButtonPress*(dispatcher: var EventDispatcher, handler: ButtonHandler) =
   ## Register a handler for button press events
@@ -47,11 +57,15 @@ proc onButtonPress*(dispatcher: var EventDispatcher, handler: ButtonHandler) =
   ## dispatcher.onButtonPress proc(id: uint16, presses: uint16) =
   ##   echo "Button ", id, " pressed ", presses, " times"
   ## ```
-  dispatcher.buttonHandlers.add(handler)
+  if dispatcher.buttonCount < MAX_HANDLERS:
+    dispatcher.buttonHandlers[dispatcher.buttonCount] = handler
+    inc dispatcher.buttonCount
 
 proc onButtonRelease*(dispatcher: var EventDispatcher, handler: ButtonReleaseHandler) =
   ## Register a handler for button release events
-  dispatcher.buttonReleaseHandlers.add(handler)
+  if dispatcher.buttonReleaseCount < MAX_HANDLERS:
+    dispatcher.buttonReleaseHandlers[dispatcher.buttonReleaseCount] = handler
+    inc dispatcher.buttonReleaseCount
 
 proc onEncoder*(dispatcher: var EventDispatcher, handler: EncoderHandler) =
   ## Register a handler for encoder turn events
@@ -63,30 +77,34 @@ proc onEncoder*(dispatcher: var EventDispatcher, handler: EncoderHandler) =
   ##   if volume < 0: volume = 0
   ##   if volume > 100: volume = 100
   ## ```
-  dispatcher.encoderHandlers.add(handler)
+  if dispatcher.encoderCount < MAX_HANDLERS:
+    dispatcher.encoderHandlers[dispatcher.encoderCount] = handler
+    inc dispatcher.encoderCount
 
 proc onPot*(dispatcher: var EventDispatcher, handler: PotHandler) =
   ## Register a handler for potentiometer change events
-  dispatcher.potHandlers.add(handler)
+  if dispatcher.potCount < MAX_HANDLERS:
+    dispatcher.potHandlers[dispatcher.potCount] = handler
+    inc dispatcher.potCount
 
 proc process*(dispatcher: var EventDispatcher) =
-  ## Process all events in the queue and call registered handlers
-  ## Call this in your main loop
+  ## Process all events in the queue and call registered handlers.
+  ## Call this in your main loop.
   while not dispatcher.queue[].isQueueEmpty():
     let event = dispatcher.queue[].getAndRemoveNextEvent()
     case event.eventType
     of buttonPressed:
-      for handler in dispatcher.buttonHandlers:
-        handler(event.asButtonPressed.id, event.asButtonPressed.numSuccessivePresses)
+      for i in 0..<dispatcher.buttonCount:
+        dispatcher.buttonHandlers[i](event.asButtonPressed.id, event.asButtonPressed.numSuccessivePresses)
     of buttonReleased:
-      for handler in dispatcher.buttonReleaseHandlers:
-        handler(event.asButtonReleased.id)
+      for i in 0..<dispatcher.buttonReleaseCount:
+        dispatcher.buttonReleaseHandlers[i](event.asButtonReleased.id)
     of encoderTurned:
-      for handler in dispatcher.encoderHandlers:
-        handler(event.asEncoderTurned.id, event.asEncoderTurned.increments.int32, 0)
+      for i in 0..<dispatcher.encoderCount:
+        dispatcher.encoderHandlers[i](event.asEncoderTurned.id, event.asEncoderTurned.increments.int32, 0)
     of potMoved:
-      for handler in dispatcher.potHandlers:
-        handler(event.asPotMoved.id, event.asPotMoved.newPosition)
+      for i in 0..<dispatcher.potCount:
+        dispatcher.potHandlers[i](event.asPotMoved.id, event.asPotMoved.newPosition)
     else:
       discard
 
@@ -102,6 +120,21 @@ template processEvents*(dispatcher: var EventDispatcher, body: untyped) =
   ## ```
   dispatcher.process()
   body
+
+# Chain multiple handlers together (allocation-free: the registered handlers
+# are simply invoked in registration order at dispatch time)
+template chain*(dispatcher: var EventDispatcher, handlers: varargs[ButtonHandler]) =
+  ## Register multiple button handlers to fire in sequence, in order.
+  ## 
+  ## **Example**:
+  ## ```nim
+  ## dispatcher.chain(
+  ##   proc(id: uint16, presses: uint16) = echo "Handler 1",
+  ##   proc(id: uint16, presses: uint16) = echo "Handler 2"
+  ## )
+  ## ```
+  for h in handlers:
+    dispatcher.onButtonPress(h)
 
 # Specific button ID handlers for common patterns
 type
@@ -131,19 +164,3 @@ proc dispatch*(handlers: var SpecificButtonHandlers, id: uint16, presses: uint16
   ## Dispatch button event to registered handler
   if id < 16 and handlers.handlers[id] != nil:
     handlers.handlers[id](id, presses)
-
-# Chain multiple handlers together
-proc chain*(handlers: varargs[ButtonHandler]): ButtonHandler =
-  ## Chain multiple button handlers together
-  ## 
-  ## **Example**:
-  ## ```nim
-  ## dispatcher.onButtonPress chain(
-  ##   proc(id, presses: auto) = echo "Handler 1",
-  ##   proc(id, presses: auto) = echo "Handler 2"
-  ## )
-  ## ```
-  result = proc(id: uint16, presses: uint16) =
-    for h in handlers:
-      if h != nil:
-        h(id, presses)

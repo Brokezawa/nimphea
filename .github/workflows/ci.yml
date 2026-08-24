@@ -22,17 +22,17 @@ jobs:
           nim-version: '2.2.8'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install unittest2
-        run: nimble install -y unittest2
-
-      - name: Install dependencies
-        run: nimble install -d -y
-
       - name: Syntax check core module
         run: nim check src/nimphea.nim
 
-      - name: Syntax check examples
-        run: nimble test
+      - name: Syntax check every module
+        run: |
+          for f in $(find src -name '*.nim' | sort); do
+            nim check --hints:off "$f" || exit 1
+          done
+
+      - name: Check for duplicate C++-backed types
+        run: nim e scripts/check_duplicate_types.nims
 
       - name: Run unit tests
-        run: nimble test_unit
+        run: nim e scripts/test.nims

@@ -55,10 +55,13 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/hid/switch
+import nimphea/hid/switch3
 import nimphea/hid/rgb_led
 import nimphea/hid/gatein
+import nimphea/nimphea_audio
+export nimphea_audio
 
 export switch  # Export Switch methods
 export gatein  # Export GateIn methods
@@ -95,15 +98,9 @@ type
     ## 2 three-position switches (up/center/down)
     SW_0 = 0  ## Switch 0 (left)
     SW_1 = 1  ## Switch 1 (right)
-  
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/CV input) wrapper
-  
-  Switch3* {.importcpp: "daisy::Switch3",
-             header: "hid/switch3.h".} = object
-    ## Three-position switch
-  
+
+  # AnalogControl and Switch3 are defined in core modules (re-exported via nimphea).
+
   DaisyVersio* {.importcpp: "daisy::DaisyVersio".} = object
     ## Daisy Versio board handle
     ##
@@ -151,89 +148,9 @@ proc delayMs*(this: var DaisyVersio, del: csize_t)
 # Audio Control
 # ============================================================================
 
-# Board-specific audio callback globals (to avoid conflicts with other boards)
-var globalVersioAudioCallback: AudioCallback = nil
-var globalVersioInterleavingCallback: InterleavingAudioCallback = nil
-
-proc versioAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "versioAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalVersioAudioCallback.isNil:
-    globalVersioAudioCallback(cast[AudioBuffer](input),
-                             cast[AudioBuffer](output),
-                             size.int)
-
-proc versioInterleavingAudioCallbackWrapper(input: ptr cfloat, output: ptr cfloat, size: csize_t) {.exportc: "versioInterleavingAudioCallbackWrapper", cdecl, raises: [].} =
-  if not globalVersioInterleavingCallback.isNil:
-    globalVersioInterleavingCallback(cast[InterleavedAudioBuffer](input),
-                                    cast[InterleavedAudioBuffer](output),
-                                    size.int)
-
-proc startAudio*(this: var DaisyVersio, callback: AudioCallback) =
-  ## Start audio processing with multichannel callback
-  ##
-  ## **Parameters:**
-  ## - `callback` - Function called at audio rate for processing
-  ##
-  ## **Callback signature:**
-  ## ```nim
-  ## proc(input: ptr ptr float32, output: ptr ptr float32, size: csize_t)
-  ## ```
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc myCallback(input: ptr ptr float32, output: ptr ptr float32, size: csize_t) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     var inL, inR, outL, outR: cfloat
-  ##     {.emit: "`inL` = `input`[0][`i`];".}
-  ##     {.emit: "`inR` = `input`[1][`i`];".}
-  ##     
-  ##     outL = inL * 0.5
-  ##     outR = inR * 0.5
-  ##     
-  ##     {.emit: "`output`[0][`i`] = `outL`;".}
-  ##     {.emit: "`output`[1][`i`] = `outR`;".}
-  ## 
-  ## versio.startAudio(myCallback)
-  ## ```
-  globalVersioAudioCallback = callback
-  {.emit: "`this`.StartAudio(reinterpret_cast<daisy::AudioHandle::AudioCallback>(versioAudioCallbackWrapper));".}
-
-proc startAudio*(this: var DaisyVersio, callback: InterleavingAudioCallback) =
-  ## Start audio processing with interleaved callback
-  ##
-  ## **Parameters:**
-  ## - `callback` - Function called at audio rate for processing
-  ##
-  ## **Callback signature:**
-  ## ```nim
-  ## proc(input: ptr float32, output: ptr float32, size: csize_t)
-  ## ```
-  ##
-  ## **Note:** Size is total samples (stereo = size/2 frames)
-  globalVersioInterleavingCallback = callback
-  {.emit: "`this`.StartAudio(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(versioInterleavingAudioCallbackWrapper));".}
-
-proc changeAudioCallback*(this: var DaisyVersio, callback: AudioCallback) =
-  ## Change audio callback function while audio is running
-  ##
-  ## **Parameters:**
-  ## - `callback` - New callback function
-  globalVersioAudioCallback = callback
-  {.emit: "`this`.ChangeAudioCallback(reinterpret_cast<daisy::AudioHandle::AudioCallback>(versioAudioCallbackWrapper));".}
-
-proc changeAudioCallback*(this: var DaisyVersio, callback: InterleavingAudioCallback) =
-  ## Change audio callback function while audio is running (interleaved version)
-  ##
-  ## **Parameters:**
-  ## - `callback` - New interleaved callback function
-  globalVersioInterleavingCallback = callback
-  {.emit: "`this`.ChangeAudioCallback(reinterpret_cast<daisy::AudioHandle::InterleavingAudioCallback>(versioInterleavingAudioCallbackWrapper));".}
-
-proc stopAudio*(this: var DaisyVersio)
-  {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
-  ##
-  ## Stops the audio callback from being called.
-  discard
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# versio.startAudio(cb) works directly.
 
 proc setAudioBlockSize*(this: var DaisyVersio, size: csize_t)
   {.importcpp: "#.SetAudioBlockSize(#)".} =

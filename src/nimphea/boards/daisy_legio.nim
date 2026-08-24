@@ -57,9 +57,12 @@
 ## ```
 
 import nimphea
-import nimphea_macros
+import nimphea/nimphea_macros
 import nimphea/hid/rgb_led
 import nimphea/hid/gatein
+import nimphea/hid/switch3
+import nimphea/nimphea_audio
+export nimphea_audio
 
 useNimpheaModules(legio)
 
@@ -92,18 +95,8 @@ type
     SW_RIGHT = 1
     SW_LAST = 2
 
-  # Types that aren't in separate modules - define inline
-  Encoder* {.importcpp: "daisy::Encoder",
-             header: "hid/encoder.h".} = object
-    ## Quadrature encoder with button
-
-  AnalogControl* {.importcpp: "daisy::AnalogControl",
-                   header: "hid/ctrl.h".} = object
-    ## Analog control (knob/CV input) wrapper
-
-  Switch3* {.importcpp: "daisy::Switch3",
-            header: "hid/switch3.h".} = object
-    ## Three-position switch
+  # Encoder, AnalogControl and Switch3 are defined in core modules
+  # (re-exported via nimphea).
 
   DaisyLegio* {.importcpp: "daisy::DaisyLegio".} = object
     ## Daisy Legio board handle
@@ -147,40 +140,10 @@ proc delayMs*(this: var DaisyLegio, del: csize_t)
 # ============================================================================
 # Audio Control
 # ============================================================================
-
-# Global audio callback (board-specific to avoid conflicts)
-var globalLegioAudioCallback: AudioCallback = nil
-
-proc legioAudioCallbackWrapper(input: ptr ptr cfloat, output: ptr ptr cfloat, size: csize_t) {.exportc: "legioAudioCallbackWrapper", cdecl, raises: [].} =
-  ## C-compatible wrapper for Nim audio callback
-  if not globalLegioAudioCallback.isNil:
-    globalLegioAudioCallback(cast[AudioBuffer](input),
-                            cast[AudioBuffer](output),
-                            size.int)
-
-proc startAudio*(this: var DaisyLegio, callback: AudioCallback) =
-  ## Start audio processing with callback
-  ##
-  ## **Parameters:**
-  ## - `callback` - Audio callback function (non-interleaved stereo: `proc(input, output: AudioBuffer, size: int)`)
-  ##
-  ## **Example:**
-  ## ```nim
-  ## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-  ##   for i in 0..<size:
-  ##     let inL = input[0][i]
-  ##     let inR = input[1][i]
-  ##     output[0][i] = inL
-  ##     output[1][i] = inR
-  ## 
-  ## legio.startAudio(audioCallback)
-  ## ```
-  globalLegioAudioCallback = callback
-  {.emit: "`this`.StartAudio(reinterpret_cast<daisy::AudioHandle::AudioCallback>(legioAudioCallbackWrapper));".}
-
-proc stopAudio*(this: var DaisyLegio)
-  {.importcpp: "#.StopAudio()".} =
-  ## Stop audio processing
+#
+# Audio starts through the shared nimphea_audio bridge: startAudio,
+# changeAudioCallback, and stopAudio are exported from nimphea_audio so that
+# legio.startAudio(cb) works directly.
 
 proc setAudioBlockSize*(this: var DaisyLegio, size: csize_t)
   {.importcpp: "#.SetAudioBlockSize(#)".} =

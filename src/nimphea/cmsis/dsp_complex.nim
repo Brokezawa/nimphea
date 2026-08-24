@@ -16,13 +16,13 @@ proc arm_cmplx_mult_real_f32*(pSrcCmplx: ptr float32_t, pSrcReal: ptr float32_t,
 
 proc mult*(dst: var openArray[float32], a, b: openArray[float32]) {.inline.} =
   ## Complex-by-complex multiplication: dst = a * b
-  let n = min([dst.len, a.len, b.len]) div 2
+  let n = min(min(dst.len, a.len), b.len) div 2
   if n > 0:
     arm_cmplx_mult_cmplx_f32(cast[ptr float32_t](addr a[0]), cast[ptr float32_t](addr b[0]), cast[ptr float32_t](addr dst[0]), n.uint32)
 
 proc multReal*(dst: var openArray[float32], cmplx: openArray[float32], real: openArray[float32]) {.inline.} =
   ## Complex-by-real multiplication
-  let n = min([dst.len div 2, cmplx.len div 2, real.len])
+  let n = min(min(dst.len div 2, cmplx.len div 2), real.len)
   if n > 0:
     arm_cmplx_mult_real_f32(cast[ptr float32_t](addr cmplx[0]), cast[ptr float32_t](addr real[0]), cast[ptr float32_t](addr dst[0]), n.uint32)
 

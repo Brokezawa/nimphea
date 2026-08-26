@@ -13,8 +13,8 @@
 ## proc usbReceiveCallback(buffer: ptr uint8, len: ptr uint32) {.cdecl.} =
 ##   echo "Received ", len[], " bytes"
 ## 
-## usb.init(FS_INTERNAL)
-## usb.setReceiveCallback(usbReceiveCallback, FS_INTERNAL)
+## initUsb[FS_INTERNAL](usb)
+## setReceiveCallbackUsb[FS_INTERNAL](usb, usbReceiveCallback)
 ## 
 ## var data = "Hello USB\n"
 ## discard usb.transmitInternal(cast[ptr uint8](addr data[0]), data.len.csize_t)
@@ -79,14 +79,33 @@ type
 
   UsbReceiveCallback* = proc(buff: ptr uint8, len: ptr uint32) {.cdecl.}
 
-# UsbHandle methods
-proc init*(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.Init(@)", header: "hid/usb.h".}
-proc deinit*(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.DeInit(@)", header: "hid/usb.h".}
-proc transmitInternal*(this: var UsbHandle, buff: ptr uint8, size: csize_t): UsbResult {.importcpp: "#.TransmitInternal(@)", header: "hid/usb.h".}
-proc transmitExternal*(this: var UsbHandle, buff: ptr uint8, size: csize_t): UsbResult {.importcpp: "#.TransmitExternal(@)", header: "hid/usb.h".}
-proc setReceiveCallback*(this: var UsbHandle, cb: UsbReceiveCallback, dev: UsbPeriph) {.importcpp: "#.SetReceiveCallback(@)", header: "hid/usb.h".}
+# UsbHandle methods — the route (FS_INTERNAL/FS_EXTERNAL) is a static
+# parameter at the call site; the raw `UsbHandle` stays a plain C++ type
+# because it is embedded in the board objects (e.g. `patch_sm.usb`),
+# and the transmit helpers are explicitly named per route.
+proc initRaw(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.Init(@)", header: "hid/usb.h".}
+proc deinitRaw(this: var UsbHandle, dev: UsbPeriph) {.importcpp: "#.DeInit(@)", header: "hid/usb.h".}
+proc transmitInternalRaw(this: var UsbHandle, buff: ptr uint8, size: csize_t): UsbResult {.importcpp: "#.TransmitInternal(@)", header: "hid/usb.h".}
+proc transmitExternalRaw(this: var UsbHandle, buff: ptr uint8, size: csize_t): UsbResult {.importcpp: "#.TransmitExternal(@)", header: "hid/usb.h".}
+proc setReceiveCallbackRaw(this: var UsbHandle, cb: UsbReceiveCallback, dev: UsbPeriph) {.importcpp: "#.SetReceiveCallback(@)", header: "hid/usb.h".}
 
 {.pop.} # header
+
+proc initUsb*[P: static UsbPeriph](usb: var UsbHandle) =
+  ## Initialize the USB peripheral for the route encoded in `P`
+  ## (FS_INTERNAL or FS_EXTERNAL — the route can no longer be mistyped).
+  ## NOTE: static `P` does not bind under method-call syntax nor in
+  ## when-only bodies (no instantiation is emitted), so these are
+  ## top-level procs and `P` is passed through to the binding.
+  initRaw(usb, P)
+
+proc deinitUsb*[P: static UsbPeriph](usb: var UsbHandle) =
+  deinitRaw(usb, P)
+
+proc setReceiveCallbackUsb*[P: static UsbPeriph](usb: var UsbHandle, cb: UsbReceiveCallback) =
+  ## Register the CDC receive callback for the route encoded in `P`.
+  setReceiveCallbackRaw(usb, cb, P)
+
 
 # USB MIDI Transport
 {.push header: "hid/usb_midi.h".}
@@ -161,23 +180,23 @@ proc newUSBHostConfig*(): USBHostConfig {.importcpp: "daisy::USBHostHandle::Conf
 # Convenience procs for transmitting data
 proc transmitInternal*(this: var UsbHandle, data: cstring): UsbResult =
   ## Transmit a C string via internal USB
-  result = this.transmitInternal(cast[ptr uint8](data), data.len.csize_t)
+  result = this.transmitInternalRaw(cast[ptr uint8](data), data.len.csize_t)
 
 proc transmitExternal*(this: var UsbHandle, data: cstring): UsbResult =
   ## Transmit a C string via external USB
-  result = this.transmitExternal(cast[ptr uint8](data), data.len.csize_t)
+  result = this.transmitExternalRaw(cast[ptr uint8](data), data.len.csize_t)
 
 proc transmitInternal*(this: var UsbHandle, data: openArray[byte]): UsbResult =
   ## Transmit a byte array via internal USB
   if data.len == 0:
     return USB_OK
-  result = this.transmitInternal(cast[ptr uint8](addr data[0]), data.len.csize_t)
+  result = this.transmitInternalRaw(cast[ptr uint8](addr data[0]), data.len.csize_t)
 
 proc transmitExternal*(this: var UsbHandle, data: openArray[byte]): UsbResult =
   ## Transmit a byte array via external USB
   if data.len == 0:
     return USB_OK
-  result = this.transmitExternal(cast[ptr uint8](addr data[0]), data.len.csize_t)
+  result = this.transmitExternalRaw(cast[ptr uint8](addr data[0]), data.len.csize_t)
 
 proc tx*(this: var MidiUsbTransport, buffer: openArray[byte]) =
   ## Transmit MIDI data from a byte array

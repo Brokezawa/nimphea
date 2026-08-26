@@ -59,7 +59,7 @@ export nimphea_core_types
 
 type
   # SaiHandle is defined in nimphea_core_types
-  SaiConfig* {.importcpp: "daisy::SaiHandle::Config", bycopy.} = object
+  SaiConfigRaw* {.importcpp: "daisy::SaiHandle::Config", bycopy.} = object
     periph* {.importcpp: "periph".}: SaiPeripheral
     pin_config* {.importcpp: "pin_config".}: SaiPinConfig
     sr* {.importcpp: "sr".}: SampleRate
@@ -69,7 +69,7 @@ type
     a_dir* {.importcpp: "a_dir".}: SaiDirection
     b_dir* {.importcpp: "b_dir".}: SaiDirection
   
-  SaiPinConfig* {.importcpp: "daisy::SaiHandle::Config::pin_config", bycopy.} = object
+  SaiPinConfig* {.importcpp: "decltype(daisy::SaiHandle::Config{}.pin_config)", bycopy.} = object
     mclk* {.importcpp: "mclk".}: Pin
     fs* {.importcpp: "fs".}: Pin
     sck* {.importcpp: "sck".}: Pin
@@ -101,17 +101,17 @@ type
   SaiCallback* = proc(inputBuf, outputBuf: ptr int32, size: csize_t) {.cdecl.}
 
 # Bind-once C++ methods for SaiHandle
-proc init*(sai: var SaiHandle, config: SaiConfig): SaiResult {.importcpp: "#.Init(@)".}
+proc initRaw(sai: var SaiHandleRaw, config: SaiConfigRaw): SaiResult {.importcpp: "#.Init(@)".}
   ## Initialize the SAI peripheral with the given configuration
-proc deinit*(sai: var SaiHandle): SaiResult {.importcpp: "#.DeInit()".}
+proc deinitRaw(sai: var SaiHandleRaw): SaiResult {.importcpp: "#.DeInit()".}
   ## Deinitialize the SAI peripheral
-proc getConfig*(sai: SaiHandle): SaiConfig {.importcpp: "#.GetConfig()".}
+proc getConfigRaw(sai: SaiHandleRaw): SaiConfigRaw {.importcpp: "#.GetConfig()".}
   ## Get the current configuration of the SAI peripheral
 
-proc startDma*(sai: var SaiHandle, bufferRx, bufferTx: ptr int32, size: csize_t,
+proc startDmaRaw(sai: var SaiHandleRaw, bufferRx, bufferTx: ptr int32, size: csize_t,
                callback: SaiCallback): SaiResult {.importcpp: "#.StartDma(@)".}
   ## Start DMA-based audio transfer in circular buffer mode
-proc startDma*(sai: var SaiHandle, bufferRx, bufferTx: ptr int32, size: int,
+proc startDmaRaw(sai: var SaiHandleRaw, bufferRx, bufferTx: ptr int32, size: int,
                callback: SaiCallback): SaiResult {.inline.} =
   ## Start DMA-based audio transfer (retained: int -> csize_t overload).
   ## Buffers must be in DMA-capable memory.
@@ -122,24 +122,25 @@ proc startDma*(sai: var SaiHandle, bufferRx, bufferTx: ptr int32, size: int,
   ## var txBuf: array[256, int32]
   ## discard sai.startDma(rxBuf[0].addr, txBuf[0].addr, 256, audioCallback)
   ## ```
-  sai.startDma(bufferRx, bufferTx, size.csize_t, callback)
+  sai.startDmaRaw(bufferRx, bufferTx, size.csize_t, callback)
 
-proc stopDma*(sai: var SaiHandle): SaiResult {.importcpp: "#.StopDma()".}
+proc stopDmaRaw(sai: var SaiHandleRaw): SaiResult {.importcpp: "#.StopDma()".}
   ## Stop the DMA audio transfer
 
-proc getSampleRate*(sai: SaiHandle): cfloat {.importcpp: "#.GetSampleRate()".}
+proc getSampleRateRaw(sai: SaiHandleRaw): cfloat {.importcpp: "#.GetSampleRate()".}
   ## Get the sample rate (Hz) based on the current configuration
-proc getBlockSize*(sai: SaiHandle): csize_t {.importcpp: "#.GetBlockSize()".}
+proc getBlockSizeRaw(sai: SaiHandleRaw): csize_t {.importcpp: "#.GetBlockSize()".}
   ## Get the number of samples per audio block
-proc getBlockRate*(sai: SaiHandle): cfloat {.importcpp: "#.GetBlockRate()".}
+proc getBlockRateRaw(sai: SaiHandleRaw): cfloat {.importcpp: "#.GetBlockRate()".}
   ## Get the block rate (Hz) of the current stream
-proc getOffset*(sai: SaiHandle): csize_t {.importcpp: "#.GetOffset()".}
+proc getOffsetRaw(sai: SaiHandleRaw): csize_t {.importcpp: "#.GetOffset()".}
   ## Get the current offset within the SAI buffer (0 or size/2)
-proc isInitialized*(sai: SaiHandle): bool {.importcpp: "#.IsInitialized()".}
+proc isInitializedRaw(sai: SaiHandleRaw): bool {.importcpp: "#.IsInitialized()".}
   ## Check if the SAI peripheral is initialized
 
 # Constructors
-proc newSaiConfig*(): SaiConfig {.importcpp: "daisy::SaiHandle::Config()", constructor.}
+proc newSaiHandleRaw(): SaiHandleRaw {.importcpp: "daisy::SaiHandle()", constructor, header: "per/sai.h".}
+proc newSaiConfigRaw(): SaiConfigRaw {.importcpp: "daisy::SaiHandle::Config()", constructor, header: "per/sai.h".}
 
 {.pop.} # header
 
@@ -147,61 +148,120 @@ proc newSaiConfig*(): SaiConfig {.importcpp: "daisy::SaiHandle::Config()", const
 # Helper Procedures
 # =============================================================================
 
-proc configurePinsStandard*(config: var SaiConfig, port: GPIOPort) =
-  ## Configure SAI pins using a standard layout on a single GPIO port.
-  ##
-  ## This is a convenience function for common pin configurations.
-  ##
-  ## Standard pin layout (example for PORTE):
-  ## - MCLK: port pin 2
-  ## - FS:   port pin 4
-  ## - SCK:  port pin 5
-  ## - SA:   port pin 6
-  ## - SB:   port pin 3
-  ##
-  ## Parameters:
-  ##   config: SAI configuration to modify
-  ##   port: GPIO port to use for all pins
-  ##
-  ## Example:
-  ## ```nim
-  ## var config = newSaiConfig()
-  ## config.configurePinsStandard(PORTE)
-  ## ```
-  config.pin_config.mclk = newPin(port, 2)
-  config.pin_config.fs = newPin(port, 4)
-  config.pin_config.sck = newPin(port, 5)
-  config.pin_config.sa = newPin(port, 6)
-  config.pin_config.sb = newPin(port, 3)
+# =============================================================================
+# Static-peripheral API (the SAI block is part of the type)
+# =============================================================================
 
-proc configureStandard48k24bit*(config: var SaiConfig, peripheral: SaiPeripheral = SAI_1) =
-  ## Configure SAI for standard 48kHz, 24-bit stereo audio.
-  ##
-  ## This sets up common defaults:
-  ## - Sample rate: 48kHz
-  ## - Bit depth: 24-bit
-  ## - Block A: Master, Receive (input)
-  ## - Block B: Slave, Transmit (output)
-  ##
-  ## **Note**: You still need to configure pins separately.
-  ##
-  ## Parameters:
-  ##   config: SAI configuration to modify
-  ##   peripheral: SAI peripheral to use (default: SAI_1)
-  ##
-  ## Example:
-  ## ```nim
-  ## var config = newSaiConfig()
-  ## config.configureStandard48k24bit()
-  ## config.configurePinsStandard(PORTE)
-  ## ```
-  config.periph = peripheral
-  config.sr = SAI_48KHZ
-  config.bit_depth = SAI_24BIT
-  config.a_sync = MASTER
-  config.b_sync = SLAVE
-  config.a_dir = RECEIVE
-  config.b_dir = TRANSMIT
+type
+  SaiHandle*[P: static SaiPeripheral] = object
+    ## SAI handle bound to a specific block at compile time.
+    raw: SaiHandleRaw
 
-when isMainModule:
-  echo "libDaisy SAI wrapper - Serial Audio Interface support"
+  SaiConfig*[P: static SaiPeripheral] = object
+    ## SAI configuration bound to the same block as its handle.
+    ## The block itself is implied by `P`; only the transport settings
+    ## below are user-controlled.
+    raw: SaiConfigRaw
+
+proc pinConfig*[P: static SaiPeripheral](c: SaiConfig[P]): SaiPinConfig {.inline.} =
+  c.raw.pin_config
+
+proc pinConfig*[P: static SaiPeripheral](c: var SaiConfig[P]): var SaiPinConfig {.inline.} =
+  c.raw.pin_config
+
+proc sampleRate*[P: static SaiPeripheral](c: SaiConfig[P]): SampleRate {.inline.} =
+  c.raw.sr
+
+proc sampleRate*[P: static SaiPeripheral](c: var SaiConfig[P]): var SampleRate {.inline.} =
+  c.raw.sr
+
+proc bitDepth*[P: static SaiPeripheral](c: SaiConfig[P]): SaiBitDepth {.inline.} =
+  c.raw.bit_depth
+
+proc bitDepth*[P: static SaiPeripheral](c: var SaiConfig[P]): var SaiBitDepth {.inline.} =
+  c.raw.bit_depth
+
+proc aSync*[P: static SaiPeripheral](c: SaiConfig[P]): SaiSync {.inline.} =
+  c.raw.a_sync
+
+proc aSync*[P: static SaiPeripheral](c: var SaiConfig[P]): var SaiSync {.inline.} =
+  c.raw.a_sync
+
+proc bSync*[P: static SaiPeripheral](c: SaiConfig[P]): SaiSync {.inline.} =
+  c.raw.b_sync
+
+proc bSync*[P: static SaiPeripheral](c: var SaiConfig[P]): var SaiSync {.inline.} =
+  c.raw.b_sync
+
+proc aDir*[P: static SaiPeripheral](c: SaiConfig[P]): SaiDirection {.inline.} =
+  c.raw.a_dir
+
+proc aDir*[P: static SaiPeripheral](c: var SaiConfig[P]): var SaiDirection {.inline.} =
+  c.raw.a_dir
+
+proc bDir*[P: static SaiPeripheral](c: SaiConfig[P]): SaiDirection {.inline.} =
+  c.raw.b_dir
+
+proc bDir*[P: static SaiPeripheral](c: var SaiConfig[P]): var SaiDirection {.inline.} =
+  c.raw.b_dir
+
+proc newSaiHandle*[P: static SaiPeripheral](): SaiHandle[P] {.inline.} =
+  result = SaiHandle[P](raw: newSaiHandleRaw())
+
+proc newSaiConfig*[P: static SaiPeripheral](): SaiConfig[P] {.inline.} =
+  result = SaiConfig[P](raw: newSaiConfigRaw())
+
+proc init*[P: static SaiPeripheral](sai: var SaiHandle[P], config: SaiConfig[P]): SaiResult =
+  ## Initialize the SAI interface for the block encoded in `P`.
+  var cfg = config.raw
+  cfg.periph = P
+  result = sai.raw.initRaw(cfg)
+
+proc deinit*[P: static SaiPeripheral](sai: var SaiHandle[P]): SaiResult {.inline.} =
+  sai.raw.deinitRaw()
+
+proc getConfig*[P: static SaiPeripheral](sai: SaiHandle[P]): SaiConfig[P] {.inline.} =
+  result.raw = sai.raw.getConfigRaw()
+
+proc startDma*[P: static SaiPeripheral](sai: var SaiHandle[P], bufferRx, bufferTx: ptr int32,
+                                        size: csize_t, callback: SaiCallback): SaiResult {.inline.} =
+  sai.raw.startDmaRaw(bufferRx, bufferTx, size, callback)
+
+proc startDma*[P: static SaiPeripheral](sai: var SaiHandle[P], bufferRx, bufferTx: ptr int32,
+                                        size: int, callback: SaiCallback): SaiResult {.inline.} =
+  sai.raw.startDmaRaw(bufferRx, bufferTx, size, callback)
+
+proc stopDma*[P: static SaiPeripheral](sai: var SaiHandle[P]): SaiResult {.inline.} =
+  sai.raw.stopDmaRaw()
+
+proc getSampleRate*[P: static SaiPeripheral](sai: SaiHandle[P]): cfloat {.inline.} =
+  sai.raw.getSampleRateRaw()
+
+proc getBlockSize*[P: static SaiPeripheral](sai: SaiHandle[P]): csize_t {.inline.} =
+  sai.raw.getBlockSizeRaw()
+
+proc getBlockRate*[P: static SaiPeripheral](sai: SaiHandle[P]): cfloat {.inline.} =
+  sai.raw.getBlockRateRaw()
+
+proc getOffset*[P: static SaiPeripheral](sai: SaiHandle[P]): csize_t {.inline.} =
+  sai.raw.getOffsetRaw()
+
+proc isInitialized*[P: static SaiPeripheral](sai: SaiHandle[P]): bool {.inline.} =
+  sai.raw.isInitializedRaw()
+
+proc configurePinsStandard*[P: static SaiPeripheral](config: var SaiConfig[P], port: GPIOPort) =
+  ## Configure SAI pins on the given GPIO port for the standard pinout.
+  config.pinConfig.mclk = newPin(port, 2)
+  config.pinConfig.fs = newPin(port, 4)
+  config.pinConfig.sck = newPin(port, 5)
+  config.pinConfig.sa = newPin(port, 6)
+  config.pinConfig.sb = newPin(port, 3)
+
+proc configureStandard48k24bit*[P: static SaiPeripheral](config: var SaiConfig[P]) =
+  ## Configure SAI for 48 kHz 24-bit audio (the block is `P`).
+  config.sampleRate = SAI_48KHZ
+  config.bitDepth = SAI_24BIT
+  config.aSync = MASTER
+  config.bSync = MASTER
+  config.aDir = TRANSMIT
+  config.bDir = RECEIVE

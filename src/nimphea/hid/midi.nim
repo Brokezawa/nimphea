@@ -148,20 +148,22 @@ proc initMidiUsb*(midi: var MidiUsbHandler) =
   midi.init(cfg)
   midi.startReceive()
 
-proc initMidiUart*(midi: var MidiUartHandler, config: MidiUartHandlerConfig) =
-  ## Initialize a MIDI handler for UART (TRS/DIN) MIDI
-  ## (retained: init + start assembly).
+proc initMidiUart*[P: static UartPeripheral](midi: var MidiUartHandler, config: MidiUartHandlerConfig) =
+  ## Initialize a MIDI handler for UART (TRS/DIN) MIDI.
+  ## The UART is encoded in the static parameter `P` (USART_1..6); the
+  ## config's own periph field is set from it, so the bus cannot be mistyped.
   ##
   ## **Usage:**
   ## ```nim
   ## var midi: MidiUartHandler
   ## var config = newMidiUartConfig()
-  ## config.transport_config.periph = USART_1
   ## config.transport_config.rx = newPin(PORTB, 7)
   ## config.transport_config.tx = newPin(PORTB, 6)
-  ## initMidiUart(midi, config)
+  ## initMidiUart[USART_1](midi, config)
   ## ```
-  midi.init(config)
+  var cfg = config
+  cfg.transport_config.periph = P
+  midi.init(cfg)
   midi.startReceive()
 
 # =============================================================================

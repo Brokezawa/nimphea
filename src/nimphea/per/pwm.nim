@@ -68,7 +68,7 @@ type
     POLARITY_LOW       ## Output low when active
 
   # PWM Configuration
-  PwmConfig* {.importcpp: "daisy::PWMHandle::Config", bycopy.} = object
+  PwmConfigRaw* {.importcpp: "daisy::PWMHandle::Config", bycopy.} = object
     periph* {.importc: "periph".}: PwmPeripheral
     prescaler* {.importc: "prescaler".}: uint32
     period* {.importc: "period".}: uint32
@@ -79,7 +79,7 @@ type
     polarity* {.importc: "polarity".}: PwmPolarity
 
   # PWM Handle - must be declared before Channel since Channel references it
-  PwmHandle* {.importcpp: "daisy::PWMHandle".} = object
+  PwmHandleRaw* {.importcpp: "daisy::PWMHandle".} = object
 
   # PWM Channel - nested class reference
   PwmChannel* {.importcpp: "daisy::PWMHandle::Channel".} = object
@@ -87,38 +87,37 @@ type
 {.pop.} # header
 
 # C++ constructors
-proc newPwmHandle*(): PwmHandle
+proc newPwmHandle*(): PwmHandleRaw
   {.importcpp: "daisy::PWMHandle()", constructor, header: "daisy_seed.h".}
 
-proc newPwmConfig*(periph: PwmPeripheral, prescaler: uint32, period: uint32): PwmConfig
+proc newPwmConfigRaw(periph: PwmPeripheral, prescaler: uint32, period: uint32): PwmConfigRaw
   {.importcpp: "daisy::PWMHandle::Config(@)", constructor, header: "daisy_seed.h".}
 
 proc newPwmChannelConfig*(pin: Pin, polarity: PwmPolarity): PwmChannelConfig
   {.importcpp: "daisy::PWMHandle::Channel::Config(@)", constructor, header: "daisy_seed.h".}
 
-# =============================================================================
 # PwmHandle (bind-once)
 # =============================================================================
-proc init*(pwm: var PwmHandle, config: PwmConfig): PwmResult
+proc init*(pwm: var PwmHandleRaw, config: PwmConfigRaw): PwmResult
   {.importcpp: "#.Init(@)", header: "daisy_seed.h".}
   ## Initialize the PWM peripheral from a config
-proc deinit*(pwm: var PwmHandle): PwmResult
+proc deinit*(pwm: var PwmHandleRaw): PwmResult
   {.importcpp: "#.DeInit()", header: "daisy_seed.h".}
   ## Deinitialize the PWM peripheral
 
-proc channel1*(pwm: var PwmHandle): var PwmChannel {.importcpp: "#.Channel1()", header: "daisy_seed.h".}
+proc channel1*(pwm: var PwmHandleRaw): var PwmChannel {.importcpp: "#.Channel1()", header: "daisy_seed.h".}
   ## Get reference to channel 1
-proc channel2*(pwm: var PwmHandle): var PwmChannel {.importcpp: "#.Channel2()", header: "daisy_seed.h".}
+proc channel2*(pwm: var PwmHandleRaw): var PwmChannel {.importcpp: "#.Channel2()", header: "daisy_seed.h".}
   ## Get reference to channel 2
-proc channel3*(pwm: var PwmHandle): var PwmChannel {.importcpp: "#.Channel3()", header: "daisy_seed.h".}
+proc channel3*(pwm: var PwmHandleRaw): var PwmChannel {.importcpp: "#.Channel3()", header: "daisy_seed.h".}
   ## Get reference to channel 3
-proc channel4*(pwm: var PwmHandle): var PwmChannel {.importcpp: "#.Channel4()", header: "daisy_seed.h".}
+proc channel4*(pwm: var PwmHandleRaw): var PwmChannel {.importcpp: "#.Channel4()", header: "daisy_seed.h".}
   ## Get reference to channel 4
 
-proc setPrescaler*(pwm: var PwmHandle, prescaler: uint32)
+proc setPrescaler*(pwm: var PwmHandleRaw, prescaler: uint32)
   {.importcpp: "#.SetPrescaler(@)", header: "daisy_seed.h".}
   ## Change the prescaler after initialization
-proc setPeriod*(pwm: var PwmHandle, period: uint32)
+proc setPeriod*(pwm: var PwmHandleRaw, period: uint32)
   {.importcpp: "#.SetPeriod(@)", header: "daisy_seed.h".}
   ## Change the period after initialization (affects frequency and resolution)
 
@@ -192,32 +191,33 @@ proc calculatePwmParams(frequency: float, prescaler: var uint32, period: var uin
     let adjustedTicks = SYSCLK / (2.0 * frequency * (prescaler.float + 1.0))
     period = uint32(adjustedTicks) - 1
 
-proc initPwm*(pwm: var PwmHandle, peripheral: PwmPeripheral,
+proc initPwm*[P: static PwmPeripheral](pwm: var PwmHandleRaw,
               frequency: Hz = hz(1000.0)): PwmResult =
   ## Initialize a PWM handle with a target frequency.
   ## (channels must still be initialized individually; the C++ handles are
   ## non-copyable, so the caller owns the handle and this fills it in place)
   ##
   ## Parameters:
-  ##   pwm: handle created with `newPwmHandle()`
-  ##   peripheral: TIM_3, TIM_4, or TIM_5
+  ##   pwm: handle created with `newPwmHandle(TIM_3)`-style ownership: declare
+  ##        `var pwm = newPwmHandle()` and fill it in place
   ##   frequency: Target frequency in Hz (default 1000Hz / 1kHz)
+  ##   (the timer bank is the static parameter `P`)
   ##
   ## Example:
   ## ```nim
   ## var pwm = newPwmHandle()
-  ## discard pwm.initPwm(TIM_3, hz(1000.0))  # 1kHz
+  ## discard initPwm[TIM_3](pwm, hz(1000.0))  # 1kHz
   ## pwm.channel1.init()
   ## ```
   var prescaler, period: uint32
   calculatePwmParams(frequency.float, prescaler, period)
   # For 16-bit timers (TIM3, TIM4), clamp period to 16-bit max
-  if peripheral != TIM_5 and period > 0xFFFF:
+  if P != TIM_5 and period > 0xFFFF:
     period = 0xFFFF
-  var config = newPwmConfig(peripheral, prescaler, period)
-  result = pwm.init(config)
+  var config = newPwmConfigRaw(P, prescaler, period)
+  result = init(pwm, config)
 
-proc initPwmCustom*(pwm: var PwmHandle, peripheral: PwmPeripheral,
+proc initPwmCustom*[P: static PwmPeripheral](pwm: var PwmHandleRaw,
                     prescaler: uint32, period: uint32): PwmResult =
   ## Initialize a PWM handle with explicit prescaler and period values.
   ## Frequency = SYSCLK / (2 * (period + 1) * (prescaler + 1))
@@ -225,11 +225,11 @@ proc initPwmCustom*(pwm: var PwmHandle, peripheral: PwmPeripheral,
   ## Example:
   ## ```nim
   ## # 100Hz PWM with maximum resolution
-  ## var pwm = newPwmHandle()
-  ## discard pwm.initPwmCustom(TIM_5, 0, 2_400_000)
+  ## var pwm = newPwmHandle[TIM_5]()
+  ## discard pwm.initPwmCustom(0, 2_400_000)
   ## ```
-  var config = newPwmConfig(peripheral, prescaler, period)
-  result = pwm.init(config)
+  var config = newPwmConfigRaw(P, prescaler, period)
+  result = init(pwm, config)
 
 when isMainModule:
   echo "libDaisy PWM wrapper - Clean API"

@@ -139,7 +139,7 @@ proc blockSize*(this: var DaisySeed): csize_t {.importcpp: "#.AudioBlockSize()",
   ## Get the current audio block size (samples per callback)
 proc callbackRate*(this: DaisySeed): cfloat {.importcpp: "#.AudioCallbackRate()", header: "daisy_seed.h".}
   ## Get the audio callback rate in Hz
-proc audioSaiHandle*(this: DaisySeed): SaiHandle {.importcpp: "#.AudioSaiHandle()", header: "daisy_seed.h".}
+proc audioSaiHandle*(this: DaisySeed): SaiHandleRaw {.importcpp: "#.AudioSaiHandle()", header: "daisy_seed.h".}
   ## Get the SAI handle for the Daisy Seed audio interface (useful for a secondary codec)
 
 # =============================================================================
@@ -174,10 +174,10 @@ proc initGpio*(pin: Pin, mode: GPIOMode = OUTPUT,
 # =============================================================================
 # AudioHandle direct API (bind-once; advanced users)
 # =============================================================================
-proc init*(this: var AudioHandle, config: AudioConfig, sai: SaiHandle): AudioResult
+proc init*(this: var AudioHandle, config: AudioConfig, sai: SaiHandleRaw): AudioResult
   {.importcpp: "#.Init(@)", header: "hid/audio.h".}
   ## Initialize AudioHandle with a single SAI configured in stereo I2S mode.
-proc init*(this: var AudioHandle, config: AudioConfig, sai1, sai2: SaiHandle): AudioResult
+proc init*(this: var AudioHandle, config: AudioConfig, sai1, sai2: SaiHandleRaw): AudioResult
   {.importcpp: "#.Init(@)", header: "hid/audio.h".}
   ## Initialize AudioHandle with two SAI, each configured in stereo I2S mode.
 proc deinit*(this: var AudioHandle): AudioResult {.importcpp: "#.DeInit()", header: "hid/audio.h".}

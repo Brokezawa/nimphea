@@ -37,7 +37,7 @@ type
 
   GPIO* {.importcpp: "daisy::GPIO".} = object
 
-  # Sample rate enum (shared by AudioHandle and SaiHandle configs)
+  # Sample rate enum (shared by AudioHandle and SaiHandleRaw configs)
   SampleRate* {.importcpp: "daisy::SaiHandle::Config::SampleRate", size: sizeof(cint).} = enum
     SAI_8KHZ = 0
     SAI_16KHZ
@@ -217,7 +217,7 @@ type
 # =============================================================================
 {.push header: "per/sai.h".}
 type
-  SaiHandle* {.importcpp: "daisy::SaiHandle".} = object
+  SaiHandleRaw* {.importcpp: "daisy::SaiHandle".} = object
 {.pop.} # header
 
 # =============================================================================

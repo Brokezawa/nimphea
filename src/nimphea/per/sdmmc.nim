@@ -57,7 +57,6 @@ export fatfs
 useNimpheaModules(sdmmc, fatfs)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # SDMMC Handler types
@@ -83,7 +82,6 @@ type
 
   # SdmmcHandler is defined in nimphea_core_types.
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # Bind-once low-level interface for SdmmcHandler.

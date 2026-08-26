@@ -11,8 +11,9 @@
 ## var hw = initDaisy()
 ##
 ## # Initialize PWM on TIM3, channel 2 (internal LED on Daisy Seed)
-## var pwm = initPwm(TIM_3, frequency = 1000.0)  # 1kHz
-## pwm.channel2.init()
+## var pwm = newPwmHandle()
+## discard pwm.initPwm(TIM_3, frequency = 1000.0)  # 1kHz
+## discard pwm.channel2.init()
 ##
 ## # Fade LED in and out
 ## while true:
@@ -27,13 +28,14 @@
 ## Example - Multiple channels:
 ## ```nim
 ## # TIM4 with 4 channels (RGB LED + servo)
-## var pwm = initPwm(TIM_4, frequency = 50.0)  # 50Hz for servo
+## var pwm = newPwmHandle()
+## discard pwm.initPwm(TIM_4, frequency = 50.0)  # 50Hz for servo
 ##
 ## # Configure channels with specific pins
-## pwm.channel1.init(D13())  # Red LED
-## pwm.channel2.init(D14())  # Green LED
-## pwm.channel3.init(D11())  # Blue LED
-## pwm.channel4.init(D12())  # Servo control
+## discard pwm.channel1.init(D13())  # Red LED
+## discard pwm.channel2.init(D14())  # Green LED
+## discard pwm.channel3.init(D11())  # Blue LED
+## discard pwm.channel4.init(D12())  # Servo control
 ##
 ## # Set RGB color and servo position
 ## pwm.channel1.set(1.0)    # Red full
@@ -48,7 +50,6 @@ import nimphea
 useNimpheaModules(pwm)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # PWM Timer peripheral selection
@@ -84,7 +85,6 @@ type
   # PWM Channel - nested class reference
   PwmChannel* {.importcpp: "daisy::PWMHandle::Channel".} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # C++ constructors
@@ -193,41 +193,44 @@ proc calculatePwmParams(frequency: float, prescaler: var uint32, period: var uin
     let adjustedTicks = SYSCLK / (2.0 * frequency * (prescaler.float + 1.0))
     period = uint32(adjustedTicks) - 1
 
-proc initPwm*(peripheral: PwmPeripheral, frequency: float = 1000.0): PwmHandle =
-  ## Initialize PWM with a target frequency, returning a ready handle
-  ## (channels must still be initialized individually).
+proc initPwm*(pwm: var PwmHandle, peripheral: PwmPeripheral,
+              frequency: float = 1000.0): PwmResult =
+  ## Initialize a PWM handle with a target frequency.
+  ## (channels must still be initialized individually; the C++ handles are
+  ## non-copyable, so the caller owns the handle and this fills it in place)
   ##
   ## Parameters:
+  ##   pwm: handle created with `newPwmHandle()`
   ##   peripheral: TIM_3, TIM_4, or TIM_5
   ##   frequency: Target frequency in Hz (default 1000Hz / 1kHz)
   ##
   ## Example:
   ## ```nim
-  ## var pwm = initPwm(TIM_3, 1000.0)  # 1kHz
+  ## var pwm = newPwmHandle()
+  ## discard pwm.initPwm(TIM_3, 1000.0)  # 1kHz
   ## pwm.channel1.init()
   ## ```
-  result = newPwmHandle()
   var prescaler, period: uint32
   calculatePwmParams(frequency, prescaler, period)
   # For 16-bit timers (TIM3, TIM4), clamp period to 16-bit max
   if peripheral != TIM_5 and period > 0xFFFF:
     period = 0xFFFF
   var config = newPwmConfig(peripheral, prescaler, period)
-  discard result.init(config)
+  result = pwm.init(config)
 
-proc initPwmCustom*(peripheral: PwmPeripheral, prescaler: uint32,
-                    period: uint32): PwmHandle =
-  ## Initialize PWM with explicit prescaler and period values.
+proc initPwmCustom*(pwm: var PwmHandle, peripheral: PwmPeripheral,
+                    prescaler: uint32, period: uint32): PwmResult =
+  ## Initialize a PWM handle with explicit prescaler and period values.
   ## Frequency = SYSCLK / (2 * (period + 1) * (prescaler + 1))
   ##
   ## Example:
   ## ```nim
   ## # 100Hz PWM with maximum resolution
-  ## var pwm = initPwmCustom(TIM_5, 0, 2_400_000)
+  ## var pwm = newPwmHandle()
+  ## discard pwm.initPwmCustom(TIM_5, 0, 2_400_000)
   ## ```
-  result = newPwmHandle()
   var config = newPwmConfig(peripheral, prescaler, period)
-  discard result.init(config)
+  result = pwm.init(config)
 
 when isMainModule:
   echo "libDaisy PWM wrapper - Clean API"

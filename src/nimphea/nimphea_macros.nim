@@ -604,9 +604,13 @@ macro useNimpheaNamespace*(): untyped =
   ## ```
   ##
   ## **Compile-time code generation** - Zero runtime cost!
+  ##
+  ## **Note:** inert compatibility no-op since the v2.0 interop rework —
+  ## every binding carries its own `header:` pragma and fully-qualified
+  ## importcpp name.
   
   result = newStmtList()
-  
+  return
   # 1. Emit header includes in INCLUDESECTION
   let includesEmit = newNimNode(nnkPragma)
   includesEmit.add(
@@ -687,9 +691,13 @@ macro useNimpheaModules*(modules: varargs[untyped]): untyped =
   ## ```
   ##
   ## **Generates minimal C++ code at compile time** - Only what you need!
+  ##
+  ## **Note:** inert compatibility no-op since the v2.0 interop rework —
+  ## bindings carry their own `header:` pragmas and fully-qualified
+  ## importcpp names, so no injected includes/typedefs are needed.
   
   result = newStmtList()
-  
+  return
   # Collect which modules to include
   var includeDac = false
   var includeTim = false

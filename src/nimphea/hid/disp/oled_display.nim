@@ -34,7 +34,6 @@ import nimphea/hid/disp/draw2d
 useNimpheaModules(i2c, spi, oled)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 # Generic C++ member functions
 proc Init[T, C](display: var T, config: C) {.importcpp: "#.Init(@)", header: "daisy_seed.h".}

@@ -28,9 +28,7 @@
 
 import nimphea
 export nimphea_core_types
-import nimphea/nimphea_macros
 
-useNimpheaModules(dac)
 
 type
   DacResult* {.importcpp: "daisy::DacHandle::Result", size: sizeof(cint).} = enum

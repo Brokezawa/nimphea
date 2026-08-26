@@ -38,9 +38,7 @@
 ## - Safe to call in audio callback
 ## - No memory allocation
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(parameter)
 
 type
   Curve* {.importcpp: "daisy::Parameter::Curve", header: "hid/parameter.h", pure.} = enum

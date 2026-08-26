@@ -31,7 +31,6 @@ import nimphea/per/spi
 # Shared 2D drawing primitives (drawLine/drawRect/fillRect/drawCircle)
 import nimphea/hid/disp/draw2d
 
-useNimpheaModules(i2c, spi, oled)
 
 {.push header: "daisy_seed.h".}
 

@@ -50,9 +50,7 @@
 ## - Smoothing filter reduces jitter in average reading
 ## - Reset() clears min/max/avg for new measurement period
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(cpuload)
 
 type
   CpuLoadMeter* {.importcpp: "daisy::CpuLoadMeter", header: "util/CpuLoadMeter.h".} = object

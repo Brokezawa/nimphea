@@ -136,9 +136,7 @@
 ## ```
 
 import nimphea/per/qspi
-import nimphea/nimphea_macros
 
-useNimpheaModules(qspi, persistent_storage)
 
 {.push header: "util/PersistentStorage.h".}
 

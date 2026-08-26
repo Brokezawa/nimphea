@@ -66,14 +66,12 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/hid/gatein
 import nimphea/per/dac
 import nimphea/dev/codec_pcm3060
 import nimphea/nimphea_audio
 export nimphea_audio
 
-useNimpheaModules(patch_sm, codec_pcm3060)
 
 {.push header: "daisy_patch_sm.h".}
 
@@ -164,7 +162,7 @@ proc init*(this: var DaisyPatchSM)
   ## DAC for CV outputs is also started with default 48kHz callback.
   discard
 
-proc delay*(this: var DaisyPatchSM, milliseconds: uint32)
+proc delay*(this: var DaisyPatchSM, milliseconds: Milliseconds)
   {.importcpp: "#.Delay(#)".} =
   ## Delay execution for specified milliseconds
   ##

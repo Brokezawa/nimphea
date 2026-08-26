@@ -42,9 +42,7 @@
 ## var combined = red + purple
 ## ```
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(color)
 
 type
   PresetColor* {.importcpp: "daisy::Color::PresetColor",

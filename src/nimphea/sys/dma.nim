@@ -14,9 +14,7 @@
 ## domain (`{.section: ".sram1_bss".}`), which needs no manual cache management.
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(dma)
 
 {.push header: "sys/dma.h".}
 

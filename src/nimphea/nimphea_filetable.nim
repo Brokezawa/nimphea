@@ -263,9 +263,7 @@
 ## - FatFs documentation - Underlying filesystem library
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(file_table)
 
 {.push header: "util/FileTable.h".}
 

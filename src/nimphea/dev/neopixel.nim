@@ -32,9 +32,7 @@
 import nimphea
 export nimphea_core_types
 import nimphea/per/i2c
-import nimphea/nimphea_macros
 
-useNimpheaModules(neopixel, i2c)
 
 {.push header: "dev/neopixel.h".}
 

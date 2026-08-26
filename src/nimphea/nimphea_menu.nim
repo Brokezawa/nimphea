@@ -58,10 +58,8 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 
 # Include menu-related headers and typedefs
-useNimpheaModules(menu)
 
 {.push header: "ui/AbstractMenu.h".}
 

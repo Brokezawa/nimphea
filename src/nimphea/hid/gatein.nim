@@ -27,7 +27,6 @@
 
 import nimphea
 
-useNimpheaModules(gatein)
 
 type
   GateIn* {.importcpp: "daisy::GateIn", header: "hid/gatein.h".} = object

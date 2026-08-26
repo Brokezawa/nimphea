@@ -44,11 +44,9 @@
 ## - Maximum 16 metadata chunks
 ## - Little-endian host assumed (STM32/Cortex-M)
 
-import nimphea/nimphea_macros
 import nimphea/per/sdmmc
 import nimphea/nimphea_filereader
 
-useNimpheaModules(wav_parser)
 
 # Required: Enable FatFS FileReader implementation in libDaisy/src/util/FileReader.h
 {.passC: "-DFILEIO_ENABLE_FATFS_READER".}

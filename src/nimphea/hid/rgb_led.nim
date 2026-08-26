@@ -33,7 +33,6 @@
 import nimphea
 import nimphea_color  # For Color type
 
-useNimpheaModules(rgb_led)
 
 type
   RgbLed* {.importcpp: "daisy::RgbLed", header: "hid/rgb_led.h".} = object

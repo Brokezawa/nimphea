@@ -48,7 +48,6 @@ import nimphea
 import nimphea/per/i2c
 import nimphea/per/spi
 
-useNimpheaModules(icm20948)
 
 {.push header: "dev/icm20948.h".}
 

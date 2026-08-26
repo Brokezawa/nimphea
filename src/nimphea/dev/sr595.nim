@@ -39,9 +39,7 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(sr595)
 
 {.push header: "dev/sr_595.h".}
 

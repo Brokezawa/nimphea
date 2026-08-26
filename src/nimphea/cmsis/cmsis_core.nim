@@ -3,15 +3,6 @@
 ## This module provides the infrastructure for including CMSIS-DSP headers
 ## and setting up the C++ environment.
 ##
-## **Implementation Note:**
-## The `useCmsisModules` macro is retained as an inert compatibility no-op:
-## every CMSIS-DSP binding carries its own `header:` pragma (e.g.
-## `{.importc, header: "arm_math.h".}`), and header pragmas propagate into
-## every translation unit that uses the symbol — so no macro-injected
-## includes are needed. Legacy call sites keep compiling unchanged.
-
-import macros
-
 # ============================================================================
 # C++ Header Includes for CMSIS
 # ============================================================================
@@ -31,9 +22,3 @@ proc getCmsisHeaders*(moduleName: string): string =
   of "dsp_controller": "#include \"dsp/controller_functions.h\"\n"
   of "dsp_interpolation": "#include \"dsp/interpolation_functions.h\"\n"
   else: ""
-
-macro useCmsisModules*(modules: varargs[untyped]): untyped =
-  ## Selective inclusion of CMSIS-DSP modules (compatibility no-op).
-  ##
-  ## Bindings use `header:` pragmas; kept for legacy call sites.
-  result = newStmtList()

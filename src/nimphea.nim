@@ -6,7 +6,6 @@
 ## Basic Example:
 ## ```nim
 ## import nimphea
-## useNimpheaNamespace()  # Required: sets up C++ interop
 ## 
 ## proc main() =
 ##   var daisy = initDaisy()
@@ -21,7 +20,6 @@
 ## Audio Example:
 ## ```nim
 ## import nimphea
-## useNimpheaNamespace()  # Required: sets up C++ interop
 ## 
 ## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
 ##   for i in 0..<size:
@@ -38,12 +36,9 @@
 ##   main()
 ## ```
 ##
-## Note: The `useNimpheaNamespace()` macro automatically generates all necessary
-## C++ interop code at compile time. You just need to call it once after your imports!
+## All bindings carry fully-qualified C++ names and `header:` pragmas, so no
+## setup call is needed after importing.
 
-# Import and re-export the macro system for C++ interop
-import nimphea/nimphea_macros
-export useNimpheaNamespace, useNimpheaModules
 
 # Compiler configuration: libDaisy include paths, defines, and link flags
 # (passC/passL pragmas, paths resolved from this module's location)
@@ -81,8 +76,6 @@ type
 
 {.pop.} # header
 
-# Use the macro system for THIS compilation unit (nimphea.nim)
-useNimpheaNamespace()
 
 # =============================================================================
 # Constructors (single bindings)
@@ -111,9 +104,13 @@ proc initDaisy*(boost: bool = false): DaisySeed =
   result = newDaisySeed()
   result.init(boost)
 
-proc delay*(this: var DaisySeed, milliseconds: csize_t) {.importcpp: "#.DelayMs(@)", header: "daisy_seed.h".}
-proc delay*(this: var DaisySeed, milliseconds: int) = ## retained: int -> csize_t ergonomics
-  this.delay(milliseconds.csize_t)
+proc delay*(this: var DaisySeed, milliseconds: Milliseconds) {.importcpp: "#.DelayMs(#)", header: "daisy_seed.h".}
+  ## Blocking delay for the given time span
+  ##
+  ## **Example:**
+  ## ```nim
+  ## daisy.delay(ms(1000))
+  ## ```
 
 proc getPin*(pinIndex: uint8): Pin {.importcpp: "daisy::DaisySeed::GetPin(@)", header: "daisy_seed.h".}
   ## Get a Pin object by its index (0-32)

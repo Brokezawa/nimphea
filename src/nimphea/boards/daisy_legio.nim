@@ -57,14 +57,12 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/hid/rgb_led
 import nimphea/hid/gatein
 import nimphea/hid/switch3
 import nimphea/nimphea_audio
 export nimphea_audio
 
-useNimpheaModules(legio)
 
 {.push header: "daisy_legio.h".}
 
@@ -130,7 +128,7 @@ proc init*(this: var DaisyLegio, boost: bool = false)
   ## **Parameters:**
   ## - `boost` - Enable CPU boost mode (400MHz, default: false for 480MHz)
 
-proc delayMs*(this: var DaisyLegio, del: csize_t)
+proc delayMs*(this: var DaisyLegio, del: Milliseconds)
   {.importcpp: "#.DelayMs(#)".} =
   ## Delay for specified milliseconds
   ##

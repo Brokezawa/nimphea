@@ -47,9 +47,7 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(sr4021)
 
 {.push header: "dev/sr_4021.h".}
 

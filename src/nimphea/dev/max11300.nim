@@ -41,7 +41,6 @@ import nimphea/per/spi
 # Need to expose SPI types in the module
 export SpiPeripheral, SpiBaudPrescaler
 
-useNimpheaModules(max11300)
 
 {.push header: "dev/max11300.h".}
 

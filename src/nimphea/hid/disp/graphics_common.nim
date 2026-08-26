@@ -35,10 +35,6 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
-
-useNimpheaModules(oled)  # Display common types are part of OLED module
-useNimpheaModules(oled_fonts)  # For Font type
 
 {.push header: "hid/disp/graphics_common.h".}
 

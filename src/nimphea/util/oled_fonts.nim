@@ -36,9 +36,7 @@
 ## **Note:** These fonts are migrated from the stm32-ssd1306 library by afiskon.
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(oled_fonts)
 
 {.push header: "util/oled_fonts.h".}
 

@@ -57,9 +57,7 @@ import nimphea/per/i2c
 # NeoPixelI2C type + pixel methods (setPixelColor/show/clear/...) are canonical in neopixel
 import nimphea/dev/neopixel
 export neopixel
-import nimphea/nimphea_macros
 
-useNimpheaModules(neotrellis)
 
 {.push header: "dev/neotrellis.h".}
 

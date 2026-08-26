@@ -200,9 +200,7 @@
 ## - `per/adc <adc.html>`_ - Read CV inputs
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(voct)
 
 {.push header: "util/VoctCalibration.h".}
 

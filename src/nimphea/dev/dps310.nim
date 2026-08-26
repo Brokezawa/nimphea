@@ -45,7 +45,6 @@ import nimphea
 import nimphea/per/i2c
 import nimphea/per/spi
 
-useNimpheaModules(dps310)
 
 {.push header: "dev/dps310.h".}
 

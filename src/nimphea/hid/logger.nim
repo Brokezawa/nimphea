@@ -44,12 +44,10 @@
 ##   retarget) to reach a serial monitor — see syscalls.nim.
 
 import nimphea
-import nimphea/nimphea_macros
 
 when isMainModule:
   discard  # Examples removed for simplicity
 
-useNimpheaModules(logger)
 
 {.push header: "hid/logger.h".}
 

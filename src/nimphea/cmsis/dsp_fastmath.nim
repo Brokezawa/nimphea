@@ -6,7 +6,6 @@
 
 import cmsis_types, cmsis_core
 
-useCmsisModules(dsp_fastmath)
 
 # ============================================================================
 # Sine and Cosine

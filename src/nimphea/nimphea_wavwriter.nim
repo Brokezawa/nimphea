@@ -42,9 +42,7 @@
 ## writer.saveFile()  # Finalize and close
 ## ```
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(wav_writer)
 
 # Forward declarations
 type

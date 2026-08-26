@@ -33,7 +33,6 @@
 import nimphea
 export nimphea_core_types
 
-useNimpheaModules(controls)
 
 # Switch, SwitchType, SwitchPolarity and GpioPull are defined in nimphea_core_types.
 

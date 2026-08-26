@@ -47,7 +47,6 @@ import nimphea
 export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(sdram)
 
 {.push header: "dev/sdram.h".}
 

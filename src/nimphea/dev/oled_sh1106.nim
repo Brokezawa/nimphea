@@ -51,11 +51,9 @@ import nimphea
 export nimphea_core_types
 import nimphea/per/i2c
 import nimphea/per/spi
-import nimphea/nimphea_macros
 # Shared 2D drawing primitives (drawLine/drawRect/fillRect/drawCircle)
 import nimphea/hid/disp/draw2d
 
-useNimpheaModules(i2c, spi, sh1106)
 
 {.push header: "daisy_seed.h".}
 

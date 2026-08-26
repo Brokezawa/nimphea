@@ -6,7 +6,6 @@
 
 import cmsis_types, cmsis_core
 
-useCmsisModules(dsp_transforms)
 
 # ============================================================================
 # Complex FFT (CFFT)
@@ -110,3 +109,75 @@ proc inverse*[N: static int](fft: var RealFftInstance[N], input: openArray[float
     return ARM_MATH_ARGUMENT_ERROR
   arm_rfft_fast_f32(addr fft.instance, cast[ptr float32_t](addr input[0]), cast[ptr float32_t](addr output[0]), 1)
   return ARM_MATH_SUCCESS
+
+# ============================================================================
+# Compile-time-validated Complex FFT (precomputed instances, zero RAM)
+# ============================================================================
+#
+# CMSIS-DSP ships precomputed twiddle-table instances (`arm_const_structs.h`):
+# `extern const arm_cfft_instance_f32 arm_cfft_sR_f32_len16 ... len4096`.
+# Referencing one of these costs zero RAM and needs no init call. Sizes are
+# validated at compile time: `Cfft[100]` is a compile error, and the buffer
+# type `array[2*N, float32]` makes the sample count type-checked.
+#
+# Note: requires the CMSIS-DSP library (`-d:useCMSIS`), which also links the
+# `arm_cfft_f32` implementation. No `arm_rfft_fast_sR_f32_len*` precomputed
+# instances exist in this CMSIS-DSP vendor, so `RfftFast` stays runtime-init
+# (see `RealFftInstance` above).
+
+var cfft16 {.importc: "arm_cfft_sR_f32_len16", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft32 {.importc: "arm_cfft_sR_f32_len32", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft64 {.importc: "arm_cfft_sR_f32_len64", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft128 {.importc: "arm_cfft_sR_f32_len128", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft256 {.importc: "arm_cfft_sR_f32_len256", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft512 {.importc: "arm_cfft_sR_f32_len512", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft1024 {.importc: "arm_cfft_sR_f32_len1024", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft2048 {.importc: "arm_cfft_sR_f32_len2048", header: "arm_const_structs.h".}: CfftInstanceF32
+var cfft4096 {.importc: "arm_cfft_sR_f32_len4096", header: "arm_const_structs.h".}: CfftInstanceF32
+
+proc cfftInstance*[N: static int](): ptr CfftInstanceF32 =
+  ## Precomputed twiddle instance for size N (zero RAM, no init).
+  ##
+  ## **Compile error** when N is not a supported size.
+  when N == 16:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft16)
+  elif N == 32:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft32)
+  elif N == 64:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft64)
+  elif N == 128:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft128)
+  elif N == 256:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft256)
+  elif N == 512:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft512)
+  elif N == 1024:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft1024)
+  elif N == 2048:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft2048)
+  elif N == 4096:
+    result = cast[ptr CfftInstanceF32](unsafeAddr cfft4096)
+  else:
+    {.error: "Cfft: unsupported size " & $N & "; supported sizes: 16, 32, 64, 128, 256, 512, 1024, 2048, 4096".}
+
+type
+  Cfft*[N: static int] = object
+    ## A compile-time-validated Complex FFT backed by a precomputed
+    ## twiddle instance (zero RAM, no init call).
+    ##
+    ## `N` must be a supported power of two (16..4096); any other size is a
+    ## compile error. Transforms take a buffer typed `array[2*N, float32]`
+    ## (interleaved real/imaginary), so the sample count is type-checked.
+    instance*: ptr CfftInstanceF32
+
+proc newCfft*[N: static int](): Cfft[N] =
+  ## Construct the FFT instance for size N (zero RAM, no init call).
+  Cfft[N](instance: cfftInstance[N]())
+
+proc forward*[N: static int](fft: Cfft[N], data: var array[2 * N, float32]) {.inline.} =
+  ## In-place forward FFT over `data` (interleaved real/imaginary).
+  arm_cfft_f32(fft.instance, cast[ptr float32_t](addr data[0]), 0, 1)
+
+proc inverse*[N: static int](fft: Cfft[N], data: var array[2 * N, float32]) {.inline.} =
+  ## In-place inverse FFT over `data` (interleaved real/imaginary).
+  arm_cfft_f32(fft.instance, cast[ptr float32_t](addr data[0]), 1, 1)

@@ -30,9 +30,7 @@
 ## **Note:** The RNG is initialized automatically when you call `hw.init()` on your
 ## DaisySeed object, so you don't need to manually initialize it.
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(rng)
 
 # Static methods - called on the class itself
 proc randomInit*() {.importcpp: "daisy::Random::Init()".}

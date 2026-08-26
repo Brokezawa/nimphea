@@ -59,7 +59,6 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/hid/ctrl
 import nimphea/hid/rgb_led
 {.push warning[UnusedImport]: off.}
@@ -70,7 +69,6 @@ export rgb_led  # Export RgbLed methods for user convenience
 import nimphea/nimphea_audio
 export nimphea_audio
 
-useNimpheaModules(pod)
 
 {.push header: "daisy_pod.h".}
 
@@ -130,7 +128,7 @@ proc init*(this: var DaisyPod, boost: bool = false)
   ## `startAudio()` and `startAdc()`.
   discard
 
-proc delayMs*(this: var DaisyPod, del: csize_t)
+proc delayMs*(this: var DaisyPod, del: Milliseconds)
   {.importcpp: "#.DelayMs(#)".} =
   ## Delay execution for specified milliseconds
   ##
@@ -288,12 +286,12 @@ proc updateLeds*(this: var DaisyPod)
 # Convenience Helpers
 # ============================================================================
 
-proc delay*(this: var DaisyPod, milliseconds: int) {.inline.} =
+proc delay*(this: var DaisyPod, milliseconds: Milliseconds) {.inline.} =
   ## Delay execution (convenience wrapper)
   ##
   ## **Parameters:**
   ## - `milliseconds` - Delay time in milliseconds
-  this.delayMs(milliseconds.csize_t)
+  this.delayMs(milliseconds)
 
 # ============================================================================
 # Switch Helper Methods (forward to C++ methods)

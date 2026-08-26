@@ -67,7 +67,6 @@
 import nimphea
 export nimphea_core_types
 
-useNimpheaModules(usb, usb_midi, usb_host)
 
 {.push header: "hid/usb.h".}
 

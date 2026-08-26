@@ -43,10 +43,8 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/per/i2c
 
-useNimpheaModules(tlv493d)
 
 {.push header: "dev/tlv493d.h".}
 

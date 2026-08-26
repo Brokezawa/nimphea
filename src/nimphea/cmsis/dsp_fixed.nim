@@ -4,7 +4,6 @@
 
 import cmsis_types, cmsis_core
 
-useCmsisModules(dsp_basic, dsp_support)
 
 # ============================================================================
 # Q31 Operations

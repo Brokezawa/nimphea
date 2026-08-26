@@ -327,13 +327,13 @@ type
     SPI_DMA_TX
     SPI_DMA_RX_TX
 
-  SpiPinConfig* {.importcpp: "daisy::SpiHandle::Config::pin_config", bycopy.} = object
+  SpiPinConfig* {.importcpp: "decltype(daisy::SpiHandle::Config{}.pin_config)", bycopy.} = object
     sclk* {.importc: "sclk".}: Pin
     miso* {.importc: "miso".}: Pin
     mosi* {.importc: "mosi".}: Pin
     nss* {.importc: "nss".}: Pin
 
-  SpiConfig* {.importcpp: "daisy::SpiHandle::Config", bycopy.} = object
+  SpiConfigRaw* {.importcpp: "daisy::SpiHandle::Config", bycopy.} = object
     periph* {.importc: "periph".}: SpiPeripheral
     mode* {.importc: "mode".}: SpiMode
     direction* {.importc: "direction".}: SpiDirection
@@ -344,7 +344,7 @@ type
     baud_prescaler* {.importc: "baud_prescaler".}: SpiBaudPrescaler
     pin_config* {.importc: "pin_config".}: SpiPinConfig
 
-  SpiHandle* {.importcpp: "daisy::SpiHandle".} = object
+  SpiHandleRaw* {.importcpp: "daisy::SpiHandle".} = object
     pimpl {.importc: "pimpl_".}: ptr SpiHandleImpl
 
 {.pop.} # header
@@ -395,11 +395,11 @@ type
     DMA_RX = 0
     DMA_TX
 
-  UartPinConfig* {.importcpp: "daisy::UartHandler::Config::pin_config", bycopy.} = object
+  UartPinConfig* {.importcpp: "decltype(daisy::UartHandler::Config{}.pin_config)", bycopy.} = object
     tx* {.importcpp: "tx".}: Pin
     rx* {.importcpp: "rx".}: Pin
 
-  UartConfig* {.importcpp: "daisy::UartHandler::Config", bycopy.} = object
+  UartConfigRaw* {.importcpp: "daisy::UartHandler::Config", bycopy.} = object
     pin_config* {.importcpp: "pin_config".}: UartPinConfig
     periph* {.importcpp: "periph".}: UartPeripheral
     stopbits* {.importcpp: "stopbits".}: UartStopBits
@@ -408,7 +408,7 @@ type
     wordlength* {.importcpp: "wordlength".}: UartWordLength
     baudrate* {.importcpp: "baudrate".}: uint32
 
-  UartHandler* {.importcpp: "daisy::UartHandler".} = object
+  UartHandlerRaw* {.importcpp: "daisy::UartHandler".} = object
 
 {.pop.} # header
 
@@ -503,7 +503,7 @@ type
     reset* {.importc: "reset".}: Pin
 
   SSD130x4WireSpiTransportConfig* {.importcpp: "daisy::SSD130x4WireSpiTransport::Config", bycopy.} = object
-    spi_config* {.importc: "spi_config".}: SpiConfig
+    spi_config* {.importc: "spi_config".}: SpiConfigRaw
     pin_config* {.importc: "pin_config".}: SSD130xSpiPinConfig
     useDma* {.importc: "useDma".}: bool
 

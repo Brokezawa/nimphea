@@ -26,7 +26,7 @@
 ## config.color_order = RGB
 ## config.num_pixels = 16
 ##
-## var leds: DotStarSpi
+## var leds: DotStarSpi[SPI_1]
 ## if leds.init(config) == DS_OK:
 ##   leds.setPixelColor(0, 255, 0, 0)  # Red
 ##   leds.fill(0, 255, 0)  # Green on all pixels
@@ -34,11 +34,9 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/per/spi
 import nimphea_color
 
-useNimpheaModules(dotstar, spi)
 
 type
   DotStarResult* = enum
@@ -67,8 +65,8 @@ type
     color_order*: ColorOrder
     num_pixels*: uint16  ## Number of pixels (max 64)
 
-  DotStarSpi* = object
-    spi: SpiHandle
+  DotStarSpi*[P: static SpiPeripheral] = object
+    spi: SpiHandle[P]
     numPixels: uint16
     pixels: array[64, uint32]  ## 32-bit per pixel (brightness + RGB)
     rOffset, gOffset, bOffset: uint8
@@ -86,14 +84,15 @@ proc defaults*(config: var DotStarConfig) =
   config.color_order = RGB
   config.num_pixels = 1
 
-proc init*(dotstar: var DotStarSpi, config: DotStarConfig): DotStarResult =
-  ## Initialize DotStar strip
+proc init*[P: static SpiPeripheral](dotstar: var DotStarSpi[P], config: DotStarConfig): DotStarResult =
+  ## Initialize DotStar strip bound to the SPI peripheral encoded in `P`
   if config.num_pixels > MAX_NUM_PIXELS:
+    return DS_ERR_INVALID_ARGUMENT
+  if config.transport_config.periph != P:
     return DS_ERR_INVALID_ARGUMENT
   
   # Init SPI transport
-  dotstar.spi = initSPI(
-    config.transport_config.periph,
+  dotstar.spi = initSPI[P](
     config.transport_config.clk_pin,
     newPin(PORTA, 0),  # MISO not used
     config.transport_config.data_pin,

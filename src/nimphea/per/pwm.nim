@@ -12,24 +12,24 @@
 ##
 ## # Initialize PWM on TIM3, channel 2 (internal LED on Daisy Seed)
 ## var pwm = newPwmHandle()
-## discard pwm.initPwm(TIM_3, frequency = 1000.0)  # 1kHz
+## discard pwm.initPwm(TIM_3, frequency = hz(1000.0))  # 1kHz
 ## discard pwm.channel2.init()
 ##
 ## # Fade LED in and out
 ## while true:
 ##   for brightness in 0..100:
 ##     pwm.channel2.set(brightness / 100.0)
-##     hw.delay(10)
+##     hw.delay(ms(10))
 ##   for brightness in countdown(100, 0):
 ##     pwm.channel2.set(brightness / 100.0)
-##     hw.delay(10)
+##     hw.delay(ms(10))
 ## ```
 ##
 ## Example - Multiple channels:
 ## ```nim
 ## # TIM4 with 4 channels (RGB LED + servo)
 ## var pwm = newPwmHandle()
-## discard pwm.initPwm(TIM_4, frequency = 50.0)  # 50Hz for servo
+## discard pwm.initPwm(TIM_4, frequency = hz(50.0))  # 50Hz for servo
 ##
 ## # Configure channels with specific pins
 ## discard pwm.channel1.init(D13())  # Red LED
@@ -47,7 +47,6 @@
 import nimphea
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(pwm)
 
 {.push header: "daisy_seed.h".}
 
@@ -150,12 +149,12 @@ proc init*(channel: var PwmChannel, pin: Pin, polarity: PwmPolarity = POLARITY_H
 
 proc set*(channel: var PwmChannel, val: cfloat) {.importcpp: "#.Set(@)", header: "daisy_seed.h".}
   ## Set PWM duty cycle in the C++ float range 0.0..1.0 (raw binding)
-proc set*(channel: var PwmChannel, dutyCycle: float) {.inline.} = channel.set(dutyCycle.cfloat)
-  ## Set PWM duty cycle as a Nim float (0.0 to 1.0) — retained float→cfloat overload
+proc set*(channel: var PwmChannel, dutyCycle: DutyCycle) {.inline.} = channel.set(dutyCycle.cfloat)
+  ## Set PWM duty cycle (0.0 to 1.0) with the `DutyCycle` unit type
   ##
   ## Example:
   ## ```nim
-  ## channel.set(0.5)   # 50% duty cycle
+  ## channel.set(duty(0.5))   # 50% duty cycle
   ## ```
 
 proc setRaw*(channel: var PwmChannel, value: uint32)
@@ -194,7 +193,7 @@ proc calculatePwmParams(frequency: float, prescaler: var uint32, period: var uin
     period = uint32(adjustedTicks) - 1
 
 proc initPwm*(pwm: var PwmHandle, peripheral: PwmPeripheral,
-              frequency: float = 1000.0): PwmResult =
+              frequency: Hz = hz(1000.0)): PwmResult =
   ## Initialize a PWM handle with a target frequency.
   ## (channels must still be initialized individually; the C++ handles are
   ## non-copyable, so the caller owns the handle and this fills it in place)
@@ -207,11 +206,11 @@ proc initPwm*(pwm: var PwmHandle, peripheral: PwmPeripheral,
   ## Example:
   ## ```nim
   ## var pwm = newPwmHandle()
-  ## discard pwm.initPwm(TIM_3, 1000.0)  # 1kHz
+  ## discard pwm.initPwm(TIM_3, hz(1000.0))  # 1kHz
   ## pwm.channel1.init()
   ## ```
   var prescaler, period: uint32
-  calculatePwmParams(frequency, prescaler, period)
+  calculatePwmParams(frequency.float, prescaler, period)
   # For 16-bit timers (TIM3, TIM4), clamp period to 16-bit max
   if peripheral != TIM_5 and period > 0xFFFF:
     period = 0xFFFF

@@ -18,9 +18,7 @@
 ##   echo "Channels: ", header.NbrChannels
 ## ```
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(wav_format)
 
 const
   kWavFileChunkId* = 0x46464952'u32     ## "RIFF"

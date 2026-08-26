@@ -32,7 +32,6 @@
 ##     patch.delayMs(10)
 ## ```
 
-import nimphea/nimphea_macros
 import nimphea
 import nimphea/hid/ctrl
 import nimphea/hid/disp/oled_display
@@ -40,7 +39,6 @@ import nimphea/hid/gatein
 import nimphea/nimphea_audio
 export nimphea_audio
 
-useNimpheaModules(patch)
 
 export gatein  # Export GateIn methods for gate input access
 
@@ -82,7 +80,7 @@ proc init*(this: var DaisyPatch, boost: bool = false)
   ## - `boost` - Enable CPU boost mode (480MHz vs 400MHz)
   discard
 
-proc delayMs*(this: var DaisyPatch, del: csize_t)
+proc delayMs*(this: var DaisyPatch, del: Milliseconds)
   {.importcpp: "#.DelayMs(#)".} =
   ## Wait for specified milliseconds
   ##
@@ -268,9 +266,9 @@ proc encoderTimeHeldMs*(this: var DaisyPatch): cfloat
 
 # Convenience Helpers
 
-proc delay*(this: var DaisyPatch, milliseconds: int) {.inline.} =
+proc delay*(this: var DaisyPatch, milliseconds: Milliseconds) {.inline.} =
   ## Delay execution (convenience wrapper)
-  this.delayMs(milliseconds.csize_t)
+  this.delayMs(milliseconds)
 
 # Gate Input Helpers
 

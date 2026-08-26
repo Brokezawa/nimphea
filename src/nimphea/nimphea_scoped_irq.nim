@@ -235,9 +235,7 @@
 ## - `examples/system_control.nim` - Interrupt protection examples
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(scoped_irq)
 
 {.push header: "util/scopedirqblocker.h".}
 

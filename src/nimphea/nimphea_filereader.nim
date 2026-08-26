@@ -24,10 +24,8 @@
 
 import nimphea
 export nimphea_core_types
-import nimphea/nimphea_macros
 import nimphea/per/sdmmc
 
-useNimpheaModules(file_reader)
 
 type
   FileReader* {.importcpp: "daisy::FileReader", header: "util/FileReader.h".} = object

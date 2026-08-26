@@ -43,9 +43,7 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(lcd_hd44780)
 
 {.push header: "dev/lcd_hd44780.h".}
 

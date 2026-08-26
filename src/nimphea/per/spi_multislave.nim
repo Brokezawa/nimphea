@@ -116,9 +116,7 @@
 
 import nimphea  # For Pin type
 import spi
-import nimphea/nimphea_macros
 
-useNimpheaModules(spi, spi_multislave)
 
 {.push header: "per/spiMultislave.h".}
 

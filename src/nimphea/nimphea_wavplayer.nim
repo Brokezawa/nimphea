@@ -42,9 +42,7 @@
 ##   delay(1)
 ## ```
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(wav_player)
 
 # Forward declarations
 type

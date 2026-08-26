@@ -62,7 +62,6 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/hid/switch
 import nimphea/hid/led
 import nimphea/hid/rgb_led
@@ -73,7 +72,6 @@ export nimphea_audio
 export switch  # Export Switch methods
 export leddriver  # Export LED driver methods
 
-useNimpheaModules(petal)
 
 {.push header: "daisy_petal.h".}
 
@@ -168,7 +166,7 @@ proc init*(this: var DaisyPetal, boost: bool = false)
   ## `startAudio()` and `startAdc()`.
   discard
 
-proc delayMs*(this: var DaisyPetal, del: csize_t)
+proc delayMs*(this: var DaisyPetal, del: Milliseconds)
   {.importcpp: "#.DelayMs(#)".} =
   ## Delay execution for specified milliseconds
   ##

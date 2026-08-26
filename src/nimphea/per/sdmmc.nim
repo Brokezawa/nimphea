@@ -54,7 +54,6 @@ import nimphea/sys/fatfs
 export fatfs
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(sdmmc, fatfs)
 
 {.push header: "daisy_seed.h".}
 

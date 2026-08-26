@@ -44,7 +44,7 @@
 ## # Main loop
 ## while true:
 ##   ui.process()  # Handle events and redraw
-##   hw.delay(10)
+##   hw.delay(ms(10))
 ## ```
 ##
 ## Example - Multi-page menu system:
@@ -66,12 +66,10 @@
 
 import std/os
 import nimphea
-import nimphea/nimphea_macros
 import nimphea_ui_events
 import nimphea_menu  # For UiPage type
 
 # Include UI core headers and typedefs
-useNimpheaModules(ui_core)
 
 # Compiled C++ bridge for UI::Init's std::initializer_list parameter
 # (see ui_init_helper.h in this directory)

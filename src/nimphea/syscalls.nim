@@ -34,12 +34,11 @@
 ## import nimphea/per/uart
 ##
 ## var seed = newDaisySeed()
-## var uart = newUartHandler()
-## var config = newUartConfig()
-## config.periph = USART_1
-## config.baudrate = BAUD_115200
-## config.pin_config.tx = newPin(PORTG, 14)
-## config.pin_config.rx = newPin(PORTG, 9)
+## var uart = newUartHandler[USART_1]()
+## var config = newUartConfig[USART_1]()
+## config.setBaudrate(BAUD_115200)
+## config.pinConfig.tx = newPin(PORTG, 14)
+## config.pinConfig.rx = newPin(PORTG, 9)
 ##
 ## seed.init()
 ## if uart.init(config) == UART_OK:
@@ -55,14 +54,13 @@ when defined(UsartStdio):
   import nimphea
   import nimphea/per/uart
 
-  useNimpheaModules(serial)
 
   {.push cdecl, raises: [].}
 
   var usartStdioEnabled = false
-  var stdioUart: UartHandler
+  var stdioUart: UartHandle[USART_1]
 
-  proc enableUsartStdio*(uart: var UartHandler) =
+  proc enableUsartStdio*[P: static UartPeripheral](uart: var UartHandle[P]) =
     ## Route newlib stdio (and nim defect output) through `uart`
     usartStdioEnabled = true
     stdioUart = uart

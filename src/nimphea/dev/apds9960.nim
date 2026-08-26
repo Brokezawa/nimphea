@@ -40,10 +40,8 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/per/i2c
 
-useNimpheaModules(apds9960)
 
 {.push header: "dev/apds9960.h".}
 

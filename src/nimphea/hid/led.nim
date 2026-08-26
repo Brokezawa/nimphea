@@ -27,7 +27,6 @@
 
 import nimphea
 
-useNimpheaModules(led)
 
 type
   Led* {.importcpp: "daisy::Led", header: "hid/led.h".} = object

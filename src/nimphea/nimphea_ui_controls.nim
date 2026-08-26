@@ -42,10 +42,8 @@
 ##
 ## This module wraps libDaisy's ui/ButtonMonitor.h and ui/PotMonitor.h
 
-import nimphea/nimphea_macros
 import nimphea_ui_events
 
-useNimpheaModules(ui)
 
 {.push header: "ui/ButtonMonitor.h".}
 
@@ -114,7 +112,7 @@ proc process*[B, N](this: var ButtonMonitor[B, N]) {.
   ## ```nim
   ## while true:
   ##   buttonMonitor.process()
-  ##   daisy.delay(10)  # 100 Hz polling
+  ##   daisy.delay(ms(10))  # 100 Hz polling
   ## ```
 
 proc isButtonPressed*[B, N](this: var ButtonMonitor[B, N], 
@@ -225,7 +223,7 @@ proc process*[B, N](this: var PotMonitor[B, N]) {.
   ## ```nim
   ## while true:
   ##   potMonitor.process()
-  ##   daisy.delay(10)  # 100 Hz polling
+  ##   daisy.delay(ms(10))  # 100 Hz polling
   ## ```
 
 proc isMoving*[B, N](this: var PotMonitor[B, N], potId: uint16): bool {.

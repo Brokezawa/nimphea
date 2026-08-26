@@ -70,9 +70,7 @@
 
 import nimphea
 export nimphea_core_types
-import nimphea/nimphea_macros
 
-useNimpheaModules(qspi)
 
 # Forward declarations
 type

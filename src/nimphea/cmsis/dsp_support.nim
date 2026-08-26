@@ -5,7 +5,6 @@
 
 import cmsis_types, cmsis_core
 
-useCmsisModules(dsp_support)
 
 # ============================================================================
 ## Memory Operations

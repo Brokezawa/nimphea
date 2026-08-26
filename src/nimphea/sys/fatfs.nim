@@ -70,7 +70,6 @@ import nimphea
 export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(fatfs)
 
 {.push header: "sys/fatfs.h".}
 

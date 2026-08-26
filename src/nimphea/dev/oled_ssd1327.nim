@@ -41,11 +41,9 @@
 
 import nimphea
 import nimphea/per/spi
-import nimphea/nimphea_macros
 # Shared 2D drawing primitives (drawLine/drawRect/fillRect/drawCircle)
 import nimphea/hid/disp/draw2d
 
-useNimpheaModules(spi, ssd1327)
 
 {.push header: "daisy_seed.h".}
 
@@ -56,7 +54,7 @@ type
     reset* {.importc: "reset".}: Pin
   
   SSD13274WireSpiTransportConfig* {.importcpp: "daisy::SSD13274WireSpiTransport::Config", bycopy.} = object
-    spi_config* {.importc: "spi_config".}: SpiConfig
+    spi_config* {.importc: "spi_config".}: SpiConfigRaw
     pin_config* {.importc: "pin_config".}: SSD1327SpiPinConfig
   
   # Pre-instantiated SSD1327 Display type from libDaisy

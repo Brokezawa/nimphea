@@ -50,7 +50,6 @@ import nimphea/hid/switch
 export switch
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(controls, adc)
 
 # C++ constructors
 proc newEncoder*(): Encoder {.importcpp: "daisy::Encoder()", constructor, header: "daisy_seed.h".}

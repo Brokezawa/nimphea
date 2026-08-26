@@ -47,9 +47,7 @@
 ##     let table32 = loader.getTable(32)  # 33rd wavetable
 ## ```
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(wavetable_loader)
 
 # Forward declarations
 type

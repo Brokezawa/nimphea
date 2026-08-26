@@ -38,7 +38,7 @@
 ##     if sr.state(i):
 ##       # Button i is pressed (HIGH)
 ##
-##   hw.delay(10)
+##   hw.delay(ms(10))
 ## ```
 ##
 ## **Example - Daisy Field keyboard (16 keys, 2 chained devices):**

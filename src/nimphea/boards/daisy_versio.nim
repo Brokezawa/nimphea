@@ -55,7 +55,6 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/hid/switch
 import nimphea/hid/switch3
 import nimphea/hid/rgb_led
@@ -66,7 +65,6 @@ export nimphea_audio
 export switch  # Export Switch methods
 export gatein  # Export GateIn methods
 
-useNimpheaModules(versio)
 
 {.push header: "daisy_versio.h".}
 
@@ -136,7 +134,7 @@ proc init*(this: var DaisyVersio, boost: bool = false)
   ## `startAudio()` and `startAdc()`.
   discard
 
-proc delayMs*(this: var DaisyVersio, del: csize_t)
+proc delayMs*(this: var DaisyVersio, del: Milliseconds)
   {.importcpp: "#.DelayMs(#)".} =
   ## Delay execution for specified milliseconds
   ##

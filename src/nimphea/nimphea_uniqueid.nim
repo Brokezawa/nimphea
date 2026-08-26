@@ -32,9 +32,7 @@
 ## - Format: 96 bits = 3 x 32-bit words
 ## - Guaranteed unique across all STM32 devices
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(unique_id)
 
 type
   UniqueId* = object

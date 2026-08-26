@@ -32,11 +32,9 @@
 ## for that board (pre-existing limitation).
 
 import nimphea/nimphea_core_types
-import nimphea/nimphea_macros
 
 # The bridge's generated C++ names the board parameter by its Nim type name
 # (e.g. `DaisySeed&`), so its translation unit needs the daisy namespace.
-useNimpheaModules(core)
 
 # Opaque C++ callback types (daisy::AudioHandle::AudioCallback and its
 # interleaving sibling) — a C function pointer with the same shape as the

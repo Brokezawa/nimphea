@@ -37,9 +37,7 @@
 ## timer.delayUs(1000)
 ## ```
 
-import nimphea/nimphea_macros
 
-useNimpheaModules(tim)
 
 type
   TimerPeripheral* {.importcpp: "daisy::TimerHandle::Config::Peripheral",
@@ -155,7 +153,7 @@ proc delayTick*(timer: var TimerHandle, del: uint32) {.importcpp: "#.DelayTick(@
   ## ```nim
   ## timer.delayTick(1000)  # Wait 1000 ticks
   ## ```
-proc delayMs*(timer: var TimerHandle, del: uint32) {.importcpp: "#.DelayMs(@)".}
+proc delayMs*(timer: var TimerHandle, del: Milliseconds) {.importcpp: "#.DelayMs(@)".}
   ## Blocking delay for the specified number of milliseconds.
   ##
   ## **Example:**

@@ -30,7 +30,6 @@
 
 import nimphea
 
-useNimpheaModules(switch3)
 
 const
   SWITCH3_POS_CENTER* = 0  ## Center position

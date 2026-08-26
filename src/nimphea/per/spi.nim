@@ -75,7 +75,6 @@ import nimphea
 export nimphea_core_types
 
 # Use the macro system for this module's compilation unit
-useNimpheaModules(spi)
 
 {.push header: "daisy_seed.h".}
 
@@ -87,55 +86,166 @@ type
 # =============================================================================
 # SpiHandle (bind-once)
 # =============================================================================
-proc init*(spi: var SpiHandle, config: SpiConfig): SpiResult {.importcpp: "#.Init(@)".}
+proc initRaw(spi: var SpiHandleRaw, config: SpiConfigRaw): SpiResult {.importcpp: "#.Init(@)".}
+proc getConfigRaw(spi: SpiHandleRaw): SpiConfigRaw {.importcpp: "#.GetConfig()".}
 
-proc blockingTransmit*(spi: var SpiHandle, buff: ptr uint8, size: csize_t,
-                       timeout: uint32 = 100): SpiResult {.importcpp: "#.BlockingTransmit(@)".}
+proc blockingTransmitRaw(spi: var SpiHandleRaw, buff: ptr uint8, size: csize_t,
+                          timeout: uint32 = 100): SpiResult {.importcpp: "#.BlockingTransmit(@)".}
   ## Blocking transmit of `size` bytes
 
-proc blockingReceive*(spi: var SpiHandle, buffer: ptr uint8, size: uint16,
-                      timeout: uint32 = 100): SpiResult {.importcpp: "#.BlockingReceive(@)".}
+proc blockingReceiveRaw(spi: var SpiHandleRaw, buffer: ptr uint8, size: uint16,
+                         timeout: uint32 = 100): SpiResult {.importcpp: "#.BlockingReceive(@)".}
   ## Blocking receive of `size` bytes
 
-proc blockingTransmitAndReceive*(spi: var SpiHandle, tx_buff: ptr uint8, rx_buff: ptr uint8,
-                                 size: csize_t, timeout: uint32 = 100): SpiResult {.importcpp: "#.BlockingTransmitAndReceive(@)".}
+proc blockingTransmitAndReceiveRaw(spi: var SpiHandleRaw, tx_buff: ptr uint8, rx_buff: ptr uint8,
+                                    size: csize_t, timeout: uint32 = 100): SpiResult {.importcpp: "#.BlockingTransmitAndReceive(@)".}
   ## Blocking full-duplex transfer of `size` bytes
 
-proc dmaTransmit*(spi: var SpiHandle, buff: ptr uint8, size: csize_t,
-                  start_callback: SpiStartCallbackFunctionPtr,
-                  end_callback: SpiEndCallbackFunctionPtr,
-                  callback_context: pointer): SpiResult {.importcpp: "#.DmaTransmit(@)".}
+proc dmaTransmitRaw(spi: var SpiHandleRaw, buff: ptr uint8, size: csize_t,
+                     start_callback: SpiStartCallbackFunctionPtr,
+                     end_callback: SpiEndCallbackFunctionPtr,
+                     callback_context: pointer): SpiResult {.importcpp: "#.DmaTransmit(@)".}
   ## Non-blocking DMA transmit into a D2-memory buffer
 
-proc dmaReceive*(spi: var SpiHandle, buff: ptr uint8, size: csize_t,
-                 start_callback: SpiStartCallbackFunctionPtr,
-                 end_callback: SpiEndCallbackFunctionPtr,
-                 callback_context: pointer): SpiResult {.importcpp: "#.DmaReceive(@)".}
+proc dmaReceiveRaw(spi: var SpiHandleRaw, buff: ptr uint8, size: csize_t,
+                    start_callback: SpiStartCallbackFunctionPtr,
+                    end_callback: SpiEndCallbackFunctionPtr,
+                    callback_context: pointer): SpiResult {.importcpp: "#.DmaReceive(@)".}
   ## Non-blocking DMA receive into a D2-memory buffer
 
-proc dmaTransmitAndReceive*(spi: var SpiHandle, tx_buff: ptr uint8, rx_buff: ptr uint8,
-                            size: csize_t,
-                            start_callback: SpiStartCallbackFunctionPtr,
-                            end_callback: SpiEndCallbackFunctionPtr,
-                            callback_context: pointer): SpiResult {.importcpp: "#.DmaTransmitAndReceive(@)".}
+proc dmaTransmitAndReceiveRaw(spi: var SpiHandleRaw, tx_buff: ptr uint8, rx_buff: ptr uint8,
+                               size: csize_t,
+                               start_callback: SpiStartCallbackFunctionPtr,
+                               end_callback: SpiEndCallbackFunctionPtr,
+                               callback_context: pointer): SpiResult {.importcpp: "#.DmaTransmitAndReceive(@)".}
   ## Non-blocking DMA full-duplex transfer between two D2-memory buffers
 
 {.pop.} # header
 
 # C++ constructor
-proc newSpiHandle*(): SpiHandle {.importcpp: "daisy::SpiHandle()", constructor, header: "daisy_seed.h".}
+proc newSpiHandleRaw(): SpiHandleRaw {.importcpp: "daisy::SpiHandle()", constructor, header: "daisy_seed.h".}
 
 # =============================================================================
 # Value-adding helpers
 # =============================================================================
 
-proc initSPI*(peripheral: SpiPeripheral, sclkPin, misoPin, mosiPin: Pin,
-              nssPin: Pin = Pin(), speed: SpiBaudPrescaler = SPI_PS_8,
-              mode: int = 0): SpiHandle =
-  ## Initialize the SPI interface (retained: config assembly + mode mapping).
+# Static-peripheral API (the bus is part of the type)
+type
+  SpiHandle*[P: static SpiPeripheral] = object
+    ## SPI handle bound to a specific peripheral at compile time.
+    ## Mismatched bus/driver pairings are type errors.
+    raw: SpiHandleRaw
+
+  SpiConfig*[P: static SpiPeripheral] = object
+    ## SPI configuration bound to the same peripheral as its handle.
+    ## The peripheral is implied by `P`; only the transport settings
+    ## below are user-controlled.
+    raw: SpiConfigRaw
+
+# --- SpiConfig field accessors (the raw struct stays private) ---------------
+
+proc pinConfig*[P: static SpiPeripheral](c: SpiConfig[P]): SpiPinConfig {.inline.} =
+  c.raw.pin_config
+
+proc pinConfig*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiPinConfig {.inline.} =
+  c.raw.pin_config
+
+proc mode*[P: static SpiPeripheral](c: SpiConfig[P]): SpiMode {.inline.} =
+  c.raw.mode
+
+proc mode*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiMode {.inline.} =
+  c.raw.mode
+
+proc direction*[P: static SpiPeripheral](c: SpiConfig[P]): SpiDirection {.inline.} =
+  c.raw.direction
+
+proc direction*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiDirection {.inline.} =
+  c.raw.direction
+
+proc dataSize*[P: static SpiPeripheral](c: SpiConfig[P]): culong {.inline.} =
+  c.raw.datasize
+
+proc dataSize*[P: static SpiPeripheral](c: var SpiConfig[P]): var culong {.inline.} =
+  c.raw.datasize
+
+proc nss*[P: static SpiPeripheral](c: SpiConfig[P]): SpiNss {.inline.} =
+  c.raw.nss
+
+proc nss*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiNss {.inline.} =
+  c.raw.nss
+
+proc baudPrescaler*[P: static SpiPeripheral](c: SpiConfig[P]): SpiBaudPrescaler {.inline.} =
+  c.raw.baud_prescaler
+
+proc baudPrescaler*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiBaudPrescaler {.inline.} =
+  c.raw.baud_prescaler
+
+proc clockPolarity*[P: static SpiPeripheral](c: SpiConfig[P]): SpiClockPolarity {.inline.} =
+  c.raw.clock_polarity
+
+proc clockPolarity*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiClockPolarity {.inline.} =
+  c.raw.clock_polarity
+
+proc clockPhase*[P: static SpiPeripheral](c: SpiConfig[P]): SpiClockPhase {.inline.} =
+  c.raw.clock_phase
+
+proc clockPhase*[P: static SpiPeripheral](c: var SpiConfig[P]): var SpiClockPhase {.inline.} =
+  c.raw.clock_phase
+
+# --- Handle lifecycle --------------------------------------------------------
+
+proc init*[P: static SpiPeripheral](spi: var SpiHandle[P], config: SpiConfig[P]): SpiResult =
+  ## Initialize the SPI interface for the peripheral encoded in `P`.
+  ## The peripheral is taken from the static parameter — a config built
+  ## for another bus cannot be passed here (compile error).
+  var cfg = config.raw
+  cfg.periph = P
+  result = spi.raw.initRaw(cfg)
+
+proc getConfig*[P: static SpiPeripheral](spi: SpiHandle[P]): SpiConfig[P] {.inline.} =
+  result.raw = spi.raw.getConfigRaw()
+
+# --- Low-level transfers (ptr forms, e.g. for D2-memory DMA buffers) ---------
+
+proc blockingTransmit*[P: static SpiPeripheral](spi: var SpiHandle[P], buff: ptr uint8,
+                                                size: csize_t, timeout: uint32 = 100): SpiResult {.inline.} =
+  spi.raw.blockingTransmitRaw(buff, size, timeout)
+
+proc blockingReceive*[P: static SpiPeripheral](spi: var SpiHandle[P], buffer: ptr uint8,
+                                               size: uint16, timeout: uint32 = 100): SpiResult {.inline.} =
+  spi.raw.blockingReceiveRaw(buffer, size, timeout)
+
+proc blockingTransmitAndReceive*[P: static SpiPeripheral](spi: var SpiHandle[P], tx_buff: ptr uint8,
+                                                          rx_buff: ptr uint8, size: csize_t,
+                                                          timeout: uint32 = 100): SpiResult {.inline.} =
+  spi.raw.blockingTransmitAndReceiveRaw(tx_buff, rx_buff, size, timeout)
+
+proc dmaTransmit*[P: static SpiPeripheral](spi: var SpiHandle[P], buff: ptr uint8, size: csize_t,
+                                           start_callback: SpiStartCallbackFunctionPtr,
+                                           end_callback: SpiEndCallbackFunctionPtr,
+                                           callback_context: pointer): SpiResult {.inline.} =
+  spi.raw.dmaTransmitRaw(buff, size, start_callback, end_callback, callback_context)
+
+proc dmaReceive*[P: static SpiPeripheral](spi: var SpiHandle[P], buff: ptr uint8, size: csize_t,
+                                          start_callback: SpiStartCallbackFunctionPtr,
+                                          end_callback: SpiEndCallbackFunctionPtr,
+                                          callback_context: pointer): SpiResult {.inline.} =
+  spi.raw.dmaReceiveRaw(buff, size, start_callback, end_callback, callback_context)
+
+proc dmaTransmitAndReceive*[P: static SpiPeripheral](spi: var SpiHandle[P], tx_buff: ptr uint8,
+                                                     rx_buff: ptr uint8, size: csize_t,
+                                                     start_callback: SpiStartCallbackFunctionPtr,
+                                                     end_callback: SpiEndCallbackFunctionPtr,
+                                                     callback_context: pointer): SpiResult {.inline.} =
+  spi.raw.dmaTransmitAndReceiveRaw(tx_buff, rx_buff, size, start_callback, end_callback, callback_context)
+
+proc initSPI*[P: static SpiPeripheral](sclkPin, misoPin, mosiPin: Pin,
+                                       nssPin: Pin = Pin(), speed: SpiBaudPrescaler = SPI_PS_8,
+                                       mode: int = 0): SpiHandle[P] =
+  ## Initialize the SPI interface bound to the peripheral encoded in `P`
+  ## (retained: config assembly + mode mapping).
   ##
   ## Parameters:
-  ##   peripheral: SPI_1, SPI_2, SPI_3, SPI_4, SPI_5, or SPI_6
   ##   sclkPin: Clock pin (e.g., D8())
   ##   misoPin: Master In Slave Out pin
   ##   mosiPin: Master Out Slave In pin
@@ -145,40 +255,39 @@ proc initSPI*(peripheral: SpiPeripheral, sclkPin, misoPin, mosiPin: Pin,
   ##
   ## Example:
   ## ```nim
-  ## var spi = initSPI(SPI_1, D8(), D9(), D10())
+  ## var spi = initSPI[SPI_1](D8(), D9(), D10())
   ## ```
-  result = newSpiHandle()
-  var config: SpiConfig
-  config.periph = peripheral
+  result = SpiHandle[P](raw: newSpiHandleRaw())
+  var config: SpiConfig[P]
   config.mode = SPI_MASTER
   config.direction = SPI_TWO_LINES
-  config.datasize = 8
+  config.dataSize = 8
   config.nss = if nssPin.port == PORTX: SPI_NSS_SOFT else: SPI_NSS_HARD_OUTPUT
-  config.baud_prescaler = speed
-  config.pin_config.sclk = sclkPin
-  config.pin_config.miso = misoPin
-  config.pin_config.mosi = mosiPin
-  config.pin_config.nss = nssPin
+  config.baudPrescaler = speed
+  config.pinConfig.sclk = sclkPin
+  config.pinConfig.miso = misoPin
+  config.pinConfig.mosi = mosiPin
+  config.pinConfig.nss = nssPin
 
   # Set SPI mode (0-3)
   case mode
   of 0:
-    config.clock_polarity = SPI_CLOCK_POL_LOW
-    config.clock_phase = SPI_CLOCK_PHASE_1
+    config.clockPolarity = SPI_CLOCK_POL_LOW
+    config.clockPhase = SPI_CLOCK_PHASE_1
   of 1:
-    config.clock_polarity = SPI_CLOCK_POL_LOW
-    config.clock_phase = SPI_CLOCK_PHASE_2
+    config.clockPolarity = SPI_CLOCK_POL_LOW
+    config.clockPhase = SPI_CLOCK_PHASE_2
   of 2:
-    config.clock_polarity = SPI_CLOCK_POL_HIGH
-    config.clock_phase = SPI_CLOCK_PHASE_1
+    config.clockPolarity = SPI_CLOCK_POL_HIGH
+    config.clockPhase = SPI_CLOCK_PHASE_1
   of 3:
-    config.clock_polarity = SPI_CLOCK_POL_HIGH
-    config.clock_phase = SPI_CLOCK_PHASE_2
+    config.clockPolarity = SPI_CLOCK_POL_HIGH
+    config.clockPhase = SPI_CLOCK_PHASE_2
   else: discard
 
   discard result.init(config)
 
-proc transfer*(spi: var SpiHandle, txData: openArray[uint8],
+proc transfer*[P: static SpiPeripheral](spi: var SpiHandle[P], txData: openArray[uint8],
                rxBuffer: var openArray[uint8], timeout: uint32 = 100): SpiResult {.inline.} =
   ## Full-duplex transfer (transmit and receive simultaneously).
   ## txData and rxBuffer must be the same length.
@@ -189,43 +298,43 @@ proc transfer*(spi: var SpiHandle, txData: openArray[uint8],
   else:
     result = SPI_OK
 
-proc write*(spi: var SpiHandle, data: openArray[uint8], timeout: uint32 = 100): SpiResult {.inline.} =
+proc write*[P: static SpiPeripheral](spi: var SpiHandle[P], data: openArray[uint8], timeout: uint32 = 100): SpiResult {.inline.} =
   ## Write data via SPI (openArray wrapper with empty guard).
   if data.len > 0:
     result = spi.blockingTransmit(addr data[0], csize_t(data.len), timeout)
   else:
     result = SPI_OK
 
-proc read*(spi: var SpiHandle, buffer: var openArray[uint8], timeout: uint32 = 100): SpiResult {.inline.} =
+proc read*[P: static SpiPeripheral](spi: var SpiHandle[P], buffer: var openArray[uint8], timeout: uint32 = 100): SpiResult {.inline.} =
   ## Read data via SPI into the provided buffer (openArray wrapper with empty guard).
   if buffer.len > 0:
     result = spi.blockingReceive(addr buffer[0], uint16(buffer.len), timeout)
   else:
     result = SPI_OK
 
-proc writeByte*(spi: var SpiHandle, data: uint8, timeout: uint32 = 100): SpiResult {.inline.} =
+proc writeByte*[P: static SpiPeripheral](spi: var SpiHandle[P], data: uint8, timeout: uint32 = 100): SpiResult {.inline.} =
   ## Write a single byte.
   var b = data
   result = spi.blockingTransmit(addr b, 1, timeout)
 
-proc readByte*(spi: var SpiHandle, timeout: uint32 = 100): tuple[result: SpiResult, data: uint8] {.inline.} =
+proc readByte*[P: static SpiPeripheral](spi: var SpiHandle[P], timeout: uint32 = 100): tuple[result: SpiResult, data: uint8] {.inline.} =
   ## Read a single byte.
   result.data = 0
   result.result = spi.blockingReceive(addr result.data, 1, timeout)
 
-proc transferByte*(spi: var SpiHandle, txByte: uint8, timeout: uint32 = 100): tuple[result: SpiResult, rxByte: uint8] {.inline.} =
+proc transferByte*[P: static SpiPeripheral](spi: var SpiHandle[P], txByte: uint8, timeout: uint32 = 100): tuple[result: SpiResult, rxByte: uint8] {.inline.} =
   ## Transfer a single byte (full duplex).
   var tx = txByte
   result.rxByte = 0
   result.result = spi.blockingTransmitAndReceive(addr tx, addr result.rxByte, 1, timeout)
 
-proc writeRegister*(spi: var SpiHandle, regAddr: uint8, value: uint8,
+proc writeRegister*[P: static SpiPeripheral](spi: var SpiHandle[P], regAddr: uint8, value: uint8,
                     timeout: uint32 = 100): SpiResult =
   ## Write to a register (common SPI device pattern).
   var data: array[2, uint8] = [regAddr, value]
   result = spi.blockingTransmit(addr data[0], 2, timeout)
 
-proc readRegister*(spi: var SpiHandle, regAddr: uint8,
+proc readRegister*[P: static SpiPeripheral](spi: var SpiHandle[P], regAddr: uint8,
                    timeout: uint32 = 100): tuple[result: SpiResult, value: uint8] =
   ## Read from a register.
   var txData: array[2, uint8] = [regAddr, 0x00]
@@ -233,7 +342,7 @@ proc readRegister*(spi: var SpiHandle, regAddr: uint8,
   result.result = spi.blockingTransmitAndReceive(addr txData[0], addr rxData[0], 2, timeout)
   result.value = rxData[1]
 
-proc readRegisters*(spi: var SpiHandle, regAddr: uint8, buffer: var openArray[uint8],
+proc readRegisters*[P: static SpiPeripheral](spi: var SpiHandle[P], regAddr: uint8, buffer: var openArray[uint8],
                     timeout: uint32 = 100): SpiResult =
   ## Read multiple bytes from consecutive registers into the provided buffer.
   let count = buffer.len
@@ -262,7 +371,7 @@ proc readRegisters*(spi: var SpiHandle, regAddr: uint8, buffer: var openArray[ui
 # DMA (Non-Blocking) API
 # =============================================================================
 
-proc dmaTransmit*(spi: var SpiHandle,
+proc dmaTransmit*[P: static SpiPeripheral](spi: var SpiHandle[P],
                   buffer: var openArray[uint8],
                   startCallback: SpiStartCallbackFunctionPtr = nil,
                   endCallback: SpiEndCallbackFunctionPtr = nil,
@@ -291,7 +400,7 @@ proc dmaTransmit*(spi: var SpiHandle,
   else:
     result = SPI_OK
 
-proc dmaReceive*(spi: var SpiHandle,
+proc dmaReceive*[P: static SpiPeripheral](spi: var SpiHandle[P],
                  buffer: var openArray[uint8],
                  startCallback: SpiStartCallbackFunctionPtr = nil,
                  endCallback: SpiEndCallbackFunctionPtr = nil,
@@ -316,7 +425,7 @@ proc dmaReceive*(spi: var SpiHandle,
   else:
     result = SPI_OK
 
-proc dmaTransmitAndReceive*(spi: var SpiHandle,
+proc dmaTransmitAndReceive*[P: static SpiPeripheral](spi: var SpiHandle[P],
                             txBuffer: var openArray[uint8],
                             rxBuffer: var openArray[uint8],
                             startCallback: SpiStartCallbackFunctionPtr = nil,

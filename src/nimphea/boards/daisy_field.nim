@@ -61,7 +61,6 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/hid/disp/oled_display
 import nimphea/hid/gatein
 import nimphea/hid/switch
@@ -73,7 +72,6 @@ export gatein  # Export GateIn methods for gate input access
 import nimphea/nimphea_audio  # Shared audio callback bridge
 export nimphea_audio
 
-useNimpheaModules(field)
 
 {.push header: "daisy_field.h".}
 
@@ -178,7 +176,7 @@ proc init*(this: var DaisyField, boost: bool = false)
   ## `startAudio()` and `startAdc()`.
   discard
 
-proc delayMs*(this: var DaisyField, del: csize_t)
+proc delayMs*(this: var DaisyField, del: Milliseconds)
   {.importcpp: "#.DelayMs(#)".} =
   ## Delay execution for specified milliseconds
   ##
@@ -437,6 +435,6 @@ proc vegasMode*(this: var DaisyField)
 # Convenience Helpers
 # ============================================================================
 
-proc delay*(this: var DaisyField, milliseconds: int) {.inline.} =
+proc delay*(this: var DaisyField, milliseconds: Milliseconds) {.inline.} =
   ## Delay execution (convenience wrapper)
-  this.delayMs(milliseconds.csize_t)
+  this.delayMs(milliseconds)

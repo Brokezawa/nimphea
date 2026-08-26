@@ -23,9 +23,7 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 
-useNimpheaModules(codec_ak4556)
 
 # Ak4556 type is canonical in nimphea_core_types
 

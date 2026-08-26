@@ -78,7 +78,6 @@ export nimphea_core_types
 useNimpheaModules(spi)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # SPI callback function pointers
@@ -121,7 +120,6 @@ proc dmaTransmitAndReceive*(spi: var SpiHandle, tx_buff: ptr uint8, rx_buff: ptr
                             callback_context: pointer): SpiResult {.importcpp: "#.DmaTransmitAndReceive(@)".}
   ## Non-blocking DMA full-duplex transfer between two D2-memory buffers
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # C++ constructor

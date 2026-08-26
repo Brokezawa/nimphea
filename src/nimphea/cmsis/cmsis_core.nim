@@ -4,20 +4,11 @@
 ## and setting up the C++ environment.
 ##
 ## **Implementation Note:**
-## The `useCmsisModules` macro uses raw `{.emit.}` pragmas to inject C++ `#include`
-## directives. This approach is necessary because:
-##
-## 1. CMSIS-DSP headers must be available at C++ compile time before any
-##    function declarations are processed by the Nim C++ backend
-## 2. Nim's standard `{.header.}` pragma cannot be used directly on `importc`
-##    procedures that reference CMSIS types/functions
-## 3. The `emit` pragma allows precise control over the order and placement of
-##    includes in the generated C++ code
-##
-## Per AGENTS.md guidelines, raw `emit` is justified here because:
-## - This is infrastructure code (not application logic)
-## - The mechanism is well-documented and its purpose is clear
-## - Standard alternatives (header pragma) don't work for CMSIS integration
+## The `useCmsisModules` macro is retained as an inert compatibility no-op:
+## every CMSIS-DSP binding carries its own `header:` pragma (e.g.
+## `{.importc, header: "arm_math.h".}`), and header pragmas propagate into
+## every translation unit that uses the symbol — so no macro-injected
+## includes are needed. Legacy call sites keep compiling unchanged.
 
 import macros
 
@@ -27,6 +18,7 @@ import macros
 
 proc getCmsisHeaders*(moduleName: string): string =
   ## Returns the C++ header includes needed for a specific CMSIS module
+  ## (kept for documentation/tooling; the bindings carry `header:` pragmas)
   case moduleName
   of "dsp_basic": "#include \"dsp/basic_math_functions.h\"\n"
   of "dsp_filtering": "#include \"dsp/filtering_functions.h\"\n"
@@ -41,23 +33,7 @@ proc getCmsisHeaders*(moduleName: string): string =
   else: ""
 
 macro useCmsisModules*(modules: varargs[untyped]): untyped =
-  ## Selective inclusion of CMSIS-DSP modules.
+  ## Selective inclusion of CMSIS-DSP modules (compatibility no-op).
   ##
-  ## Injects the required #include statements.
-  
+  ## Bindings use `header:` pragmas; kept for legacy call sites.
   result = newStmtList()
-  
-  var headersStr = ""
-  headersStr.add("#include \"arm_math.h\"\n")
-  
-  for module in modules:
-    headersStr.add(getCmsisHeaders($module))
-  
-  let includesEmit = newNimNode(nnkPragma)
-  includesEmit.add(
-    newNimNode(nnkExprColonExpr).add(
-      newIdentNode("emit"),
-      newLit("/*INCLUDESECTION*/\n" & headersStr)
-    )
-  )
-  result.add(includesEmit)

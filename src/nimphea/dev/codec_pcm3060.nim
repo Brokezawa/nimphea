@@ -20,7 +20,7 @@
 ## import nimphea/dev/codec_pcm3060
 ## import nimphea/per/i2c
 ##
-## var i2c: I2CHandle
+## var i2c = initI2C[I2C_1](D16(), D17(), I2C_400KHZ)
 ## var codec: Pcm3060
 ##
 ## # Initialize I2C at 400kHz or less
@@ -32,10 +32,8 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/per/i2c
 
-useNimpheaModules(codec_pcm3060)
 
 {.push header: "dev/codec_pcm3060.h".}
 
@@ -56,7 +54,7 @@ type
 
 {.pop.}
 
-proc init*(this: var Pcm3060, i2c: I2CHandle): Pcm3060Result 
+proc init*[P: static I2CPeripheral](this: var Pcm3060, i2c: I2cHandle[P]): Pcm3060Result 
   {.importcpp: "#.Init(#)".}
   ## Initialize the PCM3060 codec
   ## 
@@ -73,8 +71,8 @@ proc init*(this: var Pcm3060, i2c: I2CHandle): Pcm3060Result
   ## 
   ## **Example:**
   ## ```nim
-  ## var i2c: I2CHandle
-  ## var i2cCfg: I2CConfig
+  ## var i2c = initI2C[I2C_1](D16(), D17(), I2C_400KHZ)
+  ## var i2cCfg: I2cConfig[I2C_1]
   ## var codec: Pcm3060
   ## 
   ## # Initialize I2C at 400kHz

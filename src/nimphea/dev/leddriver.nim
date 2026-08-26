@@ -23,15 +23,14 @@
 ## var bufferB {.section: ".sram_d2".}: LedDriverDmaBuffer[2]
 ##
 ## # Configure for 2 PCA9685 chips (32 LEDs total)
-## var config: LedDriverConfig[2]
-## config.i2c_config.periph = I2C_1
-## config.i2c_config.speed = I2C_400KHZ
-## config.i2c_config.scl = D11()
-## config.i2c_config.sda = D12()
+## var config: LedDriverConfig[2, I2C_1]
+## config.i2cConfig.speed = I2C_400KHZ
+## config.i2cConfig.pinConfig.scl = D11()
+## config.i2cConfig.pinConfig.sda = D12()
 ## config.addresses = [0'u8, 1'u8]  # Chip addresses
 ## config.oe_pin = D10()  # Optional output enable pin
 ##
-## var driver: LedDriverPca9685[2]
+## var driver: LedDriverPca9685[2, true, I2C_1]
 ## driver.init(config, addr(bufferA), addr(bufferB))
 ##
 ## # Set LED brightness (0.0 - 1.0)
@@ -44,11 +43,9 @@
 
 import nimphea
 export nimphea_core_types
-import nimphea/nimphea_macros
 import nimphea/per/i2c
 import nimphea/sys/system
 
-useNimpheaModules(leddriver, i2c)
 
 type
   ## DMA buffer for a single PCA9685 chip (16 channels)
@@ -61,14 +58,14 @@ type
   LedDriverDmaBuffer*[N: static int] = array[N, Pca9685TransmitBuffer]
 
   ## Configuration for PCA9685 LED driver
-  LedDriverConfig*[N: static int] = object
-    i2c_config*: I2CConfig         ## I2C peripheral configuration
+  LedDriverConfig*[N: static int, B: static I2CPeripheral = I2C_1] = object
+    i2c_config*: I2cConfig[B]      ## I2C bus configuration (bus from type param)
     addresses*: array[N, uint8]    ## I2C addresses for each chip (0-63, ORed with base address)
     oe_pin*: Pin                   ## Optional output enable pin (active low)
 
   ## PCA9685 LED driver for one or multiple chips on a single I2C bus
-  LedDriverPca9685*[N: static int, PersistentBuffer: static bool = true] = object
-    i2c*: I2CHandle
+  LedDriverPca9685*[N: static int, PersistentBuffer: static bool = true, B: static I2CPeripheral = I2C_1] = object
+    i2c*: I2cHandle[B]
     drawBuffer*: ptr LedDriverDmaBuffer[N]
     transmitBuffer*: ptr LedDriverDmaBuffer[N]
     addresses*: array[N, uint8]
@@ -78,7 +75,7 @@ type
 
   ## Type alias for Daisy Field LED driver (26 LEDs, 2× PCA9685 chips)
   ## This concrete type enables Field-specific wrapper procedures (v0.12.0 fix)
-  FieldLedDriver* = LedDriverPca9685[2, true]
+  FieldLedDriver* = LedDriverPca9685[2, true, I2C_1]
 
 const
   PCA9685_I2C_BASE_ADDRESS* = 0b01000000'u8
@@ -114,23 +111,23 @@ const
     3962, 4006, 4050, 4095'u16
   ]
 
-proc getDriverForLed*[N, P](driver: LedDriverPca9685[N, P], ledIndex: int): int {.inline.} =
+proc getDriverForLed*[N, P, B](driver: LedDriverPca9685[N, P, B], ledIndex: int): int {.inline.} =
   ## Get which PCA9685 chip contains the given LED (0..N-1)
   ledIndex shr 4  # Divide by 16
 
-proc getDriverChannelForLed*[N, P](driver: LedDriverPca9685[N, P], ledIndex: int): int {.inline.} =
+proc getDriverChannelForLed*[N, P, B](driver: LedDriverPca9685[N, P, B], ledIndex: int): int {.inline.} =
   ## Get which channel (0..15) on a chip the LED uses
   ledIndex and 0x0F
 
-proc getStartCycleForLed*[N, P](driver: LedDriverPca9685[N, P], ledIndex: int): uint16 {.inline.} =
+proc getStartCycleForLed*[N, P, B](driver: LedDriverPca9685[N, P, B], ledIndex: int): uint16 {.inline.} =
   ## Get staggered start cycle for LED (reduces current spikes)
   ((ledIndex shl 2) and 0x0FFF).uint16
 
-proc getNumLeds*[N, P](driver: LedDriverPca9685[N, P]): int {.inline.} =
+proc getNumLeds*[N, P, B](driver: LedDriverPca9685[N, P, B]): int {.inline.} =
   ## Returns total number of LEDs (16 per chip)
   N * 16
 
-proc initializeBuffers*[N, P](driver: var LedDriverPca9685[N, P]) =
+proc initializeBuffers*[N, P, B](driver: var LedDriverPca9685[N, P, B]) =
   ## Initialize both DMA buffers with staggered LED start cycles
   for led in 0 ..< driver.getNumLeds():
     let
@@ -146,7 +143,7 @@ proc initializeBuffers*[N, P](driver: var LedDriverPca9685[N, P]) =
     driver.transmitBuffer[][d].leds[ch].on = startCycle
     driver.transmitBuffer[][d].leds[ch].off = startCycle
 
-proc initializeDrivers*[N, P](driver: var LedDriverPca9685[N, P]) =
+proc initializeDrivers*[N, P, B](driver: var LedDriverPca9685[N, P, B]) =
   ## Initialize all PCA9685 chips via I2C
   # Init output enable pin if provided
   if driver.oePin.port != PORTX:
@@ -162,28 +159,28 @@ proc initializeDrivers*[N, P](driver: var LedDriverPca9685[N, P]) =
     buffer[0] = PCA9685_MODE1
     buffer[1] = 0x00
     discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
-    delay(20)
+    delay(ms(20))
     
     # Restart
     buffer[0] = PCA9685_MODE1
     buffer[1] = 0x00
     discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
-    delay(20)
+    delay(ms(20))
     
     # Enable auto-increment
     buffer[0] = PCA9685_MODE1
     buffer[1] = 0b00100000  # Auto increment on
     discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
-    delay(20)
+    delay(ms(20))
     
     # Configure MODE2
     buffer[0] = PCA9685_MODE2
     buffer[1] = 0b00110110  # OE=high-Z, push-pull, update on STOP, inverted
     discard driver.i2c.blockingTransmit(address, addr buffer[0], 2, 100)
-    delay(5)
+    delay(ms(5))
 
-proc init*[N, P](driver: var LedDriverPca9685[N, P],
-                 config: LedDriverConfig[N],
+proc init*[N, P, B](driver: var LedDriverPca9685[N, P, B],
+                 config: LedDriverConfig[N, B],
                  dmaBufferA: ptr LedDriverDmaBuffer[N],
                  dmaBufferB: ptr LedDriverDmaBuffer[N]) =
   ## Initialize the LED driver with DMA buffers
@@ -194,10 +191,9 @@ proc init*[N, P](driver: var LedDriverPca9685[N, P],
   ## var bufferB {.section: ".sram_d2".}: LedDriverDmaBuffer[2]
   ## driver.init(config, addr(bufferA), addr(bufferB))
   ## ```
-  driver.i2c = initI2C(
-    config.i2c_config.periph,
-    config.i2c_config.pin_config.scl,
-    config.i2c_config.pin_config.sda,
+  driver.i2c = initI2C[B](
+    config.i2c_config.pinConfig.scl,
+    config.i2c_config.pinConfig.sda,
     config.i2c_config.speed,
     config.i2c_config.mode
   )
@@ -210,7 +206,7 @@ proc init*[N, P](driver: var LedDriverPca9685[N, P],
   driver.initializeBuffers()
   driver.initializeDrivers()
 
-proc setLedRaw*[N, P](driver: var LedDriverPca9685[N, P], ledIndex: int, rawBrightness: uint16) =
+proc setLedRaw*[N, P, B](driver: var LedDriverPca9685[N, P, B], ledIndex: int, rawBrightness: uint16) =
   ## Set a single LED to raw 12-bit brightness (0-4095)
   let
     d = driver.getDriverForLed(ledIndex)
@@ -226,35 +222,35 @@ proc setLedRaw*[N, P](driver: var LedDriverPca9685[N, P], ledIndex: int, rawBrig
   else:
     driver.drawBuffer[][d].leds[ch].on = on
 
-proc setLed*[N, P](driver: var LedDriverPca9685[N, P], ledIndex: int, brightness: uint8) =
+proc setLed*[N, P, B](driver: var LedDriverPca9685[N, P, B], ledIndex: int, brightness: uint8) =
   ## Set a single LED to gamma-corrected brightness (0-255)
   let cycles = GAMMA_TABLE[brightness]
   driver.setLedRaw(ledIndex, cycles)
 
-proc setLed*[N, P](driver: var LedDriverPca9685[N, P], ledIndex: int, brightness: float32) =
+proc setLed*[N, P, B](driver: var LedDriverPca9685[N, P, B], ledIndex: int, brightness: float32) =
   ## Set a single LED to gamma-corrected brightness (0.0-1.0)
   let intBrightness = clamp(brightness * 255.0'f32, 0.0'f32, 255.0'f32).uint8
   driver.setLed(ledIndex, intBrightness)
 
-proc setAllToRaw*[N, P](driver: var LedDriverPca9685[N, P], rawBrightness: uint16) =
+proc setAllToRaw*[N, P, B](driver: var LedDriverPca9685[N, P, B], rawBrightness: uint16) =
   ## Set all LEDs to raw 12-bit brightness (0-4095)
   for led in 0 ..< driver.getNumLeds():
     driver.setLedRaw(led, rawBrightness)
 
-proc setAllTo*[N, P](driver: var LedDriverPca9685[N, P], brightness: uint8) =
+proc setAllTo*[N, P, B](driver: var LedDriverPca9685[N, P, B], brightness: uint8) =
   ## Set all LEDs to gamma-corrected brightness (0-255)
   let cycles = GAMMA_TABLE[brightness]
   driver.setAllToRaw(cycles)
 
-proc setAllTo*[N, P](driver: var LedDriverPca9685[N, P], brightness: float32) =
+proc setAllTo*[N, P, B](driver: var LedDriverPca9685[N, P, B], brightness: float32) =
   ## Set all LEDs to gamma-corrected brightness (0.0-1.0)
   let intBrightness = clamp(brightness * 255.0'f32, 0.0'f32, 255.0'f32).uint8
   driver.setAllTo(intBrightness)
 
 # Forward declaration for callback
-proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P])
 
-proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P]) =
+
+proc continueTransmission*[N, P, B](driver: var LedDriverPca9685[N, P, B]) =
   ## Continue DMA transmission to next chip (internal use)
   driver.currentDriverIdx += 1
   
@@ -283,7 +279,7 @@ proc continueTransmission*[N, P](driver: var LedDriverPca9685[N, P]) =
     discard driver.i2c.init(config)
     driver.currentDriverIdx = -1
 
-proc swapBuffersAndTransmit*[N, P](driver: var LedDriverPca9685[N, P], 
+proc swapBuffersAndTransmit*[N, P, B](driver: var LedDriverPca9685[N, P, B], 
                                     timeoutMs: int = 100): bool =
   ## Swap draw and transmit buffers, then start DMA transmission to all chips
   ## This is non-blocking - transmission happens in background via DMA
@@ -301,7 +297,7 @@ proc swapBuffersAndTransmit*[N, P](driver: var LedDriverPca9685[N, P],
   # Wait for current transmission to complete with timeout
   var timeout = timeoutMs
   while driver.currentDriverIdx >= 0 and timeout > 0:
-    delay(1)  # Use proper 1ms delay instead of busy-wait
+    delay(ms(1))  # Use proper 1ms delay instead of busy-wait
     timeout -= 1
   
   # Check if timeout occurred

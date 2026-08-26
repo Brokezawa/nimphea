@@ -120,9 +120,7 @@
 
 import nimphea
 export nimphea_core_types
-import nimphea/nimphea_macros
 
-useNimpheaModules(system)
 
 {.push header: "sys/system.h".}
 
@@ -393,7 +391,7 @@ proc getTick*(): uint32 {.importcpp: "daisy::System::GetTick()".}
   ## echo "At ", freq, " Hz = ", ticksElapsed.float / freq.float, " seconds"
   ## ```
 
-proc delay*(delay_ms: uint32) {.importcpp: "daisy::System::Delay(@)".}
+proc delay*(delay_ms: Milliseconds) {.importcpp: "daisy::System::Delay(@)".}
   ## Blocking delay in milliseconds.
   ##
   ## Uses SysTick timer (1ms resolution).

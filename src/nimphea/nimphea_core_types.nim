@@ -8,11 +8,6 @@
 ##
 ## This module is internal - import it indirectly through `nimphea`.
 
-import nimphea/nimphea_macros
-
-useNimpheaModules(core, controls, adc, dac, tim, rng, gatein, led, rgb_led,
-                  switch, switch3, parameter, sai, i2c, spi, serial,
-                  usb, usb_midi, midi, sdmmc, sdram, system, qspi, oled, neopixel)
 
 # =============================================================================
 # Hardware core (daisy_core.h - via daisy_seed.h)
@@ -256,19 +251,21 @@ type
     I2C_TRANSMIT = 0
     I2C_RECEIVE
 
-  I2CPinConfig* {.importcpp: "daisy::I2CHandle::Config::pin_config", bycopy.} = object
+  I2CPinConfig* {.importcpp: "decltype(daisy::I2CHandle::Config{}.pin_config)", bycopy.} = object
     scl* {.importc: "scl".}: Pin
     sda* {.importc: "sda".}: Pin
 
-  I2CConfig* {.importcpp: "daisy::I2CHandle::Config", bycopy.} = object
+  # Raw FFI types (D2-layout truth; the public static-peripheral wrappers
+  # I2cHandle[P]/I2cConfig[P] live in per/i2c and own these)
+  I2CConfigRaw* {.importcpp: "daisy::I2CHandle::Config", bycopy.} = object
     periph* {.importc: "periph".}: I2CPeripheral
     pin_config* {.importc: "pin_config".}: I2CPinConfig
     speed* {.importc: "speed".}: I2CSpeed
     mode* {.importc: "mode".}: I2CMode
     address* {.importc: "address".}: uint8
 
-  I2CHandle* {.importcpp: "daisy::I2CHandle".} = object
-    pimpl {.importc: "pimpl_".}: ptr I2CHandleImpl
+  I2CHandleRaw* {.importcpp: "daisy::I2CHandle".} = object
+    pimpl* {.importc: "pimpl_".}: ptr I2CHandleImpl
 
 {.pop.} # header
 
@@ -498,7 +495,7 @@ type
 
 type
   SSD130xI2CTransportConfig* {.importcpp: "daisy::SSD130xI2CTransport::Config", bycopy.} = object
-    i2c_config* {.importc: "i2c_config".}: I2CConfig
+    i2c_config* {.importc: "i2c_config".}: I2CConfigRaw
     i2c_address* {.importc: "i2c_address".}: uint8
 
   SSD130xSpiPinConfig* {.importcpp: "daisy::SSD130x4WireSpiTransport::Config::pin_config", bycopy.} = object
@@ -564,3 +561,27 @@ type
 type
   Ak4556* {.importcpp: "daisy::Ak4556".} = object
 {.pop.} # header
+
+# =============================================================================
+# Unit types (distinct wrappers for cross-module numeric quantities)
+# =============================================================================
+## Unit types prevent silent mixing of semantically different quantities:
+## `hz(48000)` cannot be passed where `ms(...)` is expected (type mismatch at
+## compile time). Each unit has an explicit constructor and a conversion back
+## to its base numeric type; the underlying representation is unchanged, so
+## the values pass through `importcpp`/`importc` bindings transparently.
+
+type
+  Hz* = distinct cfloat            ## frequency (hertz)
+  Milliseconds* = distinct uint32  ## time span (milliseconds)
+  Seconds* = distinct float        ## time span (seconds)
+  Baud* = distinct uint32          ## UART baud rate
+  DutyCycle* = distinct cfloat     ## PWM duty cycle [0..1]
+  Db* = distinct cfloat            ## gain (decibels)
+
+template hz*(v: cfloat): Hz = Hz(v)
+template ms*(v: uint32): Milliseconds = Milliseconds(v)
+template seconds*(v: float): Seconds = Seconds(v)
+template baud*(v: uint32): Baud = Baud(v)
+template duty*(v: cfloat): DutyCycle = DutyCycle(v)
+template db*(v: cfloat): Db = Db(v)

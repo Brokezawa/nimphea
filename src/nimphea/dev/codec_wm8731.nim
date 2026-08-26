@@ -20,7 +20,7 @@
 ## import nimphea/dev/codec_wm8731
 ## import nimphea/per/i2c
 ##
-## var i2c: I2CHandle
+## var i2c = initI2C[I2C_1](D16(), D17(), I2C_400KHZ)
 ## var codecCfg: Wm8731Config
 ## var codec: Wm8731
 ##
@@ -31,10 +31,8 @@
 ## ```
 
 import nimphea
-import nimphea/nimphea_macros
 import nimphea/per/i2c
 
-useNimpheaModules(codec_wm8731)
 
 {.push header: "dev/codec_wm8731.h".}
 
@@ -95,7 +93,7 @@ proc defaults*(this: var Wm8731Config) {.importcpp: "#.Defaults()".}
   ## cfg.fmt = Wm8731Format.I2S
   ## ```
 
-proc init*(this: var Wm8731, config: Wm8731Config, i2c: I2CHandle): Wm8731Result 
+proc init*[P: static I2CPeripheral](this: var Wm8731, config: Wm8731Config, i2c: I2cHandle[P]): Wm8731Result 
   {.importcpp: "#.Init(#, #)".}
   ## Initialize the WM8731 codec
   ## 
@@ -107,7 +105,7 @@ proc init*(this: var Wm8731, config: Wm8731Config, i2c: I2CHandle): Wm8731Result
   ## 
   ## **Example:**
   ## ```nim
-  ## var i2c: I2CHandle
+  ## var i2c = initI2C[I2C_1](D16(), D17(), I2C_400KHZ)
   ## var cfg: Wm8731Config
   ## var codec: Wm8731
   ## 

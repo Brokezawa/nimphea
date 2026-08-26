@@ -58,29 +58,27 @@ import nimphea/hid/disp/draw2d
 useNimpheaModules(i2c, spi, sh1106)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # Pre-instantiated SH1106 Display types from libDaisy
   # Using the short typedefs defined in the macro system (SH1106I2c128x64, SH1106Spi128x64)
   # I2C variant (128x64 only)
-  SH1106I2c128x64* {.importcpp: "SH1106I2c128x64".} = object
+  SH1106I2c128x64* {.importcpp: "daisy::SH1106I2c128x64Driver".} = object
   
   # SPI variant (128x64 only)
-  SH1106Spi128x64* {.importcpp: "SH1106Spi128x64".} = object
+  SH1106Spi128x64* {.importcpp: "daisy::SH11064WireSpi128x64Driver".} = object
   
   # Config structs - reuse SSD130x transport types from nimphea_core_types
   # (identical structure)
-  SH1106I2cConfig* {.importcpp: "SH1106I2c128x64::Config", bycopy.} = object
+  SH1106I2cConfig* {.importcpp: "daisy::SH1106I2c128x64Driver::Config", bycopy.} = object
     transport_config* {.importc: "transport_config".}: SSD130xI2CTransportConfig
   
-  SH1106SpiConfig* {.importcpp: "SH1106Spi128x64::Config", bycopy.} = object
+  SH1106SpiConfig* {.importcpp: "daisy::SH11064WireSpi128x64Driver::Config", bycopy.} = object
     transport_config* {.importc: "transport_config".}: SSD130x4WireSpiTransportConfig
   
   # Union type for generic operations
   OledSH1106* = SH1106I2c128x64 | SH1106Spi128x64
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # Generic C++ member functions
@@ -92,11 +90,11 @@ proc Fill[T](display: var T, on: bool) {.importcpp: "#.Fill(@)", header: "daisy_
 proc Update[T](display: var T) {.importcpp: "#.Update()", header: "daisy_seed.h".}
 
 # Constructors
-proc newSH1106I2c(): SH1106I2c128x64 {.importcpp: "SH1106I2c128x64()", constructor, header: "daisy_seed.h".}
-proc newSH1106Spi(): SH1106Spi128x64 {.importcpp: "SH1106Spi128x64()", constructor, header: "daisy_seed.h".}
+proc newSH1106I2c(): SH1106I2c128x64 {.importcpp: "daisy::SH1106I2c128x64Driver()", constructor, header: "daisy_seed.h".}
+proc newSH1106Spi(): SH1106Spi128x64 {.importcpp: "daisy::SH11064WireSpi128x64Driver()", constructor, header: "daisy_seed.h".}
 
-proc newSH1106I2cConfig(): SH1106I2cConfig {.importcpp: "SH1106I2c128x64::Config()", constructor, header: "daisy_seed.h".}
-proc newSH1106SpiConfig(): SH1106SpiConfig {.importcpp: "SH1106Spi128x64::Config()", constructor, header: "daisy_seed.h".}
+proc newSH1106I2cConfig(): SH1106I2cConfig {.importcpp: "daisy::SH1106I2c128x64Driver::Config()", constructor, header: "daisy_seed.h".}
+proc newSH1106SpiConfig(): SH1106SpiConfig {.importcpp: "daisy::SH11064WireSpi128x64Driver::Config()", constructor, header: "daisy_seed.h".}
 
 # Transport defaults (reuse SSD130x transport defaults)
 proc Defaults*(config: var SSD130xI2CTransportConfig) {.importcpp: "#.Defaults()", header: "daisy_seed.h".}

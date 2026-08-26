@@ -48,7 +48,6 @@ import nimphea/hid/disp/draw2d
 useNimpheaModules(spi, ssd1327)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # SPI transport configuration
@@ -62,13 +61,12 @@ type
   
   # Pre-instantiated SSD1327 Display type from libDaisy
   # Using the short typedef defined in the macro system (SSD1327Spi128x128)
-  SSD1327Spi128x128* {.importcpp: "SSD1327Spi128x128".} = object
+  SSD1327Spi128x128* {.importcpp: "daisy::SSD13274WireSpi128x128Driver".} = object
   
   # Config struct
-  SSD1327SpiConfig* {.importcpp: "SSD1327Spi128x128::Config", bycopy.} = object
+  SSD1327SpiConfig* {.importcpp: "daisy::SSD13274WireSpi128x128Driver::Config", bycopy.} = object
     transport_config* {.importc: "transport_config".}: SSD13274WireSpiTransportConfig
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # Generic C++ member functions
@@ -81,8 +79,8 @@ proc Update[T](display: var T) {.importcpp: "#.Update()", header: "daisy_seed.h"
 proc Set_Color[T](display: var T, color: uint8) {.importcpp: "#.Set_Color(@)", header: "daisy_seed.h".}
 
 # Constructors
-proc newSSD1327Spi(): SSD1327Spi128x128 {.importcpp: "SSD1327Spi128x128()", constructor, header: "daisy_seed.h".}
-proc newSSD1327SpiConfig(): SSD1327SpiConfig {.importcpp: "SSD1327Spi128x128::Config()", constructor, header: "daisy_seed.h".}
+proc newSSD1327Spi(): SSD1327Spi128x128 {.importcpp: "daisy::SSD13274WireSpi128x128Driver()", constructor, header: "daisy_seed.h".}
+proc newSSD1327SpiConfig(): SSD1327SpiConfig {.importcpp: "daisy::SSD13274WireSpi128x128Driver::Config()", constructor, header: "daisy_seed.h".}
 
 # Transport defaults
 proc Defaults*(config: var SSD13274WireSpiTransportConfig) {.importcpp: "#.Defaults()", header: "daisy_seed.h".}

@@ -213,57 +213,59 @@ proc toggleLed*(daisy: var DaisySeed) =
 
 # =============================================================================
 # Pin constants for Daisy Seed
-# =============================================================================
-template D0*(): Pin = newPin(PORTB, 12)
-template D1*(): Pin = newPin(PORTC, 11)
-template D2*(): Pin = newPin(PORTC, 10)
-template D3*(): Pin = newPin(PORTC, 9)
-template D4*(): Pin = newPin(PORTC, 8)
-template D5*(): Pin = newPin(PORTD, 2)
-template D6*(): Pin = newPin(PORTC, 12)
-template D7*(): Pin = newPin(PORTG, 10)
-template D8*(): Pin = newPin(PORTG, 11)
-template D9*(): Pin = newPin(PORTB, 4)
-template D10*(): Pin = newPin(PORTB, 5)
-template D11*(): Pin = newPin(PORTB, 8)
-template D12*(): Pin = newPin(PORTB, 9)
-template D13*(): Pin = newPin(PORTB, 6)
-template D14*(): Pin = newPin(PORTB, 7)
-template D15*(): Pin = newPin(PORTC, 0)
-template D16*(): Pin = newPin(PORTA, 3)
-template D17*(): Pin = newPin(PORTB, 1)
-template D18*(): Pin = newPin(PORTA, 7)
-template D19*(): Pin = newPin(PORTA, 6)
-template D20*(): Pin = newPin(PORTC, 1)
-template D21*(): Pin = newPin(PORTC, 4)
-template D22*(): Pin = newPin(PORTA, 5)
-template D23*(): Pin = newPin(PORTA, 4)
-template D24*(): Pin = newPin(PORTA, 1)
-template D25*(): Pin = newPin(PORTA, 0)
-template D26*(): Pin = newPin(PORTD, 11)
-template D27*(): Pin = newPin(PORTG, 9)
-template D28*(): Pin = newPin(PORTA, 2)
-template D29*(): Pin = newPin(PORTB, 14)
-template D30*(): Pin = newPin(PORTB, 15)
-template D31*(): Pin = newPin(PORTC, 2)
-template D32*(): Pin = newPin(PORTC, 3)
-
-# Analog pin aliases
-template A0*(): Pin = D15()
-template A1*(): Pin = D16()
-template A2*(): Pin = D17()
-template A3*(): Pin = D18()
-template A4*(): Pin = D19()
-template A5*(): Pin = D20()
-template A6*(): Pin = D21()
-template A7*(): Pin = D22()
-template A8*(): Pin = D23()
-template A9*(): Pin = D24()
-template A10*(): Pin = D25()
-template A11*(): Pin = D28()
-template A12*(): Pin = D31()
-template A13*(): Pin = D32()
-
+# ============
+## Static-pin constants for the Daisy Seed labelled pins (D0-D32 and the
+## analog aliases A0-A13), matching libDaisy's constexpr table exactly.
+## Each constant carries its port+pin in the type (`StaticPin[PORTB, 12]`),
+## so mixing pins from different ports is a compile-time error. Use the
+## runtime `newPin(port, pinNo)` constructor for pins chosen at runtime.
+const D0* = staticPinConst[PORTB, 12]()
+const D1* = staticPinConst[PORTC, 11]()
+const D2* = staticPinConst[PORTC, 10]()
+const D3* = staticPinConst[PORTC, 9]()
+const D4* = staticPinConst[PORTC, 8]()
+const D5* = staticPinConst[PORTD, 2]()
+const D6* = staticPinConst[PORTC, 12]()
+const D7* = staticPinConst[PORTG, 10]()
+const D8* = staticPinConst[PORTG, 11]()
+const D9* = staticPinConst[PORTB, 4]()
+const D10* = staticPinConst[PORTB, 5]()
+const D11* = staticPinConst[PORTB, 8]()
+const D12* = staticPinConst[PORTB, 9]()
+const D13* = staticPinConst[PORTB, 6]()
+const D14* = staticPinConst[PORTB, 7]()
+const D15* = staticPinConst[PORTC, 0]()
+const D16* = staticPinConst[PORTA, 3]()
+const D17* = staticPinConst[PORTB, 1]()
+const D18* = staticPinConst[PORTA, 7]()
+const D19* = staticPinConst[PORTA, 6]()
+const D20* = staticPinConst[PORTC, 1]()
+const D21* = staticPinConst[PORTC, 4]()
+const D22* = staticPinConst[PORTA, 5]()
+const D23* = staticPinConst[PORTA, 4]()
+const D24* = staticPinConst[PORTA, 1]()
+const D25* = staticPinConst[PORTA, 0]()
+const D26* = staticPinConst[PORTD, 11]()
+const D27* = staticPinConst[PORTG, 9]()
+const D28* = staticPinConst[PORTA, 2]()
+const D29* = staticPinConst[PORTB, 14]()
+const D30* = staticPinConst[PORTB, 15]()
+const D31* = staticPinConst[PORTC, 2]()
+const D32* = staticPinConst[PORTC, 3]()
+const A0* = D15
+const A1* = D16
+const A2* = D17
+const A3* = D18
+const A4* = D19
+const A5* = D20
+const A6* = D21
+const A7* = D22
+const A8* = D23
+const A9* = D24
+const A10* = D25
+const A11* = D28
+const A12* = D31
+const A13* = D32
 # =============================================================================
 # Audio sample conversion helpers
 # =============================================================================

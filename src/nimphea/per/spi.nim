@@ -22,7 +22,7 @@
 ## import nimphea, per/spi
 ##
 ## var daisy = initDaisy()
-## var spi = initSPI(SPI_1, D8(), D9(), D10())
+## var spi = initSPI(SPI_1, D8, D9, D10)
 ##
 ## # Write bytes (BLOCKS - don't use in audio callback!)
 ## discard spi.write([0x01'u8, 0x02, 0x03, 0x04])
@@ -59,7 +59,7 @@
 ##   transferComplete = true
 ##
 ## var daisy = initDaisy()
-## var spi = initSPI(SPI_1, D8(), D9(), D10())
+## var spi = initSPI(SPI_1, D8, D9, D10)
 ##
 ## # Start DMA transfer (non-blocking)
 ## discard spi.dmaTransmit(txBuffer, nil, onTransferComplete, nil)
@@ -246,7 +246,7 @@ proc initSPI*[P: static SpiPeripheral](sclkPin, misoPin, mosiPin: Pin,
   ## (retained: config assembly + mode mapping).
   ##
   ## Parameters:
-  ##   sclkPin: Clock pin (e.g., D8())
+  ##   sclkPin: Clock pin (e.g., D8)
   ##   misoPin: Master In Slave Out pin
   ##   mosiPin: Master Out Slave In pin
   ##   nssPin: Chip select pin (optional, use Pin() for software CS)
@@ -255,7 +255,7 @@ proc initSPI*[P: static SpiPeripheral](sclkPin, misoPin, mosiPin: Pin,
   ##
   ## Example:
   ## ```nim
-  ## var spi = initSPI[SPI_1](D8(), D9(), D10())
+  ## var spi = initSPI[SPI_1](D8, D9, D10)
   ## ```
   result = SpiHandle[P](raw: newSpiHandleRaw())
   var config: SpiConfig[P]

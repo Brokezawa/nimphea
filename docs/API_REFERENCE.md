@@ -1187,7 +1187,7 @@ proc midiNoteToFreq*(midiNote: float32): float32
 proc midiNoteToName*(midiNote: int): string
 ```
 
-## Macros
-C++ Interop macro system. Used internally by wrappers to generate C++ code.
-- `useNimpheaNamespace()`
-- `useNimpheaModules()`
+## Interop model
+No macro/emission system. Every binding carries a fully-qualified C++ name
+(`importcpp: "daisy::..."`) and its own `header:` pragma; types live in
+`nimphea_core_types.nim`. Importing `nimphea` is the only setup step.

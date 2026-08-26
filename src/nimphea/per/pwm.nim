@@ -32,10 +32,10 @@
 ## discard pwm.initPwm(TIM_4, frequency = hz(50.0))  # 50Hz for servo
 ##
 ## # Configure channels with specific pins
-## discard pwm.channel1.init(D13())  # Red LED
-## discard pwm.channel2.init(D14())  # Green LED
-## discard pwm.channel3.init(D11())  # Blue LED
-## discard pwm.channel4.init(D12())  # Servo control
+## discard pwm.channel1.init(D13)  # Red LED
+## discard pwm.channel2.init(D14)  # Green LED
+## discard pwm.channel3.init(D11)  # Blue LED
+## discard pwm.channel4.init(D12)  # Servo control
 ##
 ## # Set RGB color and servo position
 ## pwm.channel1.set(1.0)    # Red full
@@ -137,7 +137,7 @@ proc init*(channel: var PwmChannel, pin: Pin, polarity: PwmPolarity = POLARITY_H
   ##
   ## Example:
   ## ```nim
-  ## pwm.channel1.init(D13())
+  ## pwm.channel1.init(D13)
   ## pwm.channel2.init()   # default pin
   ## ```
   if pin.port == PORTX:

@@ -52,11 +52,8 @@ var ledState = false              # Vars: camelCase (not exported)
 ## Detailed description with usage examples.
 
 import std/algorithm                    # Standard imports first
-import nimphea                          # Library entry (re-exports macros + core types)
+import nimphea                          # Library entry (re-exports core types)
 import nimphea/nimphea_core_types       # Canonical C++-backed types (wrapper modules)
-
-useNimpheaNamespace()           # For examples (REQUIRED)
-useNimpheaModules(adc)          # For wrappers (after imports!)
 
 type MyType* = object
   field*: cint
@@ -64,7 +61,8 @@ type MyType* = object
 proc myProc*() = discard
 ```
 
-`import nimphea` already re-exports `useNimpheaNamespace`/`useNimpheaModules`, so wrapper modules may simply `import nimphea` and call `useNimpheaModules(...)` directly.
+Bindings are self-contained: every `importcpp`/`importc` binding carries a
+fully-qualified C++ name and a `header:` pragma — no setup call is required.
 
 ## Single-Tier Binding Convention (MANDATORY)
 
@@ -156,7 +154,6 @@ src/
 ├── nimphea.nim               # Public API entry point (re-exports core types,
 │                             #   DaisySeed + GPIO + AudioHandle bindings, logging)
 └── nimphea/
-    ├── nimphea_macros.nim    # Compile-time C++ interop macro system
     ├── nimphea_core_types.nim# SINGLE source of truth for all C++-backed types + audio callback types
     ├── nimphea_audio.nim     # Shared audio-callback bridge (startAudio/changeAudioCallback/stopAudio)
     ├── panicoverride.nim     # Bare-metal panic handler
@@ -203,25 +200,14 @@ All C++-backed types (Pin, GPIOPort, AdcHandle, Switch, SaiHandle, I2C/Spi/Uart 
 
 Do NOT copy per-board audio machinery. The `exportc` wrappers, the global callback pair, and the single documented `reinterpret_cast` emit live in `nimphea/nimphea_audio.nim`, exposed as type-generic `startAudio[T]`/`changeAudioCallback[T]`/`stopAudio[T]`. Boards and `nimphea.nim` import + export `nimphea_audio`; `board.startAudio(cb)` just works. Note: libDaisy's `DaisyPatch` has no interleaving `StartAudio` overload.
 
-## Macro System (CRITICAL)
+## Self-Contained Bindings (NO macros, NO raw emit)
 
-**Always use macros for C++ headers. NO raw emit!**
+There is no macro/emission system: every binding carries its own fullyqualified C++ name and `header:` pragma.
 
 ```nim
-# For examples — includes all typedefs + `using namespace daisy`
-import nimphea
-useNimpheaNamespace()
-
-# For wrapper modules under src/nimphea/ — selective includes
-import nimphea
-useNimpheaModules(spi, i2c)
-
-# For CMSIS-DSP modules
-useCmsisModules(dsp_filtering)
-
-# WRONG — never do this
-{.emit: """#include "per/spi.h"
-using namespace daisy;""".}
+# CORRECT — self-contained binding (the only style)
+proc setLed*(x: var T, state: bool) {.importcpp: "#.SetLed(#)", header: "daisy_seed.h".}
+proc arm_fir_f32*(S: ptr FirInstanceF32, ...) {.importc, header: "arm_math.h".}
 ```
 
 **Raw emit allowed ONLY for:**
@@ -229,19 +215,14 @@ using namespace daisy;""".}
 2. Custom C++ helpers relocated to compiled `.cpp` files via `{.compile.}` (e.g. `ui_init_helper.cpp` for the `std::initializer_list` bridge — never inline emits)
 3. Doc examples (code blocks demonstrating interop)
 
-The library core contains no raw `.emit` (the audio bridge and UI helper were converted to opaque `importcpp` bindings and a compiled C++ helper respectively). Generic `importcpp` bindings plus per-binding `header:` pragmas are the preferred idiom; qualify every C++ name with `daisy::`. Do not reintroduce `{#.emit.}` or `reinterpret_cast` — use opaque importcpp types + `cast`.
+Generic `importcpp` bindings plus per-binding `header:` pragmas are the only binding idiom; qualify every C++ name with `daisy::`. Do not reintroduce `{.emit.}`, `reinterpret_cast`, or the interop/typedef emission macros — use opaque importcpp types + `cast`.
 
 ### Adding New Module
 
 1. Find C++ header in `libDaisy/src/`
-2. Add types to `nimphea/nimphea_core_types.nim` (if new C++ types are exposed)
-3. Edit `src/nimphea/nimphea_macros.nim`:
-   ```nim
-   const myTypedefs* = ["MyClass::Result MyResult"]
-   # Add to getModuleHeaders() and useNimpheaModules()
-   ```
-4. Create the wrapper in the right category dir (`per/`, `hid/`, `dev/`, `sys/`, or flat `nimphea_*.nim`) with bind-once snake_case procs
-5. Run `nim check src/nimphea/<module>.nim`, then `nim e scripts/test.nims`, then `nim c -r --hints:off --path:src tools/check_duplicate_types.nim`
+2. Add types to `nimphea/nimphea_core_types.nim` (if new C++ types are exposed) — types must carry qualified `importcpp` + `header:` pragmas; no `{.push importcpp.}` regions (explicit importcpp pragmas inside them are silently ignored by the C++ name generator)
+3. Create the wrapper in the right category dir (`per/`, `hid/`, `dev/`, `sys/`, or flat `nimphea_*.nim`) with bind-once snake_case procs, each binding with its own inline `importcpp` + `header:` pragma
+4. Run `nim check src/nimphea/<module>.nim`, then `nim e scripts/test.nims`, then `nim c -r --hints:off --path:src tools/check_duplicate_types.nim`
 
 ## Common Pitfalls
 
@@ -262,12 +243,13 @@ proc getValue(): int
 # CORRECT:
 proc getValue*(): cint
 
-# WRONG: Macro before imports
-useNimpheaModules(adc)
-import nimphea/per/adc
-# CORRECT:
-import nimphea/per/adc
-useNimpheaModules(adc)
+# WRONG: `{.push importcpp.}` regions (explicit importcpp pragmas inside
+# them are ignored by Nim's C++ name generator, silently breaking names)
+{.push importcpp.}
+proc init*(x: var T) {.importcpp: "#.Init()".}
+{.pop.}
+# CORRECT: always inline the importcpp pragma on the binding itself
+proc init*(x: var T) {.importcpp: "#.Init()", header: "per/adc.h".}
 
 # WRONG: two overloads both defaulted → ambiguous zero-arg call
 # CORRECT: leave exactly one defaulted overload per arity (see hid/switch `init`)

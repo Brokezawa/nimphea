@@ -241,61 +241,27 @@ if not history.isEmpty():
 
 ## Language Features
 
-### Macros: Compile-Time Code Generation
+### Self-Contained Bindings (no macro layer)
 
-Nim's **powerful macro system** enables code generation at compile time, reducing boilerplate and improving safety.
-
-#### useDaisyNamespace Macro
-
-**Problem:** C++ uses namespaces, Nim uses modules.
-
-**Solution:** The `useDaisyNamespace()` macro imports and re-exports all common types automatically.
+Nimphea's C++ interop is fully **pragma-based**: every binding carries a
+fully-qualified C++ name and its own `header:` pragma, so no setup call,
+namespace injection, or typedef emission is needed. There is no macro module.
 
 ```nim
 import nimphea
-useDaisyNamespace()  # Macro expands to import all needed types
 
-# Now you can use Daisy types directly:
+# Types are already qualified importcpp declarations (nimphea_core_types):
 var hw: DaisySeed
-var led: Led
-var sw: Switch
-# No need for: libdaisy.DaisySeed, libdaisy.Led, etc.
-```
 
-**Generated code** (what the macro expands to):
-```nim
-# Auto-imports and re-exports:
-import nimphea
-export DaisyGPIO, Pin, PinMode, Pull
-
-import hid/ctrl
-export Switch, Encoder, Led, RgbLed
-
-# ... and many more modules
+# Bindings carry their own names and headers:
+hw.init()
+hw.setLed(true)
 ```
 
 **Benefits:**
-- **Convenience**: One line imports everything
-- **Flexibility**: Can still import selectively if needed
-- **Zero overhead**: Resolved at compile time
-- **Type-safe**: Full compiler checking
-
-#### useDaisyModules Macro
-
-**Selective imports** for advanced users:
-
-```nim
-import nimphea_macros
-useDaisyModules(gpio, controls, audio)  # Import only what you need
-
-# Now have: DaisyGPIO, Switch, Encoder, AudioCallback
-# But not: OLED types, MIDI types, etc.
-```
-
-**Benefits:**
-- Faster compile times
-- Clearer dependencies
-- Reduced namespace pollution
+- **Self-contained**: a binding is readable and greppable in one place
+- **No setup**: importing nimphea is enough — no `useNimpheaNamespace()` call
+- **No hidden codegen**: what you see in the source is what the C++ gets
 
 #### defineMenu DSL
 

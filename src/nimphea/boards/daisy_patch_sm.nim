@@ -472,3 +472,51 @@ proc trig*(gate: var GateIn): bool {.importcpp: "#.Trig()", header: "hid/gatein.
   ## **Note:** Only returns true once per rising edge. Call `processAllControls()`
   ## regularly for accurate trigger detection.
   discard
+
+# =============================================================================
+# Pin constants for Daisy Patch SM (matching libDaisy's constexpr tables)
+# =============================================================================
+## Static-pin constants for the Patch SM labelled headers (A/B/C/D rows of 10,
+## per libDaisy's constexpr tables). `PORTX` entries are unconnected pins in
+## each hardware revision — passing them to a driver will not signal.
+
+const A1* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const A2* = staticPinConst[PORTA, 1]()
+const A3* = staticPinConst[PORTA, 0]()
+const A4* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const A5* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const A6* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const A7* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const A8* = staticPinConst[PORTB, 14]()
+const A9* = staticPinConst[PORTB, 15]()
+const A10* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const B1* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const B2* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const B3* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const B4* = staticPinConst[PORTX, 0]()  ## unconnected on this revision
+const B5* = staticPinConst[PORTC, 14]()
+const B6* = staticPinConst[PORTC, 13]()
+const B7* = staticPinConst[PORTB, 8]()
+const B8* = staticPinConst[PORTB, 9]()
+const B9* = staticPinConst[PORTG, 14]()
+const B10* = staticPinConst[PORTG, 13]()
+const C1* = staticPinConst[PORTA, 5]()
+const C2* = staticPinConst[PORTA, 7]()
+const C3* = staticPinConst[PORTA, 2]()
+const C4* = staticPinConst[PORTA, 6]()
+const C5* = staticPinConst[PORTA, 3]()
+const C6* = staticPinConst[PORTB, 1]()
+const C7* = staticPinConst[PORTC, 4]()
+const C8* = staticPinConst[PORTC, 0]()
+const C9* = staticPinConst[PORTC, 1]()
+const C10* = staticPinConst[PORTA, 4]()
+const D1* = staticPinConst[PORTB, 4]()
+const D2* = staticPinConst[PORTC, 11]()
+const D3* = staticPinConst[PORTC, 10]()
+const D4* = staticPinConst[PORTC, 9]()
+const D5* = staticPinConst[PORTC, 8]()
+const D6* = staticPinConst[PORTC, 12]()
+const D7* = staticPinConst[PORTD, 2]()
+const D8* = staticPinConst[PORTC, 2]()
+const D9* = staticPinConst[PORTC, 3]()
+const D10* = staticPinConst[PORTD, 3]()

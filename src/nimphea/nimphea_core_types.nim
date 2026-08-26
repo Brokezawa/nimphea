@@ -585,3 +585,29 @@ template seconds*(v: float): Seconds = Seconds(v)
 template baud*(v: uint32): Baud = Baud(v)
 template duty*(v: cfloat): DutyCycle = DutyCycle(v)
 template db*(v: cfloat): Db = Db(v)
+
+# ------------------------------------------------------------------------------
+# Static pins
+# ------------------------------------------------------------------------------
+## StaticPin binds the port and pin number into the type, so a `StaticPin[PORTB, 14]`
+## passed where `StaticPin[PORTG, 10]` is expected is a compile-time mismatch.
+## The runtime `Pin` type and `newPin(port, pin)` constructor remain the escape
+## hatch for pins chosen at runtime; `rawPin` converts a static pin back.
+
+type
+  StaticPin*[Port: static GPIOPort, N: static uint8] = object
+    ## GPIO pin with the port and number encoded in the type.
+    raw: Pin
+
+converter rawPin*(p: StaticPin): Pin {.inline.} =
+  ## Convert back to the runtime `Pin` (used by the C++ config fields).
+  ## The converter makes static pins usable wherever a plain `Pin` is
+  ## expected; it is also callable explicitly: `rawPin(D5)`.
+
+proc staticPin*[Port: static GPIOPort, N: static uint8](): StaticPin[Port, N] {.inline.} =
+  ## Construct a static pin at runtime: `staticPin[PORTB, 14]()`.
+  result.raw = newPin(Port, N)
+
+template staticPinConst*[Port: static GPIOPort, N: static uint8](): StaticPin[Port, N] =
+  ## Const-evaluable static pin (no FFI, for `const` tables).
+  StaticPin[Port, N](raw: Pin(port: Port, pin: N))

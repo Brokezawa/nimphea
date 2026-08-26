@@ -99,30 +99,18 @@ proc read*(this: var MyPeripheral): cint
   discard
 ```
 
-**4. Macro for Includes**
+**4. Per-binding pragmas**
 
-In `nimphea_macros.nim`, add:
-
-```nim
-macro emitMyPeripheralIncludes*(): untyped =
-  when defined(useMyPeripheral):
-    result = quote do:
-      {.emit: """
-      #include "per/myperipheral.h"
-      """.}
-  else:
-    result = newStmtList()
-```
+The wrapper module needs nothing beyond the bindings themselves: each
+`importcpp`/`importc` proc and each type carries its own qualified C++ name
+and `header:` pragma (there is no macro system and no include step).
 
 **5. Module Setup**
 
 At top of your module file:
 
 ```nim
-import nimphea_macros
-
-{.define: useMyPeripheral.}
-emitMyPeripheralIncludes()
+import nimphea
 ```
 
 ### Step-by-Step: Adding a New Peripheral
@@ -154,7 +142,7 @@ public:
 
 ```nim
 # In src/per/dac.nim
-import nimphea_macros
+import nimphea
 
 type
   DacChannel* = enum
@@ -183,29 +171,17 @@ proc writeValue*(this: var DacHandle, channel: DacChannel, value: uint16)
   discard
 ```
 
-**Step 4: Add Macro**
+**Step 4: Per-binding pragmas**
 
-In `src/nimphea_macros.nim`:
-
-```nim
-macro emitDacIncludes*(): untyped =
-  when defined(useDAC):
-    result = quote do:
-      {.emit: """
-      #include "per/dac.h"
-      """.}
-  else:
-    result = newStmtList()
-```
-
-**Step 5: Use Macro in Module**
-
-At top of `per/dac.nim`:
+Bindings are self-contained — each carries its own qualified name and header:
 
 ```nim
-{.define: useDAC.}
-emitDacIncludes()
+proc writeValue*(this: var DacHandle, channel: DacChannel, value: uint16)
+  {.importcpp: "#.WriteValue(#, #)", header: "per/dac.h".}
 ```
+
+No macro invocation or include step is needed (the DAC type itself would be
+declared in `nimphea_core_types.nim` per the single-source-of-truth rule).
 
 **Step 6: Create Example**
 
@@ -277,14 +253,12 @@ Digital to Analog Converter for CV outputs.
 
 ### Common Pitfalls
 
-**1. Forgetting the Macro**
+**1. Missing header pragma**
 
-If you forget `emitDacIncludes()`, you'll get:
-```
-Error: undeclared identifier: 'DacHandle'
-```
+If a binding's `header:` is missing, the generated C++ cannot find the type
+(or uses a degenerate name) and compilation fails in the backend.
 
-**Solution:** Add the macro call at module top.
+**Solution:** give every importcpp/importc binding a `header:` pragma.
 
 **2. Wrong C++ Signature**
 
@@ -568,7 +542,7 @@ var myValue = 42
 ## Explains what C++ functionality it wraps.
 
 # 1. Imports
-import nimphea_macros
+import nimphea
 
 # 2. Type definitions
 type
@@ -630,7 +604,7 @@ proc importantFunction*(param: int): bool =
 import std/strutils
 import std/sequtils
 
-import nimphea_macros
+import nimphea
 
 import per/adc
 import per/gpio

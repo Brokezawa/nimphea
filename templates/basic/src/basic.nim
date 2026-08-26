@@ -3,16 +3,16 @@
 ## Shows the basic pattern every project shares: init the Daisy, then loop.
 
 import nimphea
-useNimpheaNamespace()
+
 
 proc main() =
   var daisy = initDaisy()
-  var ledState = false
 
+  var ledState = false
   while true:
     ledState = not ledState
     daisy.setLed(ledState)
-    daisy.delay(500)
+    daisy.delay(ms(500))
 
 when isMainModule:
   main()

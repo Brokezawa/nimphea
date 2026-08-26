@@ -20,7 +20,7 @@ import std/os, std/strutils
 # Binary/source name. Defaults to the project directory name, so
 # src/<dirName>.nim must exist. Override to use a different name.
 # Project/source name — must match src/<projName>.nim
-const projName = "basic"
+const projName = "audio"
 
 # Flash configuration — override per project when needed
 when not declared(dfuPid):

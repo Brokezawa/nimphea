@@ -38,6 +38,10 @@
 ## - Do **not** log from the audio callback (causes glitches).
 ## - Buffer size 128 bytes; newline is `\r\n`; USB CDC needs no baud configuration.
 ## - For production, `LoggerNone` mutes all output with zero overhead.
+## - The loggers are application-level channels (USB/semihost). Runtime error
+##   messages (uncaught exceptions, defects, asserts, echo, printf) go to
+##   newlib stderr instead and need `nimphea/syscalls` (the `UsartStdio`
+##   retarget) to reach a serial monitor — see syscalls.nim.
 
 import nimphea
 import nimphea/nimphea_macros

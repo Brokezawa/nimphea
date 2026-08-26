@@ -91,7 +91,6 @@ export nimphea_core_types
 useNimpheaModules(i2c)
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # I2C callback function pointer
@@ -127,7 +126,6 @@ proc writeDataAtAddress*(i2c: var I2CHandle, address: uint16, mem_address: uint1
                          timeout: uint32): I2CResult {.importcpp: "#.WriteDataAtAddress(@)".}
   ## Write to a memory address on an I2C device
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # C++ constructor

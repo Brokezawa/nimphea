@@ -45,6 +45,10 @@
 import nimphea/nimphea_macros
 export useNimpheaNamespace, useNimpheaModules
 
+# Compiler configuration: libDaisy include paths, defines, and link flags
+# (passC/passL pragmas, paths resolved from this module's location)
+import nimphea/build
+
 # Single source of truth for C++-backed types
 import nimphea/nimphea_core_types
 export nimphea_core_types
@@ -59,7 +63,6 @@ import nimphea/nimphea_stack_strings_utils
 export stack_strings, nimphea_stack_strings_utils
 
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   # Main DaisySeed class
@@ -76,7 +79,6 @@ type
     system* {.importc: "system".}: System
     codec* {.importc: "codec".}: Ak4556
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # Use the macro system for THIS compilation unit (nimphea.nim)

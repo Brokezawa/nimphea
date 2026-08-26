@@ -64,6 +64,7 @@
 ## ui.closePage(cast[ptr UiPage](addr settingsMenu))
 ## ```
 
+import std/os
 import nimphea
 import nimphea/nimphea_macros
 import nimphea_ui_events
@@ -71,6 +72,10 @@ import nimphea_menu  # For UiPage type
 
 # Include UI core headers and typedefs
 useNimpheaModules(ui_core)
+
+# Compiled C++ bridge for UI::Init's std::initializer_list parameter
+# (see ui_init_helper.h in this directory)
+{.compile: currentSourcePath().parentDir / "ui_init_helper.cpp".}
 
 {.push header: "ui/UI.h".}
 
@@ -131,57 +136,24 @@ type
   UI* {.importcpp: "daisy::UI", header: "ui/UI.h".} = object
 
 # UI constructor/destructor
-proc initUI*(): UI {.importcpp: "daisy::UI()".}
+proc initUI*(): UI {.importcpp: "daisy::UI()", header: "ui/UI.h".}
   ## Create new UI instance
 
-# UI initialization - needs special handling for initializer_list
-# 
-# C++ Interop Workaround: std::initializer_list
-# =====================================================
-# The daisy::UI::Init() method signature is:
-#   void Init(UiEventQueue&, const SpecialControlIds&, 
-#            std::initializer_list<UiCanvasDescriptor>, uint16_t)
-# 
-# Nim cannot directly pass arrays to std::initializer_list parameters
-# because the language lacks a native equivalent. The {.emit.} block
-# defines a C++ helper function that accepts an array + size, then uses
-# C++ brace initialization {...} syntax to construct the initializer_list.
-# 
-# This is an approved use case (see AGENTS.md) similar to operator
-# overloading - raw C++ is necessary to bridge C++ language features
-# that have no Nim equivalent. The switch statement handles 0-8 canvases
-# as per UI_MAX_CANVASES constant.
-{.emit: """/*INCLUDESECTION*/
-// Helper to initialize UI with canvas array
-static inline void UI_Init_Helper(daisy::UI* ui, 
-                           daisy::UiEventQueue& eventQueue,
-                           const daisy::UI::SpecialControlIds& controlIds,
-                           const daisy::UiCanvasDescriptor* canvases,
-                           size_t numCanvases,
-                           uint16_t primaryDisplayId) {
-    // Build initializer_list from array by using brace initialization
-    switch(numCanvases) {
-        case 0: ui->Init(eventQueue, controlIds, {}, primaryDisplayId); break;
-        case 1: ui->Init(eventQueue, controlIds, {canvases[0]}, primaryDisplayId); break;
-        case 2: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1]}, primaryDisplayId); break;
-        case 3: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1], canvases[2]}, primaryDisplayId); break;
-        case 4: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1], canvases[2], canvases[3]}, primaryDisplayId); break;
-        case 5: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1], canvases[2], canvases[3], canvases[4]}, primaryDisplayId); break;
-        case 6: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1], canvases[2], canvases[3], canvases[4], canvases[5]}, primaryDisplayId); break;
-        case 7: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1], canvases[2], canvases[3], canvases[4], canvases[5], canvases[6]}, primaryDisplayId); break;
-        case 8: ui->Init(eventQueue, controlIds, {canvases[0], canvases[1], canvases[2], canvases[3], canvases[4], canvases[5], canvases[6], canvases[7]}, primaryDisplayId); break;
-        default: break; // Max 8 canvases supported
-    }
-}
-""".}
+{.pop.}  # header pragma (type block only — wrappers and methods carry inline headers)
 
+# UI initialization - needs special handling for initializer_list
+#
+# daisy::UI::Init() takes a std::initializer_list<UiCanvasDescriptor>.
+# Nim has no native equivalent, so the bridge lives in a small compiled
+# C++ helper (ui_init_helper.cpp, included via {.compile.}) that builds
+# the initializer_list from an array + count.
 proc cppUiInitHelper*(ui: ptr UI,
                      eventQueue: var UiEventQueue,
                      controlIds: UiSpecialControlIds,
                      canvases: ptr UiCanvasDescriptor,
                      numCanvases: csize_t,
                      primaryDisplayId: uint16) {.
-  importcpp: "UI_Init_Helper(@)".}
+  importcpp: "UI_Init_Helper(@)", header: "ui_init_helper.h".}
 
 proc init*(this: var UI,
           eventQueue: var UiEventQueue,
@@ -201,35 +173,33 @@ proc init*(this: var UI,
                    primaryDisplayId)
 
 # UI core methods
-proc process*(this: var UI) {.importcpp: "#.Process()".}
+proc process*(this: var UI) {.importcpp: "#.Process()", header: "ui/UI.h".}
   ## Process events and update displays
   ## Call this regularly from main loop (low priority context)
 
 proc mute*(this: var UI, shouldBeMuted: bool, queueEvents: bool = false) {.
-  importcpp: "#.Mute(@)".}
+  importcpp: "#.Mute(@)", header: "ui/UI.h".}
   ## Mute/unmute user input processing
   ##
   ## **Parameters:**
   ## - `shouldBeMuted` - true to mute, false to unmute
   ## - `queueEvents` - If true, queue events while muted; if false, discard them
 
-proc openPage*(this: var UI, page: var UiPage) {.importcpp: "#.OpenPage(@)".}
+proc openPage*(this: var UI, page: var UiPage) {.importcpp: "#.OpenPage(@)", header: "ui/UI.h".}
   ## Add page to top of page stack
   ## Page must remain alive until removed from UI
 
-proc closePage*(this: var UI, page: var UiPage) {.importcpp: "#.ClosePage(@)".}
+proc closePage*(this: var UI, page: var UiPage) {.importcpp: "#.ClosePage(@)", header: "ui/UI.h".}
   ## Remove page from stack
 
 proc getPrimaryOneBitGraphicsDisplayId*(this: var UI): uint16 {.
-  importcpp: "#.GetPrimaryOneBitGraphicsDisplayId()".}
+  importcpp: "#.GetPrimaryOneBitGraphicsDisplayId()", header: "ui/UI.h".}
   ## Get canvas ID of primary graphics display
   ## Returns INVALID_CANVAS_ID if none configured
 
 proc getSpecialControlIds*(this: var UI): UiSpecialControlIds {.
-  importcpp: "#.GetSpecialControlIds()".}
+  importcpp: "#.GetSpecialControlIds()", header: "ui/UI.h".}
   ## Get special control ID configuration
-
-{.pop.}  # header pragma
 
 # ============================================================================
 # Canvas Descriptor Helpers
@@ -237,8 +207,8 @@ proc getSpecialControlIds*(this: var UI): UiSpecialControlIds {.
 
 # Forward declare clear/flush function types
 type
-  CanvasClearFunc* = proc(canvas: ptr UiCanvasDescriptor) {.cdecl.}
-  CanvasFlushFunc* = proc(canvas: ptr UiCanvasDescriptor) {.cdecl.}
+  CanvasClearFunc* = proc(canvas: var UiCanvasDescriptor) {.cdecl.}
+  CanvasFlushFunc* = proc(canvas: var UiCanvasDescriptor) {.cdecl.}
 
 proc createCanvasDescriptor*(id: uint8,
                              handle: pointer,
@@ -260,10 +230,11 @@ proc createCanvasDescriptor*(id: uint8,
   result.updateRateMs = updateRateMs
   result.screenSaverTimeOut = screenSaverTimeout
   result.screenSaverOn = false
-  # Note: clearFunction_ and flushFunction_ are function pointers
-  # They need to be set via emit or direct C++ if needed
-  {.emit: [result, ".clearFunction_ = ", clearFunc, ";"].}
-  {.emit: [result, ".flushFunction_ = ", flushFunc, ";"].}
+  # clearFunction_ and flushFunction_ are declared as importc fields on
+  # UiCanvasDescriptor (daisy::UiCanvasDescriptor members), so the plain
+  # Nim assignments below map directly to the C++ function pointers.
+  result.clearFn = clearFunc
+  result.flushFn = flushFunc
 
 # ============================================================================
 # Helper Procs for Common Patterns

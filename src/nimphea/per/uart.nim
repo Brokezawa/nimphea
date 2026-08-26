@@ -50,8 +50,10 @@ export nimphea_core_types
 # Serial module includes both per/uart.h and hid/logger.h
 useNimpheaModules(serial)
 
+# NOTE: no `{.push importcpp.}` here — explicit `{.importcpp.}` pragmas are
+# silently dropped inside a push region (the generated C++ then uses wrong
+# lowercase names). Every binding carries its own inline pragma.
 {.push header: "per/uart.h".}
-{.push importcpp.}
 
 # UART Handler methods
 proc init*(this: var UartHandler, config: UartConfig): UartResult {.importcpp: "#.Init(@)".}
@@ -64,7 +66,6 @@ proc blockingReceive*(this: var UartHandler, buffer: ptr uint8, size: uint16,
 
 proc checkError*(this: var UartHandler): cint {.importcpp: "#.CheckError()".}
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================

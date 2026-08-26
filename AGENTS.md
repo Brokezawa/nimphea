@@ -226,9 +226,10 @@ using namespace daisy;""".}
 
 **Raw emit allowed ONLY for:**
 1. C++ operators (can't define in Nim)
-2. `std::initializer_list` workarounds
-3. The single `reinterpret_cast` in `nimphea_audio.nim` (documented special case)
-4. Custom C++ helpers (rare, document why)
+2. Custom C++ helpers relocated to compiled `.cpp` files via `{.compile.}` (e.g. `ui_init_helper.cpp` for the `std::initializer_list` bridge — never inline emits)
+3. Doc examples (code blocks demonstrating interop)
+
+The library core contains no raw `.emit` (the audio bridge and UI helper were converted to opaque `importcpp` bindings and a compiled C++ helper respectively). Generic `importcpp` bindings plus per-binding `header:` pragmas are the preferred idiom; qualify every C++ name with `daisy::`. Do not reintroduce `{#.emit.}` or `reinterpret_cast` — use opaque importcpp types + `cast`.
 
 ### Adding New Module
 

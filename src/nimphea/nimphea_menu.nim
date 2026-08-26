@@ -126,6 +126,10 @@ type
     screenSaverTimeOut* {.importc.}: uint32
     ## Screen saver active flag
     screenSaverOn* {.importc.}: bool
+    ## Function pointer called before the UiPages are drawn
+    clearFn* {.importc: "clearFunction_".}: proc(canvas: var UiCanvasDescriptor) {.cdecl.}
+    ## Function pointer called after all UiPages finished drawing
+    flushFn* {.importc: "flushFunction_".}: proc(canvas: var UiCanvasDescriptor) {.cdecl.}
 
 ## Base class for UI pages
 type

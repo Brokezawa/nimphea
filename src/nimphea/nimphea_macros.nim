@@ -363,6 +363,9 @@ proc getModuleHeaders*(moduleName: string): string =
 #include "dev/oled_ssd1351.h"
 #include "dev/oled_ssd1327.h"
 #include "dev/oled_sh1106.h"
+#include "ui/UI.h"
+#include "ui/UiEventQueue.h"
+#include "ui_init_helper.h"
 """
   of "i2c":
     """#include "per/i2c.h"
@@ -442,6 +445,9 @@ proc getModuleHeaders*(moduleName: string): string =
 """
   of "sh1106":
     """#include "dev/oled_sh1106.h"
+#include "ui/UI.h"
+#include "ui/UiEventQueue.h"
+#include "ui_init_helper.h"
 """
   of "ssd1327":
     """#include "dev/oled_ssd1327.h"
@@ -521,6 +527,7 @@ proc getModuleHeaders*(moduleName: string): string =
   of "ui_core":
     """#include "ui/UI.h"
 #include "ui/UiEventQueue.h"
+#include "ui_init_helper.h"
 """
   else: ""
 
@@ -540,6 +547,9 @@ const daisyHeaders* = """
 #include "dev/oled_ssd1351.h"
 #include "dev/oled_ssd1327.h"
 #include "dev/oled_sh1106.h"
+#include "ui/UI.h"
+#include "ui/UiEventQueue.h"
+#include "ui_init_helper.h"
 """
 
 # ============================================================================

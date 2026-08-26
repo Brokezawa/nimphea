@@ -18,7 +18,6 @@ useNimpheaModules(core, controls, adc, dac, tim, rng, gatein, led, rgb_led,
 # Hardware core (daisy_core.h - via daisy_seed.h)
 # =============================================================================
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 
 type
   GPIOPort* {.importcpp: "daisy::GPIOPort", size: sizeof(cint).} = enum
@@ -68,7 +67,6 @@ type
     BOARD_DAISY_SEED_1_1
     BOARD_DAISY_SEED_2_DFM
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # Pin constructor
@@ -103,7 +101,6 @@ type
 # Switch / Encoder / AnalogControl (hid/switch.h, hid/encoder.h, hid/ctrl.h)
 # =============================================================================
 {.push header: "hid/switch.h".}
-{.push importcpp.}
 
 type
   Switch* {.importcpp: "daisy::Switch".} = object
@@ -116,7 +113,6 @@ type
     POLARITY_NORMAL = 0   ## HIGH = pressed
     POLARITY_INVERTED     ## LOW = pressed
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # GPIO pull shared by Switch init and GPIO users (per/gpio.h)
@@ -127,24 +123,19 @@ type
     PULL_DOWN
 
 {.push header: "hid/encoder.h".}
-{.push importcpp.}
 type
   Encoder* {.importcpp: "daisy::Encoder".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 {.push header: "hid/ctrl.h".}
-{.push importcpp.}
 type
   AnalogControl* {.importcpp: "daisy::AnalogControl".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # ADC (per/adc.h)
 # =============================================================================
 {.push header: "per/adc.h".}
-{.push importcpp.}
 
 type
   MuxPin* {.importcpp: "daisy::AdcChannelConfig::MuxPin", size: sizeof(cint).} = enum
@@ -178,34 +169,28 @@ type
 
   AdcHandle* {.importcpp: "daisy::AdcHandle".} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # DAC (per/dac.h)
 # =============================================================================
 {.push header: "per/dac.h".}
-{.push importcpp.}
 type
   DacHandle* {.importcpp: "daisy::DacHandle".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # System (sys/system.h)
 # =============================================================================
 {.push header: "sys/system.h".}
-{.push importcpp.}
 type
   System* {.importcpp: "daisy::System".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # QSPI (per/qspi.h)
 # =============================================================================
 {.push header: "per/qspi.h".}
-{.push importcpp.}
 
 type
   QSPIDevice* {.importcpp: "daisy::QSPIHandle::Config::Device", size: sizeof(cint).} = enum
@@ -222,34 +207,28 @@ type
 
   QSPIHandle* {.importcpp: "daisy::QSPIHandle", byref.} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # SDRAM (dev/sdram.h)
 # =============================================================================
 {.push header: "dev/sdram.h".}
-{.push importcpp.}
 type
   SdramHandle* {.importcpp: "daisy::SdramHandle".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # SAI (per/sai.h)
 # =============================================================================
 {.push header: "per/sai.h".}
-{.push importcpp.}
 type
   SaiHandle* {.importcpp: "daisy::SaiHandle".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # I2C (per/i2c.h)
 # =============================================================================
 {.push header: "per/i2c.h".}
-{.push importcpp.}
 
 type
   I2CHandleImpl* {.importcpp: "daisy::I2CHandle::Impl".} = object
@@ -291,14 +270,12 @@ type
   I2CHandle* {.importcpp: "daisy::I2CHandle".} = object
     pimpl {.importc: "pimpl_".}: ptr I2CHandleImpl
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # SPI (per/spi.h)
 # =============================================================================
 {.push header: "per/spi.h".}
-{.push importcpp.}
 
 type
   SpiHandleImpl* {.importcpp: "daisy::SpiHandle::Impl".} = object
@@ -373,14 +350,12 @@ type
   SpiHandle* {.importcpp: "daisy::SpiHandle".} = object
     pimpl {.importc: "pimpl_".}: ptr SpiHandleImpl
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # UART (per/uart.h)
 # =============================================================================
 {.push header: "per/uart.h".}
-{.push importcpp.}
 
 type
   UartPeripheral* {.importcpp: "daisy::UartHandler::Config::Peripheral", size: sizeof(cint).} = enum
@@ -438,24 +413,20 @@ type
 
   UartHandler* {.importcpp: "daisy::UartHandler".} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # SDMMC (per/sdmmc.h via daisy_seed.h)
 # =============================================================================
 {.push header: "daisy_seed.h".}
-{.push importcpp.}
 type
   SdmmcHandler* {.importcpp: "daisy::SdmmcHandler".} = object
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # USB + MIDI (hid/usb.h, hid/usb_midi.h, hid/midi.h)
 # =============================================================================
 {.push header: "hid/usb.h".}
-{.push importcpp.}
 
 type
   UsbPeriph* {.importcpp: "daisy::UsbHandle::UsbPeriph", size: sizeof(cint).} = enum
@@ -465,11 +436,9 @@ type
 
   UsbHandle* {.importcpp: "daisy::UsbHandle".} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 {.push header: "hid/usb_midi.h".}
-{.push importcpp.}
 
 type
   MidiUsbPeriph* {.importcpp: "daisy::MidiUsbTransport::Config::Periph", size: sizeof(cint).} = enum
@@ -483,11 +452,9 @@ type
 
   MidiUsbTransport* {.importcpp: "daisy::MidiUsbTransport".} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 {.push header: "hid/midi.h".}
-{.push importcpp.}
 
 type
   MidiMessageType* {.importcpp: "daisy::MidiMessageType", size: sizeof(cint).} = enum
@@ -522,14 +489,12 @@ type
   MidiUartHandlerConfig* {.importcpp: "daisy::MidiUartHandler::Config", bycopy.} = object
     transport_config* {.importcpp: "transport_config".}: MidiUartTransportConfig
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # OLED transport configs (dev/oled_ssd130x.h) - shared by SSD130x and SH1106
 # =============================================================================
 {.push header: "dev/oled_ssd130x.h".}
-{.push importcpp.}
 
 type
   SSD130xI2CTransportConfig* {.importcpp: "daisy::SSD130xI2CTransport::Config", bycopy.} = object
@@ -563,14 +528,12 @@ type
   OledDisplay* = OledDisplay128x64I2c | OledDisplay128x32I2c | OledDisplay64x48I2c | OledDisplay64x32I2c |
                  OledDisplay128x64Spi | OledDisplay128x32Spi | OledDisplay64x48Spi | OledDisplay64x32Spi
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # NeoPixel (dev/neopixel.h)
 # =============================================================================
 {.push header: "dev/neopixel.h".}
-{.push importcpp.}
 
 type
   NeoPixelResult* {.importcpp: "daisy::NeoPixel<daisy::NeoPixelI2CTransport>::Result", size: sizeof(cint).} = enum
@@ -592,15 +555,12 @@ type
 
   NeoPixelI2C* {.importcpp: "daisy::NeoPixelI2C", byref.} = object
 
-{.pop.} # importcpp
 {.pop.} # header
 
 # =============================================================================
 # AK4556 codec (dev/codec_ak4556.h) - referenced by DaisySeed.codec
 # =============================================================================
 {.push header: "dev/codec_ak4556.h".}
-{.push importcpp.}
 type
   Ak4556* {.importcpp: "daisy::Ak4556".} = object
-{.pop.} # importcpp
 {.pop.} # header

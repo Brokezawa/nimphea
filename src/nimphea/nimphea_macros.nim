@@ -264,12 +264,17 @@ const fileTableTypedefs* = [
   "daisy::FileTable<64> FileTable64",
   "daisy::FileTable<128> FileTable128"
 ]
+const uartTypedefs* = [
+  "UartHandler::Config UartConfig",
+  "UartHandler::Result UartResult",
+  "UartHandler::Config::Peripheral UartPeripheral"
+]
 
 # All typedefs combined (for full inclusion)
 const daisyTypedefsList* = @coreTypedefs & @controlsTypedefs & @adcTypedefs & @pwmTypedefs &
                            @oledTypedefs & @i2cTypedefs & @spiTypedefs & @sdramTypedefs & @usbTypedefs & @sdmmcTypedefs &
                            @codec_wm8731Typedefs & @codec_pcm3060Typedefs & @lcd_hd44780Typedefs & @oled_fontsTypedefs &
-                           @qspiTypedefs & @persistentStorageTypedefs
+                           @qspiTypedefs & @persistentStorageTypedefs & @uartTypedefs
 
 # ============================================================================
 # C++ Header Includes
@@ -355,6 +360,9 @@ proc getModuleHeaders*(moduleName: string): string =
 """
   of "oled":
     """#include "dev/oled_ssd130x.h"
+#include "dev/oled_ssd1351.h"
+#include "dev/oled_ssd1327.h"
+#include "dev/oled_sh1106.h"
 """
   of "i2c":
     """#include "per/i2c.h"
@@ -529,6 +537,9 @@ const daisyHeaders* = """
 #include "per/adc.h"
 #include "per/pwm.h"
 #include "dev/oled_ssd130x.h"
+#include "dev/oled_ssd1351.h"
+#include "dev/oled_ssd1327.h"
+#include "dev/oled_sh1106.h"
 """
 
 # ============================================================================
@@ -954,6 +965,7 @@ macro useNimpheaModules*(modules: varargs[untyped]): untyped =
   if includeUsbMidi: typedefsStr.add(buildTypedefsString(usbMidiTypedefs))
   if includeUsbHost: typedefsStr.add(buildTypedefsString(usbHostTypedefs))
   if includeSdmmc: typedefsStr.add(buildTypedefsString(sdmmcTypedefs))
+  if includeSerial: typedefsStr.add(buildTypedefsString(uartTypedefs))
   if includeCodecWm8731: typedefsStr.add(buildTypedefsString(codec_wm8731Typedefs))
   if includeCodecPcm3060: typedefsStr.add(buildTypedefsString(codec_pcm3060Typedefs))
   if includeLcdHd44780: typedefsStr.add(buildTypedefsString(lcd_hd44780Typedefs))

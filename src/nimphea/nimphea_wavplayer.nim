@@ -32,8 +32,9 @@
 ##   player.play()
 ##
 ## # In audio callback
-## proc audioCallback(input, output: AudioBuffer, size: int) =
-##   for i in 0..<size:
+## proc audioCallback(input: openArray[AudioBuffer],
+##                    output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+##   for i in 0..<output[0].len:
 ##     let res = player.stream(output[0][i].addr, 2)  # 2 channels
 ##
 ## # In main loop

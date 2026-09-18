@@ -73,7 +73,8 @@ proc createBuffer(size: int): AudioBuffer =
   # Automatically freed when result goes out of scope
 
 # In embedded code, use stack allocation instead:
-proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
   # No heap allocation in callback - compile-time guaranteed
   var temp: array[256, float32]  # Stack only
   # Process audio...
@@ -202,8 +203,9 @@ import nimphea
 var rb: RingBuffer[AudioSample, 1024]
 
 # Producer (audio callback)
-proc audioCallback(input, output: ptr ptr cfloat, size: int) {.cdecl.} =
-  for i in 0..<size:
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+  for i in 0..<input[0].len:
     if not rb.isFull():
       rb.write(input[0][i])
 
@@ -320,9 +322,9 @@ withBounds(samples, idx):
 #### Example: Audio Processing DSL
 
 ```nim
-template stereoProcess(input, output: AudioBuffer, size: int, 
+template stereoProcess(input, output: var openArray[AudioBuffer],
                        processBody: untyped) =
-  for i in 0..<size:
+  for i in 0..<output[0].len:
     let left {.inject.} = input[0][i]
     let right {.inject.} = input[1][i]
     
@@ -332,8 +334,9 @@ template stereoProcess(input, output: AudioBuffer, size: int,
     output[1][i] = right
 
 # Use the template
-proc audioCallback(input, output: ptr ptr cfloat, size: int) {.cdecl.} =
-  stereoProcess(input, output, size):
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+  stereoProcess(input, output):
     # 'left' and 'right' variables are automatically available
     left = left * 0.5   # Apply gain
     right = right * 0.5
@@ -430,8 +433,9 @@ int main() {
 import nimphea
 useDaisyNamespace()
 
-proc audioCallback(input, output: ptr ptr cfloat, size: csize_t) {.cdecl.} =
-  for i in 0..<size:
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+  for i in 0..<output[0].len:
     output[0][i] = input[0][i]
     output[1][i] = input[1][i]
 
@@ -516,9 +520,10 @@ proc generateSineTable(): array[WaveTableSize, float] =
 const SineTable = generateSineTable()
 
 # Use in audio callback - just a memory lookup
-proc audioCallback(input, output: ptr ptr cfloat, size: csize_t) {.cdecl.} =
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
   var phase = 0
-  for i in 0..<size:
+  for i in 0..<output[0].len:
     output[0][i] = SineTable[phase]
     phase = (phase + 1) mod WaveTableSize
 ```

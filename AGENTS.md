@@ -16,9 +16,9 @@ nim e scripts/init_libdaisy.nims
 
 # Build/flash an example (from inside its directory in nimphea-examples/)
 NIMPHEA=/path/to/nimphea
-nim e make.nims              # Build for ARM (outputs: build/*.elf, build/*.bin)
-nim e flash.nims             # Via DFU bootloader (USB)
-nim e stlink.nims            # Via ST-Link/OpenOCD (faster)
+nim make                     # Build for ARM (outputs: build/*.elf, build/*.bin)
+nim flash                    # Via DFU bootloader (USB)
+nim stlink                   # Via ST-Link/OpenOCD (faster)
 
 # Testing (host, no ARM link)
 nim e scripts/test.nims      # Unit tests for pure-Nim modules (host)
@@ -304,7 +304,7 @@ proc `=copy`*[NT, MB: static int](dest: var FirFilter[NT, MB], src: FirFilter[NT
 | Pure-Nim units | `nim e scripts/test.nims` | FIFO, Stack, RingBuffer, StackString utils, MappedValue |
 | Examples | `nim e scripts/check_examples.nims` | Syntax-checks the 44 examples in nimphea-examples/ |
 
-C++-dependent modules cannot be unit-tested on the host — validate via `nim check`, the duplicate-type checker, and ARM builds (`nim e make.nims` in an example/template project) / hardware flashing.
+C++-dependent modules cannot be unit-tested on the host — validate via `nim check`, the duplicate-type checker, and ARM builds (`nim make` in an example/template project) / hardware flashing.
 
 ## Formatting
 

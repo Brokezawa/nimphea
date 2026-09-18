@@ -14,11 +14,12 @@ import nimphea/hid/logger
 # - No heap allocations (no seq, no string, no new)
 # - No blocking calls (no delay, no printing, no logging)
 # - Keep it fast enough to fit within the block size
-proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl, raises: [].} =
-  for i in 0..<size:
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+  for c in 0..<output.len:
     # Stereo passthrough: input -> output
-    output[0][i] = input[0][i]
-    output[1][i] = input[1][i]
+    for i in 0..<output[c].len:
+      output[c][i] = input[c][i]
 
 proc main() =
   # Initialize the Daisy Seed board

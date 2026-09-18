@@ -21,8 +21,9 @@
 ## import nimphea
 ## import nimphea/boards/daisy_legio
 ## 
-## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-##   for i in 0..<size:
+## proc audioCallback(input: openArray[AudioBuffer],
+##                    output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+##   for i in 0..<output[0].len:
 ##     let inL = input[0][i]
 ##     let inR = input[1][i]
 ##     output[0][i] = inL

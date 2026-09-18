@@ -113,8 +113,8 @@
 ##
 ## **Keep critical sections SHORT:**
 ##
-## - ❌ **BAD**: Disable interrupts for milliseconds
-## - ✅ **GOOD**: Disable interrupts for microseconds
+## - **BAD**: Disable interrupts for milliseconds
+## - **GOOD**: Disable interrupts for microseconds
 ##
 ## While interrupts are disabled:
 ## - Audio callback **cannot run** (causes audio glitches)
@@ -125,25 +125,25 @@
 ##
 ## .. code-block:: nim
 ##    withoutInterrupts:
-##      delay(10)  # ❌ 10ms with no interrupts = audio glitches!
+##      delay(10)  # BAD: 10ms with no interrupts = audio glitches!
 ##
 ## **Example: APPROPRIATE**
 ##
 ## .. code-block:: nim
 ##    withoutInterrupts:
-##      register.bits = value  # ✅ Single instruction, a few cycles
+##      register.bits = value  # GOOD: Single instruction, a few cycles
 ##
 ## When to Use
 ## -----------
 ##
-## **✅ Use ScopedIrqBlocker when:**
+## **Use ScopedIrqBlocker when:**
 ##
 ## - Modifying variables shared with ISRs (audio callback, timers)
 ## - Accessing hardware peripherals used by interrupts
 ## - Reading/writing multi-word data (must be atomic)
 ## - Critical timing sections (e.g., bit-banging protocols)
 ##
-## **❌ Do NOT use when:**
+## **Do NOT use when:**
 ##
 ## - Data is NOT shared with ISRs (unnecessary overhead)
 ## - Already in an ISR (interrupts are already disabled)

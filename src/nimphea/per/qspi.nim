@@ -170,23 +170,23 @@ proc writePage*(qspi: var QSPIHandle, address: uint32, size: uint32, buffer: ptr
 proc write*(qspi: var QSPIHandle, address: uint32, size: uint32, buffer: ptr uint8): QSPIResult {.
   importcpp: "#.Write(@)", cdecl.}
   ## Write data to QSPI flash (multiple pages).
-  ## 
+  ##
   ## This will automatically handle page boundary crossing.
-  ## 
+  ##
   ## **Important**:
   ## - Must erase sectors before writing
   ## - Only works in INDIRECT_POLLING mode
   ## - Slower than writePage for single-page writes
-  ## 
+  ##
   ## Parameters:
   ## - address: Flash address to start writing
   ## - size: Number of bytes to write
   ## - buffer: Pointer to data buffer
-  ## 
+  ##
   ## Returns:
   ## - QSPIResult.OK on success
   ## - QSPIResult.ERR on failure or invalid mode
-  ## 
+  ##
   ## Example:
   ## ```nim
   ## var data: array[1024, uint8]
@@ -194,6 +194,23 @@ proc write*(qspi: var QSPIHandle, address: uint32, size: uint32, buffer: ptr uin
   ## if qspi.write(0, 1024, data[0].addr) != QSPIResult.OK:
   ##   echo "Write failed"
   ## ```
+
+proc write*(qspi: var QSPIHandle, address: uint32, data: openArray[uint8]): QSPIResult {.inline.} =
+  ## Write data to QSPI flash from an `openArray[uint8]` (length-derived,
+  ## empty input is a no-op returning `OK`; see the raw `ptr uint8` form for
+  ## D2-memory DMA buffers).
+  if data.len > 0:
+    result = qspi.write(address, uint32(data.len), cast[ptr uint8](addr data[0]))
+  else:
+    result = QSPIResult.OK
+
+proc writePage*(qspi: var QSPIHandle, address: uint32, data: openArray[uint8]): QSPIResult {.inline.} =
+  ## Write a single page to QSPI flash from an `openArray[uint8]`
+  ## (length-derived, empty input is a no-op returning `OK`).
+  if data.len > 0:
+    result = qspi.writePage(address, uint32(data.len), cast[ptr uint8](addr data[0]))
+  else:
+    result = QSPIResult.OK
 
 # ============================================================================
 # Erase Operations (Indirect Polling Mode Only)

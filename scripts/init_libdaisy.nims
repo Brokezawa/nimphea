@@ -26,6 +26,14 @@ proc fail(msg: string) =
 echo "=== Nimphea: libDaisy Initialization ==="
 echo ""
 
+# 0. Toolchain precheck (fail fast with a friendly error, not a cryptic make failure)
+if findExe("arm-none-eabi-gcc").len == 0:
+  fail("arm-none-eabi-gcc not found in PATH. Install the ARM toolchain first " &
+       "(see docs/guides/installation.md).")
+if findExe("arm-none-eabi-ar").len == 0:
+  fail("arm-none-eabi-ar not found in PATH. Install the ARM toolchain first " &
+       "(see docs/guides/installation.md).")
+
 # 1. Obtain libDaisy
 if not dirExists(libDaisyDir):
   if dirExists(repoRoot / ".git"):
@@ -50,7 +58,8 @@ echo "✓ libDaisy/build/libdaisy.a"
 # 3. Build optional static libraries
 echo ""
 echo "Building optional static libraries..."
-mkdir(buildDir)
+if not dirExists(buildDir):
+  mkdir(buildDir)
 
 # libfatfs_ccsbcs.a — FatFs Long Filename support (single C file)
 let fatfsInc = "-I" & libDaisyDir / "Middlewares/Third_Party/FatFs/src" &
@@ -62,8 +71,9 @@ let fatfsInc = "-I" & libDaisyDir / "Middlewares/Third_Party/FatFs/src" &
 let ccsbcs = libDaisyDir / "Middlewares/Third_Party/FatFs/src/option/ccsbcs.c"
 if fileExists(ccsbcs):
   exec "arm-none-eabi-gcc " & armFlags & " -DSTM32H750xx -DUSE_HAL_DRIVER -DCORE_CM7 " &
-       fatfsInc & " -c " & ccsbcs & " -o " & buildDir / "ccsbcs.o"
-  exec "arm-none-eabi-ar rcs " & buildDir / "libfatfs_ccsbcs.a " & buildDir / "ccsbcs.o"
+       fatfsInc & " -c " & quoteShell(ccsbcs) & " -o " & quoteShell(buildDir / "ccsbcs.o")
+  exec "arm-none-eabi-ar rcs " & quoteShell(buildDir / "libfatfs_ccsbcs.a") & " " &
+       quoteShell(buildDir / "ccsbcs.o")
   echo "✓ build/libfatfs_ccsbcs.a"
 else:
   echo "Warning: " & ccsbcs & " not found; skipping libfatfs_ccsbcs.a"
@@ -76,7 +86,8 @@ let cmsisIncs = "-I" & libDaisyDir / "Drivers/CMSIS-DSP/Include" &
                 " -I" & libDaisyDir / "Drivers/CMSIS-Device/ST/STM32H7xx/Include"
 let cmsisDefs = "-DARM_MATH_CM7 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -DUNALIGNED_SUPPORT_DISABLE"
 if dirExists(cmsisSrc):
-  mkdir(buildDir / "cmsis_objs")
+  if not dirExists(buildDir / "cmsis_objs"):
+    mkdir(buildDir / "cmsis_objs")
   let srcDirs = @["BasicMathFunctions", "CommonTables", "ComplexMathFunctions",
                   "ControllerFunctions", "FastMathFunctions", "FilteringFunctions",
                   "MatrixFunctions", "StatisticsFunctions", "SupportFunctions",
@@ -93,7 +104,11 @@ if dirExists(cmsisSrc):
           if exitCode == 0:
             objs.add(objName)
   if objs.len > 0:
-    exec "arm-none-eabi-ar rcs " & buildDir / "libCMSISDSP.a " & objs.join(" ")
+    # Quote each object path: checkouts under directories with spaces must link.
+    var quoted: seq[string] = @[]
+    for o in objs:
+      quoted.add(quoteShell(o))
+    exec "arm-none-eabi-ar rcs " & buildDir / "libCMSISDSP.a " & quoted.join(" ")
     echo "✓ build/libCMSISDSP.a (" & $objs.len & " objects)"
   else:
     echo "Warning: No CMSIS-DSP objects compiled"

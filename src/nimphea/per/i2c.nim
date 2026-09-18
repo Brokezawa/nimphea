@@ -9,7 +9,7 @@
 ## compile-time error. The peripheral is set from the static parameter when
 ## the bus is initialized, so the runtime `periph` field no longer exists.
 ##
-## ⚠️ **IMPORTANT - Blocking vs DMA Functions:**
+## **IMPORTANT - Blocking vs DMA Functions:**
 ##
 ## - **Blocking functions** (`write`, `read`, `writeRegister`, `readRegister`) will stall
 ##   the CPU while waiting for the I2C transaction to complete. This can cause **audio glitches**
@@ -319,12 +319,12 @@ proc transmitDma*[P: static I2CPeripheral](i2c: var I2cHandle[P],
                                            context: pointer = nil): I2CResult =
   ## Non-blocking DMA transmit to I2C device
   ##
-  ## ⚠️ **CRITICAL:** Buffer MUST be in D2 memory domain:
+  ## **CRITICAL:** Buffer MUST be in D2 memory domain:
   ## - Use `{.section: ".sram1_bss".}` pragma on buffer declaration
   ## - Or allocate on heap with alloc/create
   ## - **DO NOT use stack variables** (will cause DMA errors)
   ##
-  ## ⚠️ **DMA Sharing:** I2C1/I2C2/I2C3 share one DMA channel. Only one can use DMA at a time.
+  ## **DMA Sharing:** I2C1/I2C2/I2C3 share one DMA channel. Only one can use DMA at a time.
   ## I2C4 has NO DMA support - use blocking functions only.
   ##
   ## Returns:
@@ -352,12 +352,12 @@ proc receiveDma*[P: static I2CPeripheral](i2c: var I2cHandle[P],
                                           context: pointer = nil): I2CResult =
   ## Non-blocking DMA receive from I2C device
   ##
-  ## ⚠️ **CRITICAL:** Buffer MUST be in D2 memory domain:
+  ## **CRITICAL:** Buffer MUST be in D2 memory domain:
   ## - Use `{.section: ".sram1_bss".}` pragma on buffer declaration
   ## - Or allocate on heap with alloc/create
   ## - **DO NOT use stack variables** (will cause DMA errors)
   ##
-  ## ⚠️ **DMA Sharing:** I2C1/I2C2/I2C3 share one DMA channel. Only one can use DMA at a time.
+  ## **DMA Sharing:** I2C1/I2C2/I2C3 share one DMA channel. Only one can use DMA at a time.
   ## I2C4 has NO DMA support - use blocking functions only.
   ##
   ## Returns:

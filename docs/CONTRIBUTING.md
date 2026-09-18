@@ -346,9 +346,9 @@ What it checks:
 -  Syntax errors
 -  Type checking  
 -  Import resolution
-- ❌ Does NOT link with libDaisy
-- ❌ Does NOT cross-compile for ARM
-- ❌ Does NOT catch linker errors
+- Does NOT link with libDaisy
+- Does NOT cross-compile for ARM
+- Does NOT catch linker errors
 
 **Tier 2: Full Build Test** (required before releases)
 ```bash

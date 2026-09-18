@@ -256,10 +256,14 @@ Custom panic handler for bare-metal environment. Overrides default Nim panic beh
 
 **Types:**
 ```nim
-type AudioBuffer* = ptr UncheckedArray[ptr UncheckedArray[cfloat]]
-type AudioCallback* = proc(input, output: AudioBuffer, size: int) {.cdecl.}
-type InterleavedAudioCallback* = proc(input, output: InterleavedAudioBuffer, size: int) {.cdecl.}
+type AudioBuffer* = object  # one channel's samples in a block (two words)
+  # private: data: ptr UncheckedArray[cfloat]; len: int
+  # accessors: `[]`/`[]=`/`len`/`items`/`mitems` (bounds-checked in dev)
+type AudioCallback* = proc(input: openArray[AudioBuffer],
+                           output: var openArray[AudioBuffer]) {.cdecl, raises: [].}
+type InterleavingAudioCallback* = proc(input, output: var openArray[cfloat]) {.cdecl, raises: [].}
 type SampleRate* = enum SAI_8KHZ, ..., SAI_48KHZ, SAI_96KHZ
+const MAX_AUDIO_CHANNELS* = 4  # libDaisy contract (2 single SAI, 4 dual SAI)
 ```
 
 **Methods:**
@@ -277,15 +281,21 @@ proc callbackRate*(daisy: DaisySeed): float
 
 **Example:**
 ```nim
-proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-  for i in 0..<size:
-    output[0][i] = input[0][i] * 0.5  # Stereo passthrough with gain
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+  for c in 0..<output.len:
+    for i in 0..<output[c].len:
+      output[c][i] = input[c][i] * 0.5  # Stereo passthrough with gain
 
 var hw = initDaisy()
 hw.startAudio(audioCallback)
 while true:
   discard  # Audio runs in background
 ```
+The callback receives real `openArray` values (compiler-checked indexing in dev
+builds); `blockSize = output[0].len`, `numChannels = output.len`. Interleaved
+callbacks receive the full interleaved length (2 x block size for stereo). No
+allocation occurs on the audio path.
 
 ## WAV File Writer
 

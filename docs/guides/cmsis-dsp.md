@@ -49,8 +49,18 @@ const coeffs: array[3, float32] = [0.5, 0.5, 0.5]
 var filter: FirFilter[3, 48] # 3 taps, max block size 48
 filter.init(addr coeffs[0])
 
-proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-  filter.process(input[0], output[0])
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+  # The view accessors give indexed (dev-checked) access; DSP block helpers
+  # take openArray so stage the channel into a stack buffer, then write the
+  # result back through the mutable output accessor.
+  block:
+    var staged: array[48, float32]  # max block size for this filter
+    let n = min(output[0].len, staged.len)
+    for i in 0..<n:
+      staged[i] = input[0][i]
+    filter.process(staged,
+                   toOpenArray(cast[ptr UncheckedArray[float32]](addr output[0][0]), 0, n - 1))
 ```
 
 ### Fast Fourier Transform (FFT)

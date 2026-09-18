@@ -234,5 +234,37 @@ proc unmount*(fatfs: FatFSInterface, media: FatFSMedia): FRESULT =
   of MEDIA_USB:
     result = f_mount(nil, fatfs.getUSBPath(), 0)
 
+# =============================================================================
+# openArray[uint8] buffer ergonomics (length-derived, empty-safe)
+# =============================================================================
+
+proc read*(fp: ptr FIL, buffer: var openArray[uint8],
+           bytesRead: var UINT): FRESULT {.inline.} =
+  ## Read from an open file into an `openArray[uint8]` buffer.
+  ##
+  ## The byte count is derived from `buffer.len`; the number of bytes actually
+  ## read is reported in `bytesRead`. An empty buffer is a no-op returning
+  ## `FR_OK` with `bytesRead = 0` (see the raw `f_read` `pointer` form for
+  ## advanced pointer-based use).
+  if buffer.len > 0:
+    result = f_read(fp, addr buffer[0], UINT(buffer.len), addr bytesRead)
+  else:
+    bytesRead = 0
+    result = FR_OK
+
+proc write*(fp: ptr FIL, buffer: openArray[uint8],
+            bytesWritten: var UINT): FRESULT {.inline.} =
+  ## Write an `openArray[uint8]` to an open file.
+  ##
+  ## The byte count is derived from `buffer.len`; the number of bytes actually
+  ## written is reported in `bytesWritten`. An empty buffer is a no-op returning
+  ## `FR_OK` with `bytesWritten = 0` (see the raw `f_write` `pointer` form for
+  ## advanced pointer-based use).
+  if buffer.len > 0:
+    result = f_write(fp, addr buffer[0], UINT(buffer.len), addr bytesWritten)
+  else:
+    bytesWritten = 0
+    result = FR_OK
+
 when isMainModule:
   echo "libDaisy FatFS wrapper - Filesystem support for SD card and USB"

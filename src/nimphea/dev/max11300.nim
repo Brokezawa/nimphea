@@ -9,7 +9,7 @@
 ## - Multiple voltage ranges (-10V to +10V)
 ## - Up to 4 devices on shared SPI bus (multi-slave)
 ##
-## ⚠️ **IMPORTANT**: This implementation wraps libDaisy's C++ driver but has
+## **IMPORTANT**: This implementation wraps libDaisy's C++ driver but has
 ## **NOT been tested on hardware**. It follows libDaisy's proven code and
 ## compiles successfully, but should be considered **experimental** until
 ## hardware validation is complete.

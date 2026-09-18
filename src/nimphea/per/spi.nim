@@ -2,7 +2,7 @@
 ##
 ## This module provides SPI communication support for the Daisy Audio Platform.
 ##
-## ⚠️ **IMPORTANT - Blocking vs DMA Functions:**
+## **IMPORTANT - Blocking vs DMA Functions:**
 ##
 ## - **Blocking functions** (`write`, `read`, `transfer`) will stall the CPU while waiting
 ##   for the SPI transaction to complete. This can cause **audio glitches** if called from
@@ -378,7 +378,7 @@ proc dmaTransmit*[P: static SpiPeripheral](spi: var SpiHandle[P],
                   context: pointer = nil): SpiResult =
   ## Non-blocking DMA transmit (openArray wrapper over `dmaTransmit` binding).
   ##
-  ## ⚠️ **CRITICAL:** Buffer MUST be in D2 memory domain:
+  ## **CRITICAL:** Buffer MUST be in D2 memory domain:
   ## - Use `{.section: ".sram1_bss".}` pragma on buffer declaration
   ## - Or allocate on heap with alloc/create
   ## - **DO NOT use stack variables** (will cause DMA errors)
@@ -407,7 +407,7 @@ proc dmaReceive*[P: static SpiPeripheral](spi: var SpiHandle[P],
                  context: pointer = nil): SpiResult =
   ## Non-blocking DMA receive (openArray wrapper over `dmaReceive` binding).
   ##
-  ## ⚠️ **CRITICAL:** Buffer MUST be in D2 memory domain. **DO NOT use stack.**
+  ## **CRITICAL:** Buffer MUST be in D2 memory domain. **DO NOT use stack.**
   ##
   ## Example:
   ## ```nim
@@ -433,7 +433,7 @@ proc dmaTransmitAndReceive*[P: static SpiPeripheral](spi: var SpiHandle[P],
                             context: pointer = nil): SpiResult =
   ## Non-blocking DMA full-duplex transfer (openArray wrapper over the binding).
   ##
-  ## ⚠️ **CRITICAL:** Both buffers MUST be in D2 memory domain. **DO NOT use stack.**
+  ## **CRITICAL:** Both buffers MUST be in D2 memory domain. **DO NOT use stack.**
   ## txBuffer and rxBuffer must be the same length.
   ##
   ## Example:

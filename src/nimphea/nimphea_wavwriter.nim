@@ -29,9 +29,11 @@
 ## writer.openFile("recording.wav")
 ##
 ## # In audio callback
-## proc audioCallback(input, output: AudioBuffer, size: int) =
-##   for i in 0..<size:
-##     writer.sample(addr input[0][i])  # Record input
+## proc audioCallback(input: openArray[AudioBuffer],
+##                    output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+##   for i in 0..<input[0].len:
+##     var s = input[0][i]
+##     writer.sample(s.addr)  # Record input
 ##
 ## # In main loop
 ## while recording:

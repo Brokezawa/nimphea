@@ -63,9 +63,9 @@ project root, or clone one of the starter templates:
 Navigate to your project directory and use the self-contained task scripts
 (the project locates nimphea via `NIMPHEA`/sibling automatically):
 ```bash
-nim e make.nims      # build ARM binary -> build/<name>.elf / .bin
-nim e flash.nims     # flash via DFU bootloader
-nim e stlink.nims    # flash via ST-Link/OpenOCD
+nim make           # build ARM binary -> build/<name>.elf / .bin
+nim flash          # flash via DFU bootloader
+nim stlink         # flash via ST-Link/OpenOCD
 ```
 
 ## Documentation
@@ -91,7 +91,7 @@ The [Nimphea Examples Repository](https://github.com/Brokezawa/nimphea-examples)
 ## Templates
 
 A self-contained project scaffold lives in [`templates/basic/`](templates/basic/):
-copy it into your project root and build with `nim e make.nims` (no package
+copy it into your project root and build with `nim make` (no package
 manager required). See [`templates/basic/README.md`](templates/basic/README.md).
 
 ## License

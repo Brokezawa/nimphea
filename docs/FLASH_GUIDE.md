@@ -519,14 +519,16 @@ const SAMPLES_START = 256 * SECTOR_SIZE           # 0x100000
 
 ```nim
 #  WRONG - Blocks audio!
-proc audioCallback(input: AudioBuffer, output: var AudioBuffer) =
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
   if saveRequested:
     storage.save()  # BAD: ~100ms blocking call!
 
 #  CORRECT - Defer to main loop
 var saveRequested = false
 
-proc audioCallback(input: AudioBuffer, output: var AudioBuffer) =
+proc audioCallback(input: openArray[AudioBuffer],
+                   output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
   if saveButtonPressed:
     saveRequested = true  # Just set flag
 

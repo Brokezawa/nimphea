@@ -36,8 +36,9 @@ templates:
 
 ## 2. Project Structure
 
-- `config.nims`: Your ARM build configuration (self-contained, no package manager).
-- `make.nims` / `flash.nims` / `stlink.nims` / `clear.nims`: task scripts.
+- `config.nims`: Your ARM build configuration with embedded tasks
+  (`nim make` / `nim bin` / `nim flash` / `nim stlink` / `nim clear`;
+  self-contained, no package manager).
 - `src/main.nim`: Your application code (rename to `src/<dirName>.nim` or set
   `projName` in `config.nims`).
 - `build/`: Built binaries (generated).
@@ -45,7 +46,7 @@ templates:
 ## 3. Build the Project
 
 ```bash
-nim e make.nims
+nim make
 ```
 
 This will:
@@ -62,7 +63,7 @@ This will:
    - Release the **BOOT** button.
 3. Run the flash command:
    ```bash
-   nim e flash.nims
+   nim flash
    ```
 
 ## 5. Next Steps

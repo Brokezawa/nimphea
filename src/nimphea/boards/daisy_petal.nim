@@ -25,10 +25,11 @@
 ## var petal: DaisyPetal
 ## petal.init()
 ##
-## proc audioCallback(input, output: AudioBuffer, size: int) =
+## proc audioCallback(input: openArray[AudioBuffer],
+##                    output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
 ##   let gain = petal.getKnobValue(KNOB_1.cint)
 ##   
-##   for i in 0..<size:
+##   for i in 0..<output[0].len:
 ##     output[0][i] = input[0][i] * gain  # Left
 ##     output[1][i] = input[1][i] * gain  # Right
 ##

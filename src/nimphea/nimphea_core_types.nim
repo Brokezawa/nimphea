@@ -73,24 +73,70 @@ proc newPin*(port: GPIOPort, pin: uint8): Pin
 # =============================================================================
 # Low-level C++ types matching libDaisy callback signatures
 type
-  ConstFloatPtrPtr* = ptr ptr cfloat   ## const float* const* (multi-channel input)
-  FloatPtrPtr* = ptr ptr cfloat        ## float** (multi-channel output)
-  AudioCallbackC* = proc(input: ConstFloatPtrPtr, output: FloatPtrPtr, size: csize_t) {.cdecl.}
+  AudioCallbackC* = proc(input: ptr ptr cfloat,    ## const float* const* (multi-channel input)
+                         output: ptr ptr cfloat,   ## float** (multi-channel output)
+                         size: csize_t) {.cdecl.}
 
-  ConstFloatPtr* = ptr cfloat          ## const float* (interleaved input)
-  FloatPtr* = ptr cfloat               ## float* (interleaved output)
-  InterleavingAudioCallbackC* = proc(input: ConstFloatPtr, output: FloatPtr, size: csize_t) {.cdecl.}
+  InterleavingAudioCallbackC* = proc(input: ptr cfloat,    ## const float* (interleaved input)
+                                     output: ptr cfloat,   ## float* (interleaved output)
+                                     size: csize_t) {.cdecl.}
 
-  # Nim-friendly audio buffers and callbacks
-  AudioBuffer* = ptr UncheckedArray[ptr UncheckedArray[cfloat]]
-    ## Multi-channel audio buffer (non-interleaved)
-  InterleavedAudioBuffer* = ptr UncheckedArray[cfloat]
-    ## Interleaved audio buffer
+  # Nim-friendly audio buffers and callbacks (typed views over the C buffers)
+  AudioBuffer* = object
+    ## One channel's samples in one audio block (two words: pointer + length).
+    ## Indexing through `[]`/`[]=` is bounds-checked in dev builds (assert
+    ## semantics, compiled out at release/danger); storage stays private.
+    data: ptr UncheckedArray[cfloat]
+    len: int
 
-  AudioCallback* = proc(input, output: AudioBuffer, size: int) {.cdecl, raises: [].}
-    ## Nim-friendly multi-channel audio callback
-  InterleavingAudioCallback* = proc(input, output: InterleavedAudioBuffer, size: int) {.cdecl, raises: [].}
-    ## Nim-friendly interleaved audio callback
+  AudioCallback* = proc(input: openArray[AudioBuffer],
+                        output: var openArray[AudioBuffer]) {.cdecl, raises: [].}
+    ## Nim-friendly multi-channel audio callback (read input, write output)
+  InterleavingAudioCallback* = proc(input, output: var openArray[cfloat]) {.cdecl, raises: [].}
+    ## Nim-friendly interleaved audio callback (full interleaved length)
+
+const MAX_AUDIO_CHANNELS* = 4
+  ## libDaisy's `AudioHandle::GetChannels()` contract: 2 with one SAI, 4 with
+  ## two; the interleaved path is capped at 2. Adapter capacity for the audio
+  ## bridge's view construction.
+
+static:
+  # AudioBuffer is exactly two words (pointer + length) — a trivially
+  # copyable value type tiny enough for the real-time audio path.
+  doAssert sizeof(AudioBuffer) == 2 * sizeof(int)
+
+# AudioBuffer view factories/accessors (bind-once, single source of truth)
+proc newAudioBuffer*(data: ptr UncheckedArray[cfloat], len: int): AudioBuffer =
+  ## Build an `AudioBuffer` view over a C-owned sample block (used by the
+  ## audio bridge's C-ABI shims; fields stay private).
+  AudioBuffer(data: data, len: len)
+
+proc len*(b: AudioBuffer): int {.inline.} = b.len
+  ## Number of samples in this channel's block.
+proc `[]`*(b: AudioBuffer, i: int): cfloat {.inline.} =
+  ## Sample accessor (bounds-checked in dev builds via assert; compiled out
+  ## at release/danger).
+  assert i >= 0 and i < b.len
+  b.data[i]
+proc `[]`*(b: var AudioBuffer, i: int): var cfloat {.inline.} =
+  ## Mutable sample accessor (bounds-checked in dev builds via assert;
+  ## compiled out at release/danger). Yields a `var` lvalue so interop APIs
+  ## taking `ptr cfloat` (e.g. `WavPlayer.stream`) can use `addr b[i]`.
+  assert i >= 0 and i < b.len
+  b.data[i]
+proc `[]=`*(b: var AudioBuffer, i: int, v: cfloat) {.inline.} =
+  ## Sample writer (bounds-checked in dev builds via assert; compiled out at
+  ## release/danger).
+  assert i >= 0 and i < b.len
+  b.data[i] = v
+iterator items*(b: AudioBuffer): cfloat =
+  ## Iterate the channel's samples.
+  for i in 0..<b.len:
+    yield b.data[i]
+iterator mitems*(b: var AudioBuffer): var cfloat =
+  ## Mutably iterate the channel's samples.
+  for i in 0..<b.len:
+    yield b.data[i]
 
 # =============================================================================
 # Switch / Encoder / AnalogControl (hid/switch.h, hid/encoder.h, hid/ctrl.h)

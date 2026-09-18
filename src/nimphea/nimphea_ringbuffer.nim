@@ -9,7 +9,7 @@
 ## - Audio streaming optimized
 ## - Configurable overwrite behavior
 ## - Generic type support via templates
-## - ⚠️ **BREAKING CHANGE v0.9.1:** Capacity N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, etc.)
+## - **NOTE - BREAKING CHANGE v0.9.1:** Capacity N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, etc.)
 ##
 ## **Performance:**
 ## - Uses bitwise AND instead of modulo (1 cycle vs 12-30 cycles on ARM Cortex-M7)
@@ -76,7 +76,7 @@ type
   RingBuffer*[N: static int; T] = object
     ## Lock-free circular buffer for audio streaming
     ##
-    ## ⚠️ **CRITICAL:** N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, etc.)
+    ## **CRITICAL:** N must be a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, etc.)
     ## This is enforced at compile time for performance (bitwise AND vs modulo).
     ##
     ## **Generic Parameters:**

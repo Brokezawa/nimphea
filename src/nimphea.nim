@@ -21,10 +21,11 @@
 ## ```nim
 ## import nimphea
 ## 
-## proc audioCallback(input, output: AudioBuffer, size: int) {.cdecl.} =
-##   for i in 0..<size:
-##     output[0][i] = input[0][i]  # Left channel passthrough
-##     output[1][i] = input[1][i]  # Right channel passthrough
+## proc audioCallback(input: openArray[AudioBuffer],
+##                    output: var openArray[AudioBuffer]) {.cdecl, raises: [].} =
+##   for c in 0..<output.len:
+##     for i in 0..<output[c].len:
+##       output[c][i] = input[c][i]  # Passthrough
 ## 
 ## proc main() =
 ##   var daisy = initDaisy()
@@ -184,8 +185,6 @@ proc deinit*(this: var AudioHandle): AudioResult {.importcpp: "#.DeInit()", head
   ## Stop and deinitialize audio.
 proc getConfig*(this: AudioHandle): AudioConfig {.importcpp: "#.GetConfig()", header: "hid/audio.h".}
   ## Get the current AudioHandle configuration.
-proc getChannels*(this: AudioHandle): csize_t {.importcpp: "#.GetChannels()", header: "hid/audio.h".}
-  ## Get the number of audio channels (2 single SAI, 4 dual SAI, 0 if uninitialized).
 proc getSampleRate*(this: var AudioHandle): cfloat {.importcpp: "#.GetSampleRate()", header: "hid/audio.h".}
   ## Get the sample rate as a float.
 proc setSampleRate*(this: var AudioHandle, samplerate: SampleRate): AudioResult {.importcpp: "#.SetSampleRate(@)", header: "hid/audio.h".}

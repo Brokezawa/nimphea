@@ -27,14 +27,3 @@ processing callback.
    nim bin              # generate the flashable build/audio.bin
    nim flash            # flash via DFU bootloader; or `nim stlink`
    ```
-
-Application logging appears on the Seed's USB CDC virtual serial port
-(`LoggerInternal` in `src/audio.nim`).
-
-## Audio Rules
-
-Embedded audio requires strict deterministic behavior:
-
-- No heap allocations in the callback (avoid `seq`, `string`, `new`).
-- No blocking calls in the callback (avoid `delay`, `print`, logging).
-- Keep processing fast enough to fit within the block size (~1ms).

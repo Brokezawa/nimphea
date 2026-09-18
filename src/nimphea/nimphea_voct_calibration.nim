@@ -374,8 +374,9 @@ proc isCalibrated*(this: var VoctCalibration): bool =
   var dummyScale, dummyOffset: cfloat
   result = this.getData(dummyScale, dummyOffset)
 
-# C99 exp2f binding — a single fast instruction path on the Cortex-M7
-# (Nim std/math has no exp2f; pow(2, x) via powf is hundreds of cycles).
+# C99 exp2f binding (Nim std/math has no exp2f; a single libm call with
+# cheaper argument reduction than powf(2, x), which must handle a general
+# base and exponent domain).
 proc exp2f(x: cfloat): cfloat {.importc: "exp2f", header: "<math.h>".}
 
 proc midiNoteToFreq*(midiNote: float32): float32 =
@@ -399,8 +400,8 @@ proc midiNoteToFreq*(midiNote: float32): float32 =
   ##
   ## **Note:** A4 (MIDI note 69) = 440 Hz by definition.
   ##
-  ## **Note:** Uses `exp2f` (C99, single instruction on the M7) instead of
-  ## libm's `powf` for cheap conversion at UI rate.
+  ## **Note:** Uses `exp2f` (C99 libm, cheaper than `powf` for a fixed
+  ## base-2 exponent) instead of libm's `powf` for cheap conversion at UI rate.
   result = 440.0'f32 * exp2f((midiNote - 69.0'f32) / 12.0'f32)
 
 proc midiNoteToName*(midiNote: int): string =

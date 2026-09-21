@@ -108,17 +108,16 @@ when defined(arm):
   {.passL: "-Wl,--allow-multiple-definition".}
 
   # Boot modes: BOOT_NONE (internal flash) is the default and links the
-  # flash linker script explicitly; bootloaded modes compile the startup unit
-  # with -DBOOT_APP and link their respective linker scripts.
-  {.compile: nimpheaRoot / "libDaisy/core/startup_stm32h750xx.c".}
+  # flash linker script explicitly; bootloaded modes link their respective startup
+  # object (built with -DBOOT_APP) and linker scripts.
   when defined(bootQspi):
-    {.passC: "-Dqspi_layout -DBOOT_APP".}
+    {.passL: nimpheaRoot / "build/startup_qspi.o".}
     {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_qspi.lds".}
   elif defined(bootSram):
-    {.passC: "-Dsram_layout -DBOOT_APP".}
+    {.passL: nimpheaRoot / "build/startup_sram.o".}
     {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_sram.lds".}
   else:
-    {.passC: "-Dflash_layout".}
+    {.passL: nimpheaRoot / "build/startup_flash.o".}
     {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_flash.lds".}
 
   # Optional: FatFs LFN support (opt-in via -d:useFatFsLFN)

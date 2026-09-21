@@ -72,6 +72,22 @@ echo "Building optional static libraries..."
 if not dirExists(buildDir):
   mkdir(buildDir)
 
+# Startup objects for each boot mode (Flash, SRAM, QSPI)
+let startupSrc = libDaisyDir / "core/startup_stm32h750xx.c"
+let startupDefs = "-DUSE_HAL_DRIVER -DSTM32H750xx -DHSE_VALUE=16000000 -DCORE_CM7 -DSTM32H750IB -DARM_MATH_CM7 -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DFILEIO_ENABLE_FATFS_READER"
+if fileExists(startupSrc):
+  exec "arm-none-eabi-gcc " & armFlags & " " & startupDefs & " -Dflash_layout -c " &
+       quoteHostShell(startupSrc) & " -o " & quoteHostShell(buildDir / "startup_flash.o")
+  echo "✓ build/startup_flash.o"
+
+  exec "arm-none-eabi-gcc " & armFlags & " " & startupDefs & " -Dsram_layout -DBOOT_APP -c " &
+       quoteHostShell(startupSrc) & " -o " & quoteHostShell(buildDir / "startup_sram.o")
+  echo "✓ build/startup_sram.o"
+
+  exec "arm-none-eabi-gcc " & armFlags & " " & startupDefs & " -Dqspi_layout -DBOOT_APP -c " &
+       quoteHostShell(startupSrc) & " -o " & quoteHostShell(buildDir / "startup_qspi.o")
+  echo "✓ build/startup_qspi.o"
+
 # libfatfs_ccsbcs.a — FatFs Long Filename support (single C file)
 let fatfsInc = "-I" & libDaisyDir / "Middlewares/Third_Party/FatFs/src" &
                " -I" & libDaisyDir / "src/sys" &

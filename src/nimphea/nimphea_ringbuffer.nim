@@ -25,6 +25,8 @@
 ## - Stack allocated only
 ## - Size known at compile time
 ## - Zero runtime overhead
+## - `write`/`read` are `{.raises: [].}` for plain `T` (numerics, event
+##   structs); exotic `T` with raising `=copy` is outside this contract
 ##
 ## **Migration from v0.9.0:**
 ## - If you used non-power-of-2 sizes (e.g., 100, 500), round up to next power of 2
@@ -162,7 +164,7 @@ proc isFull*[N: static int, T](this: RingBuffer[N, T]): bool {.inline.} =
   ## **Returns:** `true` if no space remaining
   ((this.writeIdx + 1) and (N - 1)) == this.readIdx
 
-proc write*[N: static int, T](this: var RingBuffer[N, T], value: T): bool {.inline.} =
+proc write*[N: static int, T](this: var RingBuffer[N, T], value: T): bool {.inline, raises: [].} =
   ## Write a single value to the buffer
   ##
   ## **Parameters:**
@@ -189,7 +191,7 @@ proc write*[N: static int, T](this: var RingBuffer[N, T], value: T): bool {.inli
   this.writeIdx = nextWrite
   return true
 
-proc read*[N: static int, T](this: var RingBuffer[N, T], value: var T): bool {.inline.} =
+proc read*[N: static int, T](this: var RingBuffer[N, T], value: var T): bool {.inline, raises: [].} =
   ## Read a single value from the buffer
   ##
   ## **Parameters:**

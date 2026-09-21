@@ -9,6 +9,16 @@
 
 import std/os, std/strutils, std/algorithm
 
+# Shell quoting that survives a contaminated config: `quoteShell` vanishes
+# when a parent config.nims retargets to os:any (it is gated on
+# defined(windows) or defined(posix)). `hostOS` reflects the machine (not
+# the target), and `quoteShellWindows`/`quoteShellPosix` are unconditional.
+template quoteHostShell(s: string): string =
+  when hostOS == "windows":
+    quoteShellWindows(s)
+  else:
+    quoteShellPosix(s)
+
 const repoRoot = currentSourcePath().parentDir.parentDir
 const srcDir = repoRoot / "src"
 
@@ -66,7 +76,7 @@ var failures: seq[string] = @[]
 for source in sources:
   let rel = source.relativePath(examplesRoot)
   let (_, exitCode) = gorgeEx("nim check --path:" & srcDir & " --path:" & srcDir / "nimphea" &
-                              " " & quoteShell(source))
+                              " " & quoteHostShell(source))
   if exitCode == 0:
     echo "  [OK] " & rel
   else:

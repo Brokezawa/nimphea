@@ -19,6 +19,8 @@
 ## - Stack allocated only
 ## - Size known at compile time
 ## - Zero runtime overhead
+## - `push`/`pop`/`peek` are `{.raises: [].}` for plain `T` (numerics, event
+##   structs); exotic `T` with raising `=copy` is outside this contract
 ##
 ## **Usage:**
 ## ```nim
@@ -142,7 +144,7 @@ proc isFull*[N: static int, T](this: Fifo[N, T]): bool {.inline.} =
   ## ```
   this.count == N
 
-proc push*[N: static int, T](this: var Fifo[N, T], value: T): bool {.inline.} =
+proc push*[N: static int, T](this: var Fifo[N, T], value: T): bool {.inline, raises: [].} =
   ## Push a value onto the queue (at tail)
   ##
   ## **Parameters:**
@@ -163,7 +165,7 @@ proc push*[N: static int, T](this: var Fifo[N, T], value: T): bool {.inline.} =
   this.count.inc
   return true
 
-proc pop*[N: static int, T](this: var Fifo[N, T], value: var T): bool {.inline.} =
+proc pop*[N: static int, T](this: var Fifo[N, T], value: var T): bool {.inline, raises: [].} =
   ## Pop a value from the queue (from head)
   ##
   ## **Parameters:**
@@ -187,7 +189,7 @@ proc pop*[N: static int, T](this: var Fifo[N, T], value: var T): bool {.inline.}
   this.count.dec
   return true
 
-proc peek*[N: static int, T](this: Fifo[N, T], value: var T): bool {.inline.} =
+proc peek*[N: static int, T](this: Fifo[N, T], value: var T): bool {.inline, raises: [].} =
   ## Peek at the next value without removing it
   ##
   ## **Parameters:**

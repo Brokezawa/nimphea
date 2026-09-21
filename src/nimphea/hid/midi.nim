@@ -67,6 +67,11 @@
 ##     let event = midi.popEvent()
 ##     # Process or echo the event
 ## ```
+##
+## **Note:** upstream `MidiEvent.h` has no include guard (unlike `midi.h`).
+## Never include it directly alongside `midi.h` in one translation unit
+## (redefines the MIDI enums); all bindings in this module ride on
+## `hid/midi.h` instead.
 
 # Import libdaisy which provides the macro system
 import nimphea
@@ -182,6 +187,20 @@ type
 # MidiEvent helper properties - access the C++ fields directly
 proc messageType*(event: MidiEvent): MidiMessageType {.importcpp: "#.type", nodecl.}
 proc channel*(event: MidiEvent): cint {.importcpp: "#.channel", nodecl.}
+proc scType*(event: MidiEvent): SystemCommonType {.importcpp: "#.sc_type", nodecl.}
+  ## SystemCommon subtype discriminator (meaningful when messageType is SystemCommon)
+proc srtType*(event: MidiEvent): SystemRealTimeType {.importcpp: "#.srt_type", nodecl.}
+  ## SystemRealTime subtype discriminator (meaningful when messageType is SystemRealTime)
+proc cmType*(event: MidiEvent): ChannelModeType {.importcpp: "#.cm_type", nodecl.}
+  ## ChannelMode subtype discriminator (meaningful when messageType is ChannelMode)
+proc sysexLen*(event: MidiEvent): int {.inline.} =
+  ## Received SysEx payload length in bytes (0 when the event carries no SysEx)
+  event.sysexLen.int
+proc sysexByte*(event: MidiEvent, i: int): uint8 {.inline.} =
+  ## SysEx payload byte at index `i` (bounds-checked against the received
+  ## length in dev builds via assert; compiled out at release/danger)
+  assert i >= 0 and i < event.sysexLen.int
+  event.sysexData[i]
 
 proc note*(event: MidiEvent): NoteEvent {.inline.} =
   ## Parse as a note event (for NoteOn/NoteOff messages)

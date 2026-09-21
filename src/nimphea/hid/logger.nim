@@ -100,7 +100,7 @@ type
 # ============================================================================
 
 proc print*(T: typedesc[LoggerInternal], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_INTERNAL>::Print(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_INTERNAL>::Print(@)", header: "hid/logger.h".}
   ## Print formatted string (no newline added).
   ##
   ## **Parameters:**
@@ -113,7 +113,7 @@ proc print*(T: typedesc[LoggerInternal], format: cstring) {.
   ## ```
 
 proc printLine*(T: typedesc[LoggerInternal], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_INTERNAL>::PrintLine(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_INTERNAL>::PrintLine(@)", header: "hid/logger.h".}
   ## Print formatted string with newline appended.
   ##
   ## **Parameters:**
@@ -126,7 +126,7 @@ proc printLine*(T: typedesc[LoggerInternal], format: cstring) {.
   ## ```
 
 proc startLog*(T: typedesc[LoggerInternal], wait_for_pc: bool = false) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_INTERNAL>::StartLog(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_INTERNAL>::StartLog(@)", header: "hid/logger.h".}
   ## Start the logging session.
   ##
   ## **Parameters:**
@@ -144,15 +144,15 @@ proc startLog*(T: typedesc[LoggerInternal], wait_for_pc: bool = false) {.
 # ============================================================================
 
 proc print*(T: typedesc[LoggerExternal], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_EXTERNAL>::Print(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_EXTERNAL>::Print(@)", header: "hid/logger.h".}
   ## Print to external USB port (no newline).
 
 proc printLine*(T: typedesc[LoggerExternal], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_EXTERNAL>::PrintLine(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_EXTERNAL>::PrintLine(@)", header: "hid/logger.h".}
   ## Print to external USB port (with newline).
 
 proc startLog*(T: typedesc[LoggerExternal], wait_for_pc: bool = false) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_EXTERNAL>::StartLog(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_EXTERNAL>::StartLog(@)", header: "hid/logger.h".}
   ## Start logging to external USB port.
 
 # ============================================================================
@@ -160,15 +160,15 @@ proc startLog*(T: typedesc[LoggerExternal], wait_for_pc: bool = false) {.
 # ============================================================================
 
 proc print*(T: typedesc[LoggerSemihost], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_SEMIHOST>::Print(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_SEMIHOST>::Print(@)", header: "hid/logger.h".}
   ## Print to debugger stdout (no newline).
 
 proc printLine*(T: typedesc[LoggerSemihost], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_SEMIHOST>::PrintLine(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_SEMIHOST>::PrintLine(@)", header: "hid/logger.h".}
   ## Print to debugger stdout (with newline).
 
 proc startLog*(T: typedesc[LoggerSemihost], wait_for_pc: bool = false) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_SEMIHOST>::StartLog(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_SEMIHOST>::StartLog(@)", header: "hid/logger.h".}
   ## Start semihosting logging.
 
 # ============================================================================
@@ -176,15 +176,15 @@ proc startLog*(T: typedesc[LoggerSemihost], wait_for_pc: bool = false) {.
 # ============================================================================
 
 proc print*(T: typedesc[LoggerNone], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_NONE>::Print(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_NONE>::Print(@)", header: "hid/logger.h".}
   ## No-op (optimized away at compile time).
 
 proc printLine*(T: typedesc[LoggerNone], format: cstring) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_NONE>::PrintLine(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_NONE>::PrintLine(@)", header: "hid/logger.h".}
   ## No-op (optimized away at compile time).
 
 proc startLog*(T: typedesc[LoggerNone], wait_for_pc: bool = false) {.
-  importcpp: "daisy::Logger<daisy::LOGGER_NONE>::StartLog(@)".}
+  importcpp: "daisy::Logger<daisy::LOGGER_NONE>::StartLog(@)", header: "hid/logger.h".}
   ## No-op (optimized away at compile time).
 
 # ============================================================================

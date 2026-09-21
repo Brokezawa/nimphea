@@ -13,6 +13,17 @@
 
 import std/os, std/strutils
 
+# Shell quoting that survives a contaminated config: `quoteShell` vanishes
+# when a parent config.nims retargets to os:any (it is gated on
+# defined(windows) or defined(posix)), e.g. running this script from a
+# template directory. `hostOS` reflects the machine (not the target), and
+# `quoteShellWindows`/`quoteShellPosix` are unconditional, so branch on it.
+template quoteHostShell(s: string): string =
+  when hostOS == "windows":
+    quoteShellWindows(s)
+  else:
+    quoteShellPosix(s)
+
 const repoRoot = currentSourcePath().parentDir.parentDir
 const libDaisyDir = repoRoot / "libDaisy"
 const buildDir = repoRoot / "build"
@@ -71,9 +82,9 @@ let fatfsInc = "-I" & libDaisyDir / "Middlewares/Third_Party/FatFs/src" &
 let ccsbcs = libDaisyDir / "Middlewares/Third_Party/FatFs/src/option/ccsbcs.c"
 if fileExists(ccsbcs):
   exec "arm-none-eabi-gcc " & armFlags & " -DSTM32H750xx -DUSE_HAL_DRIVER -DCORE_CM7 " &
-       fatfsInc & " -c " & quoteShell(ccsbcs) & " -o " & quoteShell(buildDir / "ccsbcs.o")
-  exec "arm-none-eabi-ar rcs " & quoteShell(buildDir / "libfatfs_ccsbcs.a") & " " &
-       quoteShell(buildDir / "ccsbcs.o")
+       fatfsInc & " -c " & quoteHostShell(ccsbcs) & " -o " & quoteHostShell(buildDir / "ccsbcs.o")
+  exec "arm-none-eabi-ar rcs " & quoteHostShell(buildDir / "libfatfs_ccsbcs.a") & " " &
+       quoteHostShell(buildDir / "ccsbcs.o")
   echo "✓ build/libfatfs_ccsbcs.a"
 else:
   echo "Warning: " & ccsbcs & " not found; skipping libfatfs_ccsbcs.a"
@@ -107,7 +118,7 @@ if dirExists(cmsisSrc):
     # Quote each object path: checkouts under directories with spaces must link.
     var quoted: seq[string] = @[]
     for o in objs:
-      quoted.add(quoteShell(o))
+      quoted.add(quoteHostShell(o))
     exec "arm-none-eabi-ar rcs " & buildDir / "libCMSISDSP.a " & quoted.join(" ")
     echo "✓ build/libCMSISDSP.a (" & $objs.len & " objects)"
   else:

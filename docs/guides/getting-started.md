@@ -16,6 +16,11 @@ This guide will help you create and build your first Nimphea project.
   cd <nimphea>
   nim e scripts/init_libdaisy.nims
   ```
+  (libDaisy content must be present recursively — see Installation §3;
+  package-manager checkouts need `git submodule update --init --recursive`
+  run manually before the script. The scripts ignore your project's cross
+  `config.nims`; on an old nimphea, `undeclared identifier: 'quoteShell'`
+  means re-running with `nim e --skipParentCfg:on`.)
 
 ## 1. Create a Project from Template
 

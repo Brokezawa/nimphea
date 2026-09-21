@@ -33,6 +33,11 @@ src/basic.nim       # minimal example: blink the built-in LED
    ```bash
    nim e <nimphea>/scripts/init_libdaisy.nims
    ```
+   (libDaisy must be checked out recursively first:
+   `git submodule update --init --recursive` — package managers such as
+   Atlas skip nested submodules. If an old nimphea fails here with
+   `undeclared identifier: 'quoteShell'`, re-run with
+   `nim e --skipParentCfg:on`.)
 
 ## Usage
 

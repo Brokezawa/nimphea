@@ -510,11 +510,52 @@ type
     PitchBend
     SystemCommon
     SystemRealTime
+    ChannelMode
+    MessageLast
+
+  SystemCommonType* {.importcpp: "daisy::SystemCommonType", size: sizeof(cint).} = enum
+    SystemExclusive
+    MTCQuarterFrame
+    SongPositionPointer
+    SongSelect
+    SCUndefined0
+    SCUndefined1
+    TuneRequest
+    SysExEnd
+    SystemCommonLast
+
+  SystemRealTimeType* {.importcpp: "daisy::SystemRealTimeType", size: sizeof(cint).} = enum
+    TimingClock
+    SRTUndefined0
+    Start
+    Continue
+    Stop
+    SRTUndefined1
+    ActiveSensing
+    Reset
+    SystemRealTimeLast
+
+  ChannelModeType* {.importcpp: "daisy::ChannelModeType", size: sizeof(cint).} = enum
+    AllSoundOff
+    ResetAllControllers
+    LocalControl
+    AllNotesOff
+    OmniModeOff
+    OmniModeOn
+    MonoModeOn
+    PolyModeOn
+    ChannelModeLast
 
   MidiEvent* {.importcpp: "daisy::MidiEvent", bycopy.} = object
+    # Field order mirrors libDaisy MidiEvent.h:242-249 exactly (bycopy layout).
     mType* {.importcpp: "type".}: MidiMessageType
     channel* {.importcpp: "channel".}: cint
     data* {.importcpp: "data".}: array[2, uint8]
+    sysexData* {.importcpp: "sysex_data".}: array[128, uint8]
+    sysexLen* {.importcpp: "sysex_message_len".}: uint8
+    scType* {.importcpp: "sc_type".}: SystemCommonType
+    srtType* {.importcpp: "srt_type".}: SystemRealTimeType
+    cmType* {.importcpp: "cm_type".}: ChannelModeType
 
   MidiUsbHandler* {.importcpp: "daisy::MidiHandler<daisy::MidiUsbTransport>".} = object
   MidiUsbHandlerConfig* {.importcpp: "daisy::MidiHandler<daisy::MidiUsbTransport>::Config", bycopy.} = object

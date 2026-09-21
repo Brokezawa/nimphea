@@ -36,6 +36,19 @@ cd nimphea
 nim e scripts/init_libdaisy.nims
 ```
 
+> **Submodules must be checked out recursively.** A plain `git clone` leaves
+> `libDaisy/` (and its own nested dependencies) empty. Either clone with
+> `--recurse-submodules` or run `git submodule update --init --recursive`
+> inside the checkout *before* the init script. Package managers such as
+> Atlas do not initialize nested submodules, so atlas-managed checkouts need
+> this step run manually — otherwise the script sees an (empty) `libDaisy/`
+> directory and the C++ build fails.
+
+> **Running scripts from a project directory:** the helper scripts ignore
+> your project's cross `config.nims` settings. If you use an older nimphea
+> and see `undeclared identifier: 'quoteShell'`, re-run with
+> `nim e --skipParentCfg:on <nimphea>/scripts/init_libdaisy.nims`.
+
 `nimble install nimphea` also works (metadata-only; it does **not** clone or
 build libDaisy — run `nim e scripts/init_libdaisy.nims` once yourself). With a
 checkout, projects resolve it via the `NIMPHEA` environment variable or a

@@ -58,7 +58,6 @@ const nimpheaRoot = currentSourcePath().parentDir.parentDir.parentDir
 {.passC: "-DARM_MATH_CM7".}
 {.passC: "-DUSE_FULL_LL_DRIVER".}
 {.passC: "-DDATA_IN_D2_SRAM".}
-{.passC: "-Dflash_layout".}
 {.passC: "-DFILEIO_ENABLE_FATFS_READER".}
 
 # ------------------------------------------------------------------------------
@@ -109,14 +108,17 @@ when defined(arm):
   {.passL: "-Wl,--allow-multiple-definition".}
 
   # Boot modes: BOOT_NONE (internal flash) is the default and links the
-  # flash linker script explicitly; bootloaded modes use their own script.
+  # flash linker script explicitly; bootloaded modes compile the startup unit
+  # with -DBOOT_APP and link their respective linker scripts.
+  {.compile: nimpheaRoot / "libDaisy/core/startup_stm32h750xx.c".}
   when defined(bootQspi):
-    {.passC: "-DBOOT_APP".}
+    {.passC: "-Dqspi_layout -DBOOT_APP".}
     {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_qspi.lds".}
   elif defined(bootSram):
-    {.passC: "-DBOOT_APP".}
+    {.passC: "-Dsram_layout -DBOOT_APP".}
     {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_sram.lds".}
   else:
+    {.passC: "-Dflash_layout".}
     {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_flash.lds".}
 
   # Optional: FatFs LFN support (opt-in via -d:useFatFsLFN)

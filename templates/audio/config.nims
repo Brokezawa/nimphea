@@ -219,3 +219,23 @@ task stlink, "Flash via ST-Link":
   let elf = projectDir / "build" / (projName & ".elf")
   exec "openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c \"program " &
        quoteShellPosix(elf) & " verify reset exit\""
+
+task flashBootloader, "Flash Daisy Bootloader to internal flash":
+  ## Flash the Daisy Bootloader binary (v6.4) to internal flash (0x08000000).
+  ## Connect Daisy Seed in system DFU mode (hold BOOT, press RESET, release BOOT).
+  var bootloaderBin = ""
+  let candidates = [
+    projectDir / "deps/nimphea/libDaisy/core/dsy_bootloader_v6_4-intdfu-2000ms.bin",
+    projectDir / "../libDaisy/core/dsy_bootloader_v6_4-intdfu-2000ms.bin",
+    projectDir / "../../libDaisy/core/dsy_bootloader_v6_4-intdfu-2000ms.bin"
+  ]
+  for c in candidates:
+    if fileExists(c):
+      bootloaderBin = c
+      break
+  if bootloaderBin.len == 0:
+    echo "Error: Could not locate dsy_bootloader_v6_4-intdfu-2000ms.bin in nimphea checkout."
+    quit(1)
+  echo "Flashing Daisy Bootloader from: " & bootloaderBin
+  exec "dfu-util -a 0 -s 0x08000000:leave -D " & quoteShellPosix(bootloaderBin) &
+       " -d ,0483:" & dfuPid

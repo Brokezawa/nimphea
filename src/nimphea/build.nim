@@ -94,6 +94,20 @@ when defined(arm):
     {.passC: "-DNDEBUG=1".}
     {.passC: "-DRELEASE=1".}
 
+  # Boot modes: BOOT_NONE (internal flash) is the default and links the
+  # flash linker script explicitly; bootloaded modes link their respective startup
+  # object (built with -DBOOT_APP) and linker scripts.
+  # Startup object MUST be passed before -ldaisy so its vector table and Reset_Handler are selected.
+  when defined(bootQspi):
+    {.passL: nimpheaRoot / "build/startup_qspi.o".}
+    {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_qspi.lds".}
+  elif defined(bootSram):
+    {.passL: nimpheaRoot / "build/startup_sram.o".}
+    {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_sram.lds".}
+  else:
+    {.passL: nimpheaRoot / "build/startup_flash.o".}
+    {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_flash.lds".}
+
   # Linker flags (including the prebuilt libDaisy static library). The arch
   # flags must also be passed at link time so the g++ driver selects the
   # hard-float multilib, matching the compiled objects.
@@ -106,19 +120,6 @@ when defined(arm):
   {.passL: "-Wl,--gc-sections".}
   {.passL: "-Wl,--print-memory-usage".}
   {.passL: "-Wl,--allow-multiple-definition".}
-
-  # Boot modes: BOOT_NONE (internal flash) is the default and links the
-  # flash linker script explicitly; bootloaded modes link their respective startup
-  # object (built with -DBOOT_APP) and linker scripts.
-  when defined(bootQspi):
-    {.passL: nimpheaRoot / "build/startup_qspi.o".}
-    {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_qspi.lds".}
-  elif defined(bootSram):
-    {.passL: nimpheaRoot / "build/startup_sram.o".}
-    {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_sram.lds".}
-  else:
-    {.passL: nimpheaRoot / "build/startup_flash.o".}
-    {.passL: "-T" & nimpheaRoot / "libDaisy/core/STM32H750IB_flash.lds".}
 
   # Optional: FatFs LFN support (opt-in via -d:useFatFsLFN)
   when defined(useFatFsLFN):
